@@ -1,0 +1,50 @@
+# Render blueprint: connect this repository in Render ("New → Blueprint") and it sets everything up.
+services:
+  - type: web
+    name: nightswap
+    runtime: python
+    plan: starter            # needed for the persistent disk (about $7/month)
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 4 --timeout 60 --bind 0.0.0.0:$PORT
+    healthCheckPath: /robots.txt
+    disk:
+      name: nightswap-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: NIGHTSWAP_ENV
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TASK_SECRET
+        generateValue: true
+      # Fill these in on Render (Dashboard → Environment):
+      - key: BASE_URL              # e.g. https://nightswap.onrender.com, later https://nightswap.nl
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM
+        sync: false

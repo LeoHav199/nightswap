@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('checkout') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" data-once>
+    {{ m.csrf() }}
+    <div class="notice notice-test">{{ t('test_checkout_note') }}</div>
+    <h1>{{ t('checkout') }}</h1>
+    <p class="muted">{{ l.event_name or l.venue }} · {{ l.venue }} · {{ fmt_date(l.event_date, 'long') }}</p>
+    <dl class="breakdown">
+      <div><dt>{{ order.quantity }}× {{ t('ticket') }}</dt><dd>{{ money(order.price_cents) }}</dd></div>
+      <div><dt>{{ t('service_fee') }}</dt><dd>{{ money(order.fee_cents) }}</dd></div>
+      <div class="breakdown-total"><dt>{{ t('total') }}</dt><dd>{{ money(order.total_cents) }}</dd></div>
+    </dl>
+    <fieldset class="methods">
+      <legend class="label">{{ t('pay_with') }}</legend>
+      <label class="method"><input type="radio" name="method" value="ideal" checked> iDEAL</label>
+      <label class="method"><input type="radio" name="method" value="card"> {{ t('card') }}</label>
+    </fieldset>
+    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('pay_amount', amount=money(order.total_cents)) }}</button>
+    <p class="small center"><a href="{{ url_for('cancel_order', public_id=order.public_id) }}">{{ t('cancel') }}</a></p>
+  </form>
+</div>
+{% endblock %}

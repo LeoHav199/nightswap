@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('your_data') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head"><h1>{{ t('your_data') }}</h1><p class="lead">{{ t('your_data_sub') }}</p></div>
+<div class="wrap account">
+  <section class="panel status-card">
+    <div><div class="status-label">{{ t('export_title') }}</div><div class="muted small">{{ t('export_body') }}</div></div>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('account_export') }}">{{ t('export_cta') }}</a>
+  </section>
+  <section class="account-section">
+    <h2>{{ t('delete_title') }}</h2>
+    <p class="muted">{{ t('delete_body') }}</p>
+    {% if open_sales %}<div class="notice"><p>{{ t('delete_open_sales', n=open_sales) }}</p></div>{% endif %}
+    {% if upcoming %}<div class="notice"><p>{{ t('delete_upcoming', n=upcoming) }}</p></div>{% endif %}
+    <form class="panel form" method="post" action="{{ url_for('account_delete') }}" data-confirm="{{ t('delete_confirm_js') }}">
+      {{ m.csrf() }}
+      <label class="field"><span class="label">{{ t('delete_type_email', email=user.email) }}</span>
+        <input type="email" name="confirm" autocomplete="off" required></label>
+      <button class="btn btn-ghost danger-btn" type="submit" {{ 'disabled' if open_sales }}>{{ t('delete_cta') }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ other_name }} · {{ l.event_name or l.venue }} · Nightswap{% endblock %}
+{% block body_class %}is-chat{% endblock %}
+{% block content %}
+<div class="wrap chat-wrap">
+  <a class="back" href="{{ url_for('inbox') }}">← {{ t('nav_messages') }}</a>
+
+  <a class="chat-head" href="{{ url_for('listing_page', listing_id=l.id) }}">
+    <span class="sg-date" style="--venue: {{ colour }}"><small>{{ fmt_date(l.event_date, 'dow') }}</small>{{ l.event_date[8:10]|int }}</span>
+    <span class="sg-main"><strong>{{ other_name }}</strong><span>{{ l.event_name or l.venue }} · {{ l.venue }} · {{ money(with_fee(l.price_cents)) }}</span></span>
+    {% if order %}{{ m.status_tag(order.status) }}{% endif %}
+  </a>
+
+  <div class="chat-guard">
+    <strong>{{ t('guard_title') }}</strong> {{ t('guard_body') }}
+  </div>
+  {% if flagged %}<div class="notice">{{ t('guard_flagged') }}</div>{% endif %}
+
+  <ol class="chat" aria-live="polite" data-chat data-updates="{{ url_for('thread_updates', thread_id=th.id) }}" data-last="{{ msgs[-1].id if msgs else 0 }}">
+    {% for msg in msgs %}{% include "_msg.html" %}{% else %}
+      <li class="msg-system" data-empty>{{ t('chat_empty') }}</li>
+    {% endfor %}
+  </ol>
+  <div id="end"></div>
+
+  <div class="chat-warning" data-chat-warning hidden></div>
+  <div class="composer">
+    {% if paused %}
+      <p class="muted small">{{ t('err_chat_paused') }}</p>
+    {% elif open or not is_buyer %}
+      <form class="composer-form" method="post" action="{{ url_for('send_message', thread_id=th.id) }}" data-chat-form>
+        {{ m.csrf() }}
+        <label class="sr-only" for="body">{{ t('message') }}</label>
+        <textarea id="body" name="body" rows="1" maxlength="1000" placeholder="{{ t('message_placeholder') }}" required data-autogrow></textarea>
+        <button class="btn btn-accent" type="submit" aria-label="{{ t('send') }}">{{ t('send') }}</button>
+      </form>
+    {% else %}
+      <p class="muted small">{{ t('chat_before_payment') }}</p>
+      <div class="chips">
+        {% for q in questions %}
+          <form method="post" action="{{ url_for('ask_question', listing_id=l.id) }}">{{ m.csrf() }}<input type="hidden" name="question" value="{{ q }}"><button class="chip" type="submit">{{ t(q) }}</button></form>
+        {% endfor %}
+      </div>
+      {% if can_buy %}
+        <form class="offer-form" method="post" action="{{ url_for('make_offer', listing_id=l.id) }}" data-once>
+          {{ m.csrf() }}
+          <label class="money-input"><span>€</span><input type="text" inputmode="decimal" name="amount" placeholder="{{ (l.price_cents - 200) // 100 if l.price_cents > 300 else '' }}" required aria-label="{{ t('your_offer') }}"></label>
+          {% if l.available > 1 and not l.sold_together %}<select name="qty" class="qty" aria-label="{{ t('quantity') }}">{% for n in range(1, l.available + 1) %}<option value="{{ n }}">{{ n }}×</option>{% endfor %}</select>{% endif %}
+          <button class="btn btn-ghost" type="submit">{{ t('make_offer') }}</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

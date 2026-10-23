@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('venue_title', venue=venue.name) }}{% endblock %}
+{% block head %}
+  <meta property="og:title" content="{{ t('venue_title', venue=venue.name) }}">
+  <meta property="og:description" content="{{ t('venue_meta', venue=venue.name, city=venue.city) }}">
+  {% if venue.photo_file %}<meta property="og:image" content="{{ base_url }}{{ url_for('poster', name=venue.photo_file) }}">{% endif %}
+{% endblock %}
+{% block content %}
+<section class="venue-hero {{ 'has-img' if venue.photo_file }}" style="--venue: {{ colour }}">
+  {% if venue.photo_file %}<img src="{{ url_for('poster', name=venue.photo_file) }}" alt="" onload="this.classList.add('loaded')">{% endif %}
+  <div class="wrap venue-hero-inner">
+    <a class="back" href="{{ url_for('index') }}">← {{ t('back_to_tickets') }}</a>
+    <h1 class="display">{{ venue.name }}</h1>
+    <p class="venue-where">{{ venue.address or venue.city }}</p>
+    <div class="event-actions">
+      <a class="btn btn-accent btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>
+      {% if venue.website %}<a class="btn btn-ghost btn-sm" href="{{ venue.website }}" target="_blank" rel="noopener">{{ t('website') }}</a>{% endif %}
+    </div>
+  </div>
+</section>
+<div class="wrap">
+  {% if credit %}<a class="credits-link" href="{{ credit.url }}">{{ t('photo_credits') }}</a>{% endif %}
+  {% if venue.description %}<p class="lead venue-desc">{{ venue.description }}</p>{% endif %}
+  <h2 class="list-head">{{ t('venue_upcoming', venue=venue.name) }}</h2>
+  {% if events %}
+    <ul class="events">{% for ev in events %}{{ m.event_card(ev) }}{% endfor %}</ul>
+  {% else %}
+    <div class="empty"><h2>{{ t('venue_empty') }}</h2><p class="muted">{{ t('empty_body') }}</p>
+      <div class="empty-actions"><a class="btn btn-accent" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a></div></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Events · Admin · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Events</h1><p class="muted">Real events people can buy and sell for. Events without tickets still get a page with "notify me".</p></div>
+  <div class="head-actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+  </div>
+</div>
+<div class="wrap account">
+
+  <section class="account-section">
+    <h2>Import from a link</h2>
+    <form class="panel admin-import" method="post" action="{{ url_for('admin_event_import') }}">
+      {{ m.csrf() }}
+      <input type="url" name="url" required placeholder="https://www.maassilo.com/agenda">
+      <button class="btn btn-accent" type="submit">Find events</button>
+    </form>
+    <p class="muted small">Paste a venue agenda, a festival page or a ticket shop page. Works when the site publishes event data for search engines (most ticket shops and many venues do). You choose which events to add.</p>
+  </section>
+
+  {% if posters %}
+  <section class="account-section" id="posters">
+    <h2>Posters sent in <span class="count">{{ posters|length }}</span></h2>
+    <p class="muted small">Approve only if it really comes from the organiser (check the email address or confirm via their Instagram).</p>
+    <ul class="admin-grid">
+      {% for p in posters %}
+      <li class="panel">
+        <img class="poster-preview" src="{{ url_for('poster', name=p.file) }}" alt="">
+        <p><strong>{{ p.event_name }}</strong><br><span class="muted small">{{ p.venue }} · {{ fmt_date(p.event_date) }}<br>From {{ p.organisation }}{% if p.role %} ({{ p.role }}){% endif %} · {{ p.email }}{% if p.credit %}<br>Credit: {{ p.credit }}{% endif %}</span></p>
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_poster_review', submission_id=p.id, action='approve') }}">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Approve</button></form>
+          <form method="post" action="{{ url_for('admin_poster_review', submission_id=p.id, action='reject') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Reject</button></form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="account-section">
+    <details class="panel outreach">
+      <summary><strong>Message to send organisers</strong> <span class="muted small">(copy, paste, adjust)</span></summary>
+      <p class="label">English</p>
+      <pre>Hi! I run Nightswap (nightswap.nl), a resale platform for students in Rotterdam. Students who can't make it sell their ticket to someone who can, never above face value, so your night stays full and nobody gets scammed.
+
+[EVENT NAME] is listed on our site with a link to your official ticket shop. Could we use your poster for it? You can upload it here in 30 seconds: [LINK TO "ORGANISER? ADD YOUR POSTER"]. Or reply with the image and a yes, and I'll add it.
+
+We'd also love to talk about being your official resale option. Happy to hear what you think!</pre>
+      <p class="label">Nederlands</p>
+      <pre>Hoi! Ik ben van Nightswap (nightswap.nl), een doorverkoopplatform voor studenten in Rotterdam. Studenten die niet kunnen, verkopen hun ticket aan iemand die wel kan, nooit boven de nominale waarde. Zo blijft jullie avond vol en wordt niemand opgelicht.
+
+[NAAM EVENEMENT] staat op onze site, met een link naar jullie officiële ticketshop. Mogen we jullie poster daarvoor gebruiken? Uploaden kan hier in 30 seconden: [LINK NAAR "ORGANISATOR? VOEG JE POSTER TOE"]. Of stuur de afbeelding terug met een "ja", dan zet ik hem erop.
+
+We praten ook graag over officieel doorverkopen via Nightswap. Laat maar weten wat je ervan vindt!</pre>
+      <p class="muted small">A written "yes" (email or DM) is your permission: keep it. The organiser link is on every event page without a poster.</p>
+    </details>
+  </section>
+
+  {% if review %}
+  <section class="account-section">
+    <h2>Added by sellers <span class="count">{{ review|length }}</span></h2>
+    <p class="muted small">These are already visible. Check the details, fix them if needed, then approve, or hide anything fake.</p>
+    <ul class="table-list">
+      {% for e in review %}
+      <li class="admin-event-row">
+        <div class="tl-main"><strong>{{ e.name }}</strong><span class="muted small">{{ e.venue }}, {{ e.city }} · {{ fmt_date(e.event_date) }}{% if e.door_time %} · {{ e.door_time }}{% endif %} · {{ t('cat_' ~ e.category) }} · by {{ e.by_email or '?' }}</span></div>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_events', edit=e.id) }}#form">Edit</a>
+        <form method="post" action="{{ url_for('admin_event_status', event_id=e.id, action='approve') }}">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Approve</button></form>
+        <form method="post" action="{{ url_for('admin_event_status', event_id=e.id, action='hide') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Hide</button></form>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="account-section" id="form">
+    <h2>{{ 'Edit event' if edit else 'Add an event' }}</h2>
+    <form class="panel form" method="post" action="{{ url_for('admin_event_save') }}" enctype="multipart/form-data">
+      {{ m.csrf() }}{% if edit %}<input type="hidden" name="id" value="{{ edit.id }}">{% endif %}
+      <div class="grid-2">
+        <label class="field"><span class="label">Name</span><input type="text" name="name" value="{{ edit.name if edit else '' }}" required maxlength="80"></label>
+        <label class="field"><span class="label">Venue</span><input type="text" name="venue" value="{{ edit.venue if edit else '' }}" required maxlength="60" list="venue-list">
+          <datalist id="venue-list">{% for v in venues %}<option value="{{ v.name }}">{{ v.city }}</option>{% endfor %}</datalist></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="label">City</span><input type="text" name="city" value="{{ edit.city if edit else 'Rotterdam' }}" maxlength="60"></label>
+        <label class="field"><span class="label">Category</span><select name="category">{% for c in categories %}<option value="{{ c }}" {{ 'selected' if edit and edit.category == c }}>{{ t('cat_' ~ c) }}</option>{% endfor %}</select></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="label">Date</span><input type="date" name="event_date" value="{{ edit.event_date if edit else '' }}" required></label>
+        <label class="field"><span class="label">Minimum age</span><input type="text" inputmode="numeric" name="min_age" value="{{ edit.min_age if edit and edit.min_age else '' }}" placeholder="18"></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="label">Doors</span><input type="time" name="door_time" value="{{ edit.door_time if edit and edit.door_time else '' }}"></label>
+        <label class="field"><span class="label">Ends</span><input type="time" name="end_time" value="{{ edit.end_time if edit and edit.end_time else '' }}"></label>
+      </div>
+      <label class="field"><span class="label">Official ticket link</span><input type="url" name="ticket_url" value="{{ edit.ticket_url if edit and edit.ticket_url else '' }}" placeholder="https://"></label>
+      <label class="field"><span class="label">Description or line-up</span><textarea name="description" rows="3" maxlength="600">{{ edit.description if edit and edit.description else '' }}</textarea></label>
+      <div class="grid-2">
+        <label class="field"><span class="label">Source (where you found this)</span><input type="url" name="source_url" value="{{ edit.source_url if edit and edit.source_url else '' }}" placeholder="https://"></label>
+        <label class="field"><span class="label">Poster <span class="optional">only with permission</span></span><input type="file" name="poster" accept="image/jpeg,image/png,image/webp"></label>
+      </div>
+      <button class="btn btn-accent" type="submit">{{ 'Save changes' if edit else 'Add event' }}</button>
+    </form>
+  </section>
+
+  <section class="account-section">
+    <h2>Upcoming <span class="muted small">{{ upcoming|length }} events</span></h2>
+    <ul class="table-list">
+      {% for e in upcoming %}
+      <li class="admin-event-row" id="e{{ e.id }}">
+        <div class="tl-main">
+          <strong>{{ e.name }} {% if e.status != 'published' %}<span class="tag">{{ e.status }}</span>{% endif %}</strong>
+          <span class="muted small">{{ e.venue }}, {{ e.city }} · {{ fmt_date(e.event_date) }}{% if e.door_time %} · {{ e.door_time }}{% endif %} · {{ t('cat_' ~ e.category) }} · {{ e.tickets }} tickets · {{ e.waiting }} waiting{% if e.source_url %} · <a href="{{ e.source_url }}" target="_blank" rel="noopener">source</a>{% endif %}</span>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="{{ event_url(e.venue, e.event_date, e.name) }}">View</a>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_events', edit=e.id) }}#form">Edit</a>
+        {% if not e.cancelled_at %}
+          <form method="post" action="{{ url_for('admin_event_status', event_id=e.id, action='cancel') }}" data-confirm="Cancel {{ e.name }}? Every buyer gets a full refund and all tickets go off sale. This can't be undone.">{{ m.csrf() }}<button class="btn btn-ghost btn-sm danger-btn">Cancel &amp; refund all</button></form>
+        {% else %}<span class="tag tag-disputed">cancelled</span>{% endif %}
+        {% if e.status == 'hidden' %}
+          <form method="post" action="{{ url_for('admin_event_status', event_id=e.id, action='publish') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Show</button></form>
+        {% else %}
+          <form method="post" action="{{ url_for('admin_event_status', event_id=e.id, action='hide') }}" data-confirm="Hide this event?">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Hide</button></form>
+        {% endif %}
+      </li>
+      {% else %}<li class="muted" style="padding:14px 4px">No events yet. Import some from a link above.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

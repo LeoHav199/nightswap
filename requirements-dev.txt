@@ -1,0 +1,3 @@
+# Only needed on your own computer (tools/make_icons.py draws the app icons).
+-r requirements.txt
+pillow==11.3.0

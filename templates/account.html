@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('nav_account') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div>
+    <h1>{{ t('hi', name=user.first_name) }}</h1>
+    <p class="muted">{{ user.email }}{% if user.phone_verified_at %} · {{ user.phone }}{% endif %}</p>
+  </div>
+  <div class="head-actions">{% if is_admin %}<a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">Admin</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{{ url_for('account_data') }}">{{ t('your_data') }}</a><form method="post" action="{{ url_for('logout') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('log_out') }}</button></form></div>
+</div>
+
+<div class="wrap account">
+  <div class="account-cards">
+    <div class="panel status-card">
+      <div>
+        <div class="status-label">{{ t('phone_number') }}</div>
+        <div>{% if user.phone_verified_at %}<span class="check">{{ t('verified') }}</span>{% else %}<span class="muted">{{ t('not_verified') }}</span>{% endif %}</div>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('phone') }}">{{ t('change') if user.phone_verified_at else t('verify') }}</a>
+    </div>
+    <div class="panel status-card">
+      <div>
+        <div class="status-label">{{ t('payouts') }}</div>
+        <div>{% if user.payouts_ready %}<span class="check">{{ t('payouts_ready') }}</span>{% elif user.stripe_account_id %}<span class="muted">{{ t('payouts_checking') }}</span>{% else %}<span class="muted">{{ t('payouts_not_ready') }}</span>{% endif %}</div>
+      </div>
+      {% if not user.payouts_ready %}<a class="btn {{ 'btn-ghost' if user.stripe_account_id else 'btn-accent' }} btn-sm" href="{{ url_for('payouts_setup') }}">{{ t('continue') if user.stripe_account_id else t('set_up') }}</a>{% endif %}
+    </div>
+  </div>
+
+  <div class="panel status-card student-card">
+    <div>
+      <div class="status-label">{{ t('student_status') }}</div>
+      <div>{% if user.student_verified_at %}<span class="check">{{ t('student_verified_as', school=user.student_school) }}</span>{% else %}<span class="muted">{{ t('student_not_verified') }}</span>{% endif %}</div>
+    </div>
+    {% if not user.student_verified_at %}<a class="btn btn-accent btn-sm" href="{{ url_for('student') }}">{{ t('verify') }}</a>{% endif %}
+  </div>
+
+  <div class="panel status-card student-card">
+    <div>
+      <div class="status-label">{{ t('push_label') }}</div>
+      <div class="muted small">{{ t('push_explain') }}</div>
+    </div>
+    {{ m.push_toggle() }}
+  </div>
+
+  {% if alerts %}
+  <section class="account-section">
+    <h2>{{ t('your_alerts') }}</h2>
+    <ul class="table-list">
+      {% for a in alerts %}
+      <li><a href="{{ event_url(a.venue, a.event_date, a.event_name) }}">
+        <span class="tl-main"><strong>{{ a.event_name or a.venue }}</strong><span class="muted small">{{ a.venue }} · {{ fmt_date(a.event_date) }}</span></span>
+        <span class="muted small">{{ t('alert_on') }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <section class="account-section">
+    <div class="section-head">
+      <h2>{{ t('your_listings') }}</h2>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
+    </div>
+    {% if listings %}
+      <ul class="table-list">
+        {% for l in listings %}
+        <li>
+          <a href="{{ url_for('listing_page', listing_id=l.id) }}">
+            <span class="tl-main"><strong>{{ l.event_name or l.venue }}</strong><span class="muted small">{{ l.venue }} · {{ fmt_date(l.event_date) }}</span></span>
+            <span class="muted small">{{ t('n_left_short', n=l.available) }}</span><span class="tl-amount">{{ money(l.price_cents) }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}<p class="muted">{{ t('no_listings') }}</p>{% endif %}
+  </section>
+
+  <section class="account-section">
+    <h2>{{ t('your_sales') }}</h2>
+    {% if sales %}
+      <ul class="table-list">
+        {% for o in sales %}
+        <li>
+          <a href="{{ url_for('order_page', public_id=o.public_id) }}">
+            <span class="tl-main"><strong>{{ o.event_name or o.venue }}</strong><span class="muted small">{{ o.venue }} · {{ fmt_date(o.event_date) }}</span></span>
+            {{ m.status_tag(o.status) }}
+            <span class="tl-amount">{{ money(o.price_cents) }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}<p class="muted">{{ t('no_sales') }}</p>{% endif %}
+  </section>
+
+  <section class="account-section">
+    <h2>{{ t('your_tickets') }}</h2>
+    {% if purchases %}
+      <ul class="table-list">
+        {% for o in purchases %}
+        <li>
+          <a href="{{ url_for('order_page', public_id=o.public_id) }}">
+            <span class="tl-main"><strong>{{ o.event_name or o.venue }}</strong><span class="muted small">{{ o.venue }} · {{ fmt_date(o.event_date) }}</span></span>
+            {{ m.status_tag(o.status) }}
+            <span class="tl-amount">{{ money(o.total_cents) }}</span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}<p class="muted">{{ t('no_purchases') }} <a href="{{ url_for('index') }}">{{ t('browse_tickets') }}</a></p>{% endif %}
+  </section>
+</div>
+{% endblock %}

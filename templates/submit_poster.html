@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('submit_poster_title') }} · {{ e.name }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" enctype="multipart/form-data" data-once>
+    {{ m.csrf() }}
+    <h1>{{ t('submit_poster_title') }}</h1>
+    <p class="muted">{{ t('submit_poster_sub', name=e.name, venue=e.venue, date=fmt_date(e.event_date, 'long')) }}</p>
+    <label class="field">
+      <span class="label">{{ t('organisation') }}</span>
+      <input type="text" name="organisation" value="{{ form.get('organisation', '') }}" maxlength="80" required placeholder="Exchange Party">
+      {{ m.field_error(errors, 'organisation') }}
+    </label>
+    <div class="grid-2">
+      <label class="field">
+        <span class="label">{{ t('your_role') }} <span class="optional">{{ t('optional') }}</span></span>
+        <input type="text" name="role" value="{{ form.get('role', '') }}" maxlength="60" placeholder="{{ t('role_placeholder') }}">
+      </label>
+      <label class="field">
+        <span class="label">{{ t('credit_label') }} <span class="optional">{{ t('optional') }}</span></span>
+        <input type="text" name="credit" value="{{ form.get('credit', '') }}" maxlength="80" placeholder="{{ t('credit_placeholder') }}">
+      </label>
+    </div>
+    <label class="field">
+      <span class="label">{{ t('poster') }}</span>
+      <span class="file-drop"><input type="file" name="poster" accept="image/jpeg,image/png,image/webp" required data-file><span class="file-drop-text" data-file-label>{{ t('poster_cta') }}</span></span>
+      {{ m.field_error(errors, 'poster') }}
+    </label>
+    <label class="consent">
+      <input type="checkbox" name="consent" value="yes" {{ 'checked' if form.get('consent') == 'yes' }} required>
+      <span>{{ t('poster_consent', org=form.get('organisation') or t('my_organisation')) }}</span>
+    </label>
+    {{ m.field_error(errors, 'consent') }}
+    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('send_poster') }}</button>
+    <p class="muted small center">{{ t('poster_review_note') }}</p>
+  </form>
+</div>
+{% endblock %}

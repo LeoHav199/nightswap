@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('login_title') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" data-once>
+    {{ m.csrf() }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <h1>{{ t('login_title') }}</h1>
+    <p class="muted">{{ t('login_sub') }}</p>
+    <label class="field">
+      <span class="label">{{ t('email') }}</span>
+      <input type="email" name="email" value="{{ email }}" autocomplete="email" required autofocus>
+      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+    </label>
+    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('continue') }}</button>
+  </form>
+</div>
+{% endblock %}

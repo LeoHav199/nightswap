@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('report_listing') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" data-once>
+    {{ m.csrf() }}
+    <h1>{{ t('report_listing') }}</h1>
+    <p class="muted">{{ l.event_name or l.venue }} · {{ l.venue }} · {{ fmt_date(l.event_date, 'long') }} · {{ t('sold_by', name=l.seller_name) }}</p>
+    <fieldset class="field reasons">
+      <legend class="label">{{ t('report_why') }}</legend>
+      {% for r in reasons %}
+        <label class="method"><input type="radio" name="reason" value="{{ r }}" {{ 'checked' if request.form.get('reason') == r }} required> {{ t('report_reason_' ~ r) }}</label>
+      {% endfor %}
+    </fieldset>
+    <label class="field"><span class="label">{{ t('report_details') }} <span class="optional">{{ t('optional') }}</span></span>
+      <textarea name="details" rows="3" maxlength="1000">{{ request.form.get('details', '') }}</textarea></label>
+    {% if not user %}
+      <label class="field"><span class="label">{{ t('email') }}</span><input type="email" name="email" value="{{ request.form.get('email', '') }}" required>
+        <span class="hint">{{ t('report_email_hint') }}</span></label>
+    {% endif %}
+    {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+    <button class="btn btn-accent btn-block" type="submit">{{ t('report_send') }}</button>
+    <p class="muted small center">{{ t('report_listing_note') }}</p>
+  </form>
+</div>
+{% endblock %}

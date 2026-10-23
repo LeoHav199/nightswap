@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('verify_title') }} · Admin · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" data-once>
+    {{ m.csrf() }}<input type="hidden" name="next" value="{{ next }}">
+    <h1>{{ t('admin_check_title') }}</h1>
+    <p class="muted">{{ t('admin_check_sub', phone=phone) }}</p>
+    <label class="field"><span class="label">{{ t('code') }}</span>
+      <input class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus>
+      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}</label>
+    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('verify') }}</button>
+    <p class="small center"><a href="{{ url_for('admin_verify', next=next) }}">{{ t('send_new_code') }}</a></p>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% macro csrf() %}<input type="hidden" name="_csrf" value="{{ csrf_token }}">{% endmacro %}
+
+{# A flyer-style block: the event poster, else the venue photo, else generated artwork, with the name set big. #}
+{% macro poster(name, venue, day, poster_file, colour, size='card', photo=None, vt=None, art=None, credit=None, link=False) %}
+{% set img = url_for('poster', name=poster_file) if poster_file else (url_for('poster', name=photo) if photo else art) %}
+<div class="poster poster-{{ size }} {{ 'has-img' if img }} {{ 'is-photo' if photo and not poster_file }} {{ 'is-art' if art and not poster_file and not photo }}"
+     style="--venue: {{ colour }};{% if vt %} view-transition-name: {{ vt }};{% endif %}">
+  {% if img %}<img src="{{ img }}" alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')">{% endif %}
+  {% if not poster_file %}
+    <div class="poster-date"><span>{{ fmt_date(day, 'dow') }}</span><strong>{{ day[8:10]|int }}</strong><span>{{ fmt_date(day, 'mon') }}</span></div>
+    <div class="poster-name">{{ name or venue }}</div>
+    {% if name %}<div class="poster-venue">{{ venue }}</div>{% endif %}
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro vt_name(ev) %}{{ ev|vt }}{% endmacro %}
+
+{% macro event_card(ev) %}
+<li>
+  <a class="stub {{ 'is-empty' if not ev.count }}" href="{{ url_for('event_page', venue=ev.venue, date=ev.date, name=ev.name or '') }}">
+    <div class="stub-top">
+      {{ poster(ev.name, ev.venue, ev.date, ev.poster, ev.colour, 'card', ev.photo, vt_name(ev), art_url(ev.date, ev.venue, ev.name, ev.category)) }}
+      <div class="stub-flags">
+        {% if ev.hot %}<span class="flag flag-hot">{{ t('last_ticket') if ev.count == 1 else t('going_fast') }}</span>
+        {% elif ev.new %}<span class="flag flag-new">{{ t('just_listed') }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="stub-tear" aria-hidden="true"></div>
+    <div class="stub-body">
+      <div class="stub-info">
+        <div class="stub-title">{{ ev.name or ev.venue }}</div>
+        <div class="stub-meta">{{ ev.venue }}{% if ev.city != 'Rotterdam' %}, {{ ev.city }}{% endif %} · {{ fmt_date(ev.date) }}{% if ev.category in ('student', 'festival', 'concert') %} · {{ t('cat_' ~ ev.category) }}{% endif %}</div>
+      </div>
+      {% if ev.count %}
+        <div class="stub-price">
+          <span class="stub-count">{{ t('n_left', n=ev.count) if ev.count != 1 else t('one_left') }}</span>
+          <strong>{{ (t('from') ~ ' ') if ev.count > 1 }}{{ money(with_fee(ev.min_price)) }}</strong>
+        </div>
+      {% else %}
+        <div class="stub-price stub-empty">
+          <span class="stub-count">{{ t('n_waiting', n=ev.waiting) if ev.waiting else t('get_notified') }}</span>
+          <strong>{{ t('no_tickets_yet') }}</strong>
+        </div>
+      {% endif %}
+    </div>
+  </a>
+</li>
+{% endmacro %}
+
+{% macro field_error(errors, name) %}{% if errors.get(name) %}<p class="field-error">{{ errors[name] }}</p>{% endif %}{% endmacro %}
+
+{% macro status_tag(status) %}<span class="tag tag-{{ status }}">{{ t('status_' ~ status) }}</span>{% endmacro %}
+
+{# Trust line for a seller: verified student, phone, track record. #}
+{% macro seller_badges(s, st) %}
+  {% if s.student_verified_at %}<span class="badge badge-student" title="{{ s.student_school }}">{{ t('badge_student') }}</span>{% endif %}
+  {% if s.phone_verified_at %}<span class="badge">{{ t('badge_phone') }}</span>{% endif %}
+  {% if st and st.sales >= 2 %}
+    <span class="badge">{{ t('n_sales', n=st.sales) if st.sales != 1 else t('one_sale') }}{% if st.rated %} · {{ t('all_worked') if st.up == st.rated else t('pct_worked', pct=(100 * st.up // st.rated)) }}{% endif %}</span>
+  {% endif %}
+{% endmacro %}
+
+{# Opens the native share sheet with a story-sized image (Instagram, WhatsApp, ...), or downloads it. #}
+{% macro share_button(title, venue, day, price_text, url, colour, poster_file, cls='btn btn-ghost btn-sm', category='club') %}
+<button type="button" class="{{ cls }}" data-share
+  data-title="{{ title }}" data-venue="{{ venue }}" data-date="{{ fmt_date(day, 'long') }}"
+  data-dow="{{ fmt_date(day, 'dow') }}" data-day="{{ day[8:10]|int }}" data-mon="{{ fmt_date(day, 'mon') }}"
+  data-price="{{ price_text }}" data-url="{{ url }}" data-colour="{{ colour }}"
+  data-poster="{{ url_for('poster', name=poster_file) if poster_file else '' }}"
+  data-art="{{ art_url(day, venue, title if title != venue else None, category) }}"
+  data-text="{{ t('share_text', title=title, date=fmt_date(day, 'long'), price=price_text) }}"
+  data-done="{{ t('share_saved') }}">
+  <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 6 6.4l1.05 1.06L9.25 5.3V12h1.5V5.3l2.2 2.17L14 6.4 10 2.5ZM4 9.5v7h12v-7h-1.5V15h-9V9.5H4Z"/></svg>
+  {{ t('share') }}
+</button>
+<a class="{{ cls }} btn-wa" target="_blank" rel="noopener"
+   href="https://wa.me/?text={{ (t('share_text', title=title, date=fmt_date(day, 'long'), price=price_text) ~ ' ' ~ url)|urlencode }}">WhatsApp</a>
+{% endmacro %}
+
+{# Turns browser push notifications on/off for this device. The script fills in the right state. #}
+{% macro push_toggle(cls='btn btn-ghost btn-sm') %}
+<button type="button" class="{{ cls }}" data-push hidden
+  data-on="{{ t('push_on') }}" data-off="{{ t('push_off') }}" data-busy="{{ t('push_busy') }}"
+  data-denied="{{ t('push_denied') }}" data-ios="{{ t('push_ios') }}">{{ t('push_off') }}</button>
+{% endmacro %}

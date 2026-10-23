@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+instance/
+uploads/*
+!uploads/.keep
+.claude/
+*.sqlite3-wal
+*.sqlite3-shm
+demo-data/
+.DS_Store

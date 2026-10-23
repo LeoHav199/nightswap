@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ t('footer_privacy') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap prose">
+  {% if lang == 'nl' %}
+  <h1>Privacy</h1>
+  <p class="muted">Laatst bijgewerkt: oktober 2026</p>
+  <h2>Wat we bewaren</h2>
+  <p>Je e-mailadres en voornaam; je telefoonnummer als je verkoopt; je advertenties, ticketbestanden en bestellingen. Betaalgegevens worden door Stripe verwerkt en komen nooit bij ons.</p>
+  <h2>Waarom</h2>
+  <p>Om je in te laten loggen, tickets te leveren, uitbetalingen te doen en fraude te voorkomen. We gebruiken geen advertentie- of trackingcookies.</p>
+  <h2>Wie het ziet</h2>
+  <p>Kopers zien de voornaam van de verkoper. Na een aankoop kunnen koper en verkoper elkaar berichten sturen via Nightswap; e-mailadressen blijven verborgen. Telefoonnummers zijn alleen zichtbaar voor Nightswap.</p>
+  <h2>Berichten</h2>
+  <p>Berichten tussen kopers en verkopers lopen via Nightswap. Om je te beschermen tegen oplichting verbergen we automatisch telefoonnummers, e-mailadressen, links en betaalgegevens. Berichten waarin iets verborgen is of die over betalen buiten Nightswap gaan, bewaren we in originele vorm, zodat ons team ze kan bekijken bij fraude of een gemeld probleem.</p>
+  <h2>Je rechten</h2>
+  <p>Je kunt je gegevens opvragen, laten aanpassen of laten verwijderen via <a href="mailto:hello@nightswap.nl">hello@nightswap.nl</a>.</p>
+  {% else %}
+  <h1>Privacy</h1>
+  <p class="muted">Last updated: October 2026</p>
+  <h2>What we store</h2>
+  <p>Your email address and first name; your phone number if you sell; your listings, ticket files and orders. Payment details are handled by Stripe and never reach us.</p>
+  <h2>Why</h2>
+  <p>To sign you in, deliver tickets, pay sellers and prevent fraud. We don't use advertising or tracking cookies.</p>
+  <h2>Who sees it</h2>
+  <p>Buyers see the seller's first name. After a purchase, buyer and seller can message each other through Nightswap; email addresses stay hidden. Phone numbers are only visible to Nightswap.</p>
+  <h2>Messages</h2>
+  <p>Messages between buyers and sellers go through Nightswap. To protect you from scams, phone numbers, email addresses, links and payment details are hidden automatically. Messages where something was hidden, or that talk about paying outside Nightswap, are kept in their original form so our team can review them in case of fraud or a reported problem.</p>
+  <h2>Your rights</h2>
+  <p>You can request, correct or delete your data by emailing <a href="mailto:hello@nightswap.nl">hello@nightswap.nl</a>.</p>
+  {% endif %}
+</div>
+{% endblock %}

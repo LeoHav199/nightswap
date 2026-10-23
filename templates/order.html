@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('order') }} · Nightswap{% endblock %}
+{% block content %}
+{% set paid = order.status in ('paid', 'disputed', 'released') %}
+<div class="wrap">
+  <a class="back" href="{{ url_for('account') }}">← {{ t('nav_account') }}</a>
+</div>
+
+<div class="wrap detail">
+  <section class="detail-main">
+    {% if is_buyer and paid %}
+      <article class="ticket {{ 'just-paid' if just_paid }}">
+        <div class="ticket-top">{{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'ticket', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}</div>
+        <div class="stub-tear ticket-tear" aria-hidden="true"></div>
+        <div class="ticket-body">
+          <p class="ticket-kicker">{{ t('order_buyer_paid_title') }}</p>
+          <h1 class="display">{{ l.event_name or l.venue }}</h1>
+          <dl class="ticket-facts">
+            <div><dt>{{ t('date') }}</dt><dd>{{ fmt_date(l.event_date, 'long') }}{% if l.start_time %} · {{ l.start_time }}{% endif %}</dd></div>
+            <div><dt>{{ t('venue') }}</dt><dd>{% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ l.venue }}</a>{% else %}{{ l.venue }}{% endif %}</dd></div>
+            <div><dt>{{ t('tickets_label') }}</dt><dd>{{ order.quantity }}</dd></div>
+            <div><dt>{{ t('order') }}</dt><dd>{{ order.public_id }}</dd></div>
+          </dl>
+          {% if qr_codes %}
+            <div class="ticket-qrs">
+              {% for tid, svg in qr_codes %}
+                <figure class="ticket-qr">{{ svg|safe }}<figcaption>{{ t('ticket') }} {{ loop.index }}/{{ qr_codes|length }}</figcaption></figure>
+              {% endfor %}
+            </div>
+            <p class="muted small center">{{ t('qr_hint') }}</p>
+          {% endif %}
+          <div class="downloads">
+            {% for f in files %}
+              <a class="btn btn-accent {{ 'btn-lg' if files|length == 1 }}" href="{{ url_for('download_ticket', public_id=order.public_id, ticket_id=f.id) }}">{{ t('download_ticket') if files|length == 1 else t('download_ticket_n', n=loop.index) }}</a>
+            {% endfor %}
+            {% for tk in wallet_tickets %}
+              <a class="btn btn-wallet" href="{{ url_for('wallet_pass', public_id=order.public_id, ticket_id=tk.id) }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M3 12.5h18"/></svg>
+                {{ t('add_to_wallet') if wallet_tickets|length == 1 else t('add_to_wallet_n', n=loop.index) }}</a>
+            {% endfor %}
+          </div>
+          <div class="ticket-links">
+            <a href="{{ url_for('order_calendar', public_id=order.public_id) }}">{{ t('add_to_calendar') }}</a>
+            {% if venue %}<a href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
+          </div>
+          <p class="muted small">{{ t('download_hint') }}</p>
+        </div>
+      </article>
+      {% if just_paid %}<div class="confetti" aria-hidden="true">{% for i in range(18) %}<i style="--i: {{ i }}"></i>{% endfor %}</div>{% endif %}
+    {% else %}
+      {{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'banner', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}
+      <p class="order-ref">{{ t('order') }} {{ order.public_id }} {{ m.status_tag(order.status) }}</p>
+    {% if is_buyer %}
+      {% if paid %}
+        <h1>{{ t('order_buyer_paid_title') }}</h1>
+        <p class="lead">{{ t('order_buyer_paid_body') }}</p>
+      {% elif order.status == 'pending' %}
+        <h1>{{ t('order_pending_title') }}</h1>
+        <p class="lead">{{ t('order_pending_body') }}</p>
+      {% elif order.status == 'refunded' %}
+        <h1>{{ t('order_refunded_title') }}</h1>
+        <p class="lead">{{ t('order_refunded_body', amount=money(order.total_cents)) }}</p>
+      {% else %}
+        <h1>{{ t('order_expired_title') }}</h1>
+        <p class="lead">{{ t('order_expired_body') }}</p>
+      {% endif %}
+    {% else %}
+      {% if order.status == 'paid' %}
+        <h1>{{ t('order_seller_paid_title') }}</h1>
+        <p class="lead">{{ t('order_seller_paid_body', amount=money(order.price_cents), date=fmt_date(payout_due.date(), 'long')) }}</p>
+      {% elif order.status == 'disputed' %}
+        <h1>{{ t('order_seller_disputed_title') }}</h1>
+        <p class="lead">{{ t('order_seller_disputed_body') }}</p>
+      {% elif order.status == 'released' %}
+        <h1>{{ t('order_seller_released_title') }}</h1>
+        <p class="lead">{{ t('order_seller_released_body', amount=money(order.price_cents)) }}</p>
+      {% elif order.status == 'refunded' %}
+        <h1>{{ t('order_refunded_title') }}</h1>
+        <p class="lead">{{ t('order_seller_refunded_body') }}</p>
+      {% else %}
+        <h1>{{ t('order_expired_title') }}</h1>
+      {% endif %}
+    {% endif %}
+
+    <dl class="facts">
+      <div><dt>{{ t('event') }}</dt><dd>{{ l.event_name or t('general_entry') }}</dd></div>
+      <div><dt>{{ t('venue') }}</dt><dd>{{ l.venue }}</dd></div>
+      <div><dt>{{ t('date') }}</dt><dd>{{ fmt_date(l.event_date, 'long') }}</dd></div>
+    </dl>
+
+    {% endif %}
+
+    {% if changed and is_buyer and order.status == 'paid' %}
+      <div class="notice">
+        <p><strong>{{ t('event_changed') }}</strong> {{ changed.change_note }}</p>
+        <p>{{ t('change_refund_offer', amount=money(order.total_cents)) }}</p>
+        <form method="post" action="{{ url_for('change_refund', public_id=order.public_id) }}" data-confirm="{{ t('change_refund_confirm') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('change_refund_cta') }}</button></form>
+      </div>
+    {% endif %}
+
+    {% if can_rate %}
+      <div class="rate">
+        <strong>{{ t('rate_question') }}</strong>
+        <form method="post" action="{{ url_for('rate_order', public_id=order.public_id) }}" class="rate-options">
+          {{ m.csrf() }}
+          <button class="btn btn-ghost" name="rating" value="up" type="submit">👍 {{ t('rate_up') }}</button>
+          <button class="btn btn-ghost" name="rating" value="down" type="submit">👎 {{ t('rate_down') }}</button>
+        </form>
+      </div>
+    {% elif is_buyer and order.rating %}
+      <p class="muted small">{{ t('rated_thanks') }}</p>
+    {% endif %}
+
+    {% if is_seller and order.status == 'paid' and not seller.payouts_ready %}
+      <div class="notice">
+        <p><strong>{{ t('payout_setup_needed_title') }}</strong> {{ t('payout_setup_needed_body') }}</p>
+        <a class="btn btn-accent btn-sm" href="{{ url_for('payouts_setup') }}">{{ t('set_up_payouts') }}</a>
+      </div>
+    {% endif %}
+
+    {% if paid %}
+      <div class="seller-card">
+        {% set other = seller if is_buyer else buyer %}
+        <div class="avatar" aria-hidden="true">{{ other.first_name[:1] }}</div>
+        <div>
+          <div class="seller-name">{{ t('seller_is', name=other.first_name) if is_buyer else t('buyer_is', name=other.first_name) }}</div>
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('order_chat', public_id=order.public_id) }}">{{ t('message_name', name=other.first_name) }}</a>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if can_report %}
+      <details class="report" id="report" {{ 'open' if request.args.get('report') }}>
+        <summary>{{ t('report_problem') }}</summary>
+        <form class="form" method="post" action="{{ url_for('report_problem', public_id=order.public_id) }}" data-once>
+          {{ m.csrf() }}
+          <p class="muted small">{{ t('report_hint', date=fmt_date(payout_due.date(), 'long')) }}</p>
+          <label class="field">
+            <span class="label">{{ t('report_what') }}</span>
+            <textarea name="reason" rows="4" minlength="10" maxlength="1000" required></textarea>
+          </label>
+          <button class="btn btn-ghost" type="submit">{{ t('report_send') }}</button>
+        </form>
+      </details>
+    {% elif is_buyer and order.status == 'disputed' %}
+      <div class="notice"><p>{{ t('report_received') }}</p></div>
+    {% endif %}
+  </section>
+
+  <aside class="panel">
+    <h2 class="panel-title">{{ t('payment') }}</h2>
+    <dl class="breakdown">
+      <div><dt>{{ order.quantity }}× {{ t('ticket') }}</dt><dd>{{ money(order.price_cents) }}</dd></div>
+      {% if is_buyer %}<div><dt>{{ t('service_fee') }}</dt><dd>{{ money(order.fee_cents) }}</dd></div>
+      <div class="breakdown-total"><dt>{{ t('total') }}</dt><dd>{{ money(order.total_cents) }}</dd></div>{% endif %}
+    </dl>
+    {% if paid %}
+      <ol class="timeline">
+        <li class="done">{{ t('tl_paid') }}</li>
+        <li class="{{ 'done' if order.status == 'released' }}">{{ t('tl_event', date=fmt_date(l.event_date)) }}</li>
+        <li class="{{ 'done' if order.status == 'released' }}">{{ t('tl_payout', date=fmt_date(payout_due.date())) }}</li>
+      </ol>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

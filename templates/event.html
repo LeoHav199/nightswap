@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }} · Nightswap{% endblock %}
+{% block head %}
+  <meta property="og:title" content="{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }}">
+  <meta property="og:description" content="{{ t('og_event', venue=ev.venue, n=ev.count) }}">
+  {% if ev.poster or ev.photo %}<meta property="og:image" content="{{ base_url }}{{ url_for('poster', name=ev.poster or ev.photo) }}">{% endif %}
+  <script type="application/ld+json">{{ {
+    "@context": "https://schema.org", "@type": "Event", "name": ev.name or ev.venue,
+    "startDate": ev.date ~ ("T" ~ ev.start_time if ev.start_time else ""),
+    "location": {"@type": "Place", "name": ev.venue, "address": (venue.address if venue and venue.address else ev.city)},
+    "offers": ({"@type": "AggregateOffer", "priceCurrency": "EUR", "lowPrice": "%.2f"|format(with_fee(ev.min_price) / 100), "offerCount": ev.count} if ev.min_price else none)
+  }|tojson }}</script>
+{% endblock %}
+{% block content %}
+{% set url = event_url(ev.venue, ev.date, ev.name, external=True) %}
+<div class="wrap">
+  <a class="back" href="{{ url_for('index', day=ev.date) }}">← {{ fmt_date(ev.date, 'long') }}</a>
+</div>
+<div class="wrap event">
+  <div class="event-poster">{{ m.poster(ev.name, ev.venue, ev.date, ev.poster, ev.colour, 'large', ev.photo, ev|vt, art_url(ev.date, ev.venue, ev.name, ev.category)) }}
+    {% if ev.credit %}<a class="credits-link" href="{{ ev.credit.url }}">{{ t('photo_credits') }}</a>{% endif %}
+    {% if e and not ev.poster %}<a class="organiser-link" href="{{ url_for('submit_poster', event_id=e.id) }}">{{ t('organiser_poster') }}</a>{% endif %}</div>
+  <div class="event-main">
+    <div class="event-tags">
+      <span class="tag">{{ t('cat_' ~ ev.category) }}</span>
+      {% if ev.hot %}<span class="flag flag-hot">{{ t('going_fast') }}</span>{% elif ev.new %}<span class="flag flag-new">{{ t('just_listed') }}</span>{% endif %}
+    </div>
+    <h1 class="display">{{ ev.name or ev.venue }}</h1>
+    {% if cancelled %}<div class="notice notice-cancelled"><p><strong>{{ t('event_cancelled') }}</strong> {{ t('event_cancelled_body') }}</p></div>{% endif %}
+    {% if e and e.change_note and not past %}<div class="notice"><p><strong>{{ t('event_changed') }}</strong> {{ e.change_note }}</p></div>{% endif %}
+    <p class="event-sub">
+      {% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ ev.venue }}</a>{% else %}{{ ev.venue }}{% endif %}{% if ev.city != 'Rotterdam' %}, {{ ev.city }}{% endif %}
+      · {{ fmt_date(ev.date, 'long') }}{% if ev.start_time %} · {{ ev.start_time }}{% endif %}
+    </p>
+    {% if e %}
+      <dl class="event-facts">
+        {% if e.door_time %}<div><dt>{{ t('doors') }}</dt><dd>{{ e.door_time }}{% if e.end_time %} – {{ e.end_time }}{% endif %}</dd></div>{% endif %}
+        {% if e.min_age %}<div><dt>{{ t('age') }}</dt><dd>{{ e.min_age }}+</dd></div>{% endif %}
+        {% if e.ticket_url %}<div><dt>{{ t('official_tickets') }}</dt><dd><a href="{{ e.ticket_url }}" target="_blank" rel="noopener nofollow">{{ e.ticket_url.split('/')[2]|replace('www.', '') }}</a></dd></div>{% endif %}
+      </dl>
+      {% if e.description %}<p class="event-desc">{{ e.description }}</p>{% endif %}
+    {% endif %}
+    {% if starts_at and not past %}<p class="countdown-line"><span class="countdown" data-countdown="{{ starts_at }}" data-label="{{ t('starts_in') }}" data-started="{{ t('started') }}"></span></p>{% endif %}
+
+    <div class="event-actions">
+      {% if not past %}
+        {% if user %}
+          <form method="post" action="{{ url_for('toggle_alert') }}">
+            {{ m.csrf() }}
+            <input type="hidden" name="venue" value="{{ ev.venue }}"><input type="hidden" name="date" value="{{ ev.date }}"><input type="hidden" name="name" value="{{ ev.name or '' }}">
+            {% if alert %}
+              <input type="hidden" name="action" value="remove">
+              <button class="btn btn-ghost btn-sm is-on" type="submit">✓ {{ t('alert_on') }}</button>
+              {{ m.push_toggle() }}
+            {% else %}
+              <button class="btn btn-ghost btn-sm" type="submit">{{ t('alert_cta') }}</button>
+            {% endif %}
+          </form>
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('login', next=event_url(ev.venue, ev.date, ev.name)) }}">{{ t('alert_cta') }}</a>
+        {% endif %}
+      {% endif %}
+      {{ m.share_button(ev.name or ev.venue, ev.venue, ev.date, (t('from') ~ ' ' ~ money(with_fee(ev.min_price))) if ev.min_price else t('on_nightswap'), url, ev.colour, ev.poster, category=ev.category) }}
+      {% if directions %}<a class="btn btn-ghost btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
+    </div>
+
+    {% if rows %}
+      <h2 class="list-head">{{ t('n_tickets', n=ev.count) if ev.count != 1 else t('one_ticket') }}</h2>
+      <ul class="ticket-list">
+        {% for l in rows %}
+        <li class="ticket-row">
+          <div class="tr-seller">
+            <div class="avatar" aria-hidden="true">{{ l.seller_name[:1] }}</div>
+            <div>
+              <div class="tr-name">{{ l.seller_name }}
+                <span class="tr-qty">{{ t('sold_as_set', n=l.available) if l.sold_together else (t('n_available', n=l.available) if l.available > 1 else '') }}</span>
+              </div>
+              <div class="badges">{{ m.seller_badges(l, stats[l.seller_id]) }}</div>
+              <div class="muted small"><a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report') }}</a> · {{ t('face_value') }} {{ money(l.face_value_cents) }}{% if l.price_cents < l.face_value_cents %} · <span class="good">{{ t('below_face', amount=money(l.face_value_cents - l.price_cents)) }}</span>{% endif %}</div>
+            </div>
+          </div>
+          <div class="tr-buy">
+            <div class="tr-price">{{ money(with_fee(l.price_cents)) }}<span>{{ t('per_ticket_incl', fee=money(fee_for(l.price_cents))) }}</span></div>
+            {% if user and user.id == l.seller_id %}
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('listing_page', listing_id=l.id) }}">{{ t('yours') }}</a>
+            {% else %}
+              <form class="buy-inline" method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once>
+                {{ m.csrf() }}<input type="hidden" name="back" value="{{ request.full_path }}">
+                {% if l.available > 1 and not l.sold_together %}
+                  <label class="sr-only" for="qty{{ l.id }}">{{ t('quantity') }}</label>
+                  <select id="qty{{ l.id }}" name="qty" class="qty">{% for n in range(1, l.available + 1) %}<option value="{{ n }}">{{ n }}×</option>{% endfor %}</select>
+                {% endif %}
+                <button class="btn btn-accent btn-sm" type="submit">{{ t('buy') }}</button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="fine">{{ t('event_fine', hours=payout_hours) }} <a href="{{ url_for('how') }}">{{ t('nav_how') }}</a></p>
+    {% elif past %}
+      <div class="sold-out"><h2>{{ t('past_title') }}</h2></div>
+    {% else %}
+      <div class="sold-out">
+        <h2>{{ t('sold_out_title') }}</h2>
+        <p class="muted">{{ t('sold_out_body') }}</p>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('sell', event=e.id) if e else url_for('sell') }}">{{ t('sell_for_this') }}</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

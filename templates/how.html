@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_how') }} · Nightswap{% endblock %}
+{% block content %}
+{% set fee = fee_label %}
+<div class="wrap narrow-head">
+  <h1>{{ t('nav_how') }}</h1>
+  <p class="lead">{{ t('how_sub') }}</p>
+</div>
+
+<div class="wrap prose-grid">
+  {% if lang == 'nl' %}
+  <section class="panel">
+    <h2>Kopen</h2>
+    <ol class="steps">
+      <li><strong>Vind je ticket.</strong> Alle tickets staan per avond, met de totaalprijs erbij.</li>
+      <li><strong>Betaal met iDEAL of kaart.</strong> Je betaalt de prijs van de verkoper plus {{ fee }} servicekosten.</li>
+      <li><strong>Download direct.</strong> Je ticket staat meteen in je account en in je mail.</li>
+    </ol>
+    <p class="muted">Werkt je ticket niet aan de deur? Meld het binnen {{ payout_hours }} uur na de avond en je krijgt je geld terug.</p>
+  </section>
+  <section class="panel">
+    <h2>Verkopen</h2>
+    <ol class="steps">
+      <li><strong>Bevestig eenmalig je telefoonnummer.</strong> Kopers zien het nooit; wij gebruiken het alleen als er iets misgaat.</li>
+      <li><strong>Plaats je ticket.</strong> Club, datum, prijs en het ticketbestand. Klaar in een minuut.</li>
+      <li><strong>Ontvang je geld.</strong> {{ payout_hours }} uur na de avond staat het volledige bedrag op je rekening.</li>
+    </ol>
+  </section>
+  <section class="panel" id="fees">
+    <h2>Kosten</h2>
+    <dl class="breakdown">
+      <div><dt>Kopers</dt><dd>{{ fee }} per ticket</dd></div>
+      <div><dt>Verkopers</dt><dd>Gratis</dd></div>
+      <div><dt>Maximale prijs</dt><dd>{{ 'Nominale waarde' if price_cap == 100 else price_cap ~ '% van de nominale waarde' }}</dd></div>
+    </dl>
+    <p class="muted">Geen percentages en geen verborgen kosten. De prijs die je in de lijst ziet is wat je betaalt.</p>
+  </section>
+  <section class="panel">
+    <h2>Veiligheid</h2>
+    <ul class="checks">
+      <li>Je betaling staat vast tot na het evenement, niet bij de verkoper.</li>
+      <li>Elke verkoper heeft een bevestigd telefoonnummer en e-mailadres.</li>
+      <li>Hetzelfde ticketbestand kan maar één keer worden aangeboden.</li>
+      <li>Betalingen lopen via Stripe; wij zien of bewaren nooit je bankgegevens.</li>
+    </ul>
+  </section>
+  {% else %}
+  <section class="panel">
+    <h2>Buying</h2>
+    <ol class="steps">
+      <li><strong>Find your ticket.</strong> Every ticket is listed by night, with the total price shown up front.</li>
+      <li><strong>Pay with iDEAL or card.</strong> You pay the seller's price plus a {{ fee }} service fee.</li>
+      <li><strong>Download it straight away.</strong> Your ticket is in your account and your inbox right after paying.</li>
+    </ol>
+    <p class="muted">Ticket doesn't work at the door? Report it within {{ payout_hours }} hours after the night and you get your money back.</p>
+  </section>
+  <section class="panel">
+    <h2>Selling</h2>
+    <ol class="steps">
+      <li><strong>Verify your phone number once.</strong> Buyers never see it; we only use it if something goes wrong.</li>
+      <li><strong>Post your ticket.</strong> Venue, date, price and the ticket file. It takes about a minute.</li>
+      <li><strong>Get paid.</strong> The full amount reaches your bank account {{ payout_hours }} hours after the night.</li>
+    </ol>
+  </section>
+  <section class="panel" id="fees">
+    <h2>Fees</h2>
+    <dl class="breakdown">
+      <div><dt>Buyers</dt><dd>{{ fee }} per ticket</dd></div>
+      <div><dt>Sellers</dt><dd>Free</dd></div>
+      <div><dt>Maximum price</dt><dd>{{ 'Face value' if price_cap == 100 else price_cap ~ '% of face value' }}</dd></div>
+    </dl>
+    <p class="muted">No percentages and no hidden costs. The price you see in the list is what you pay.</p>
+  </section>
+  <section class="panel">
+    <h2>Safety</h2>
+    <ul class="checks">
+      <li>Your payment is held until after the event, not passed straight to the seller.</li>
+      <li>Every seller has a verified phone number and email address.</li>
+      <li>The same ticket file can only be listed once.</li>
+      <li>Payments run through Stripe; we never see or store your bank details.</li>
+    </ul>
+  </section>
+  {% endif %}
+</div>
+
+<div class="wrap faq">
+  <h2>{{ t('faq') }}</h2>
+  {% if lang == 'nl' %}
+  <details><summary>Mag ik mijn ticket doorverkopen?</summary><p>Meestal wel, maar sommige organisatoren verbieden doorverkoop of zetten je naam op het ticket. Check de voorwaarden van het evenement voordat je verkoopt.</p></details>
+  <details><summary>Welke tickets kan ik aanbieden?</summary><p>Tickets als PDF of afbeelding met een QR- of barcode. Tickets die alleen in de app van een organisator staan, kun je (nog) niet via Nightswap verkopen.</p></details>
+  <details><summary>Wat als de verkoper hetzelfde ticket ook ergens anders verkoopt?</summary><p>Meld het via je bestelling vóór de uitbetaling. Je krijgt je geld terug en de verkoper wordt geblokkeerd.</p></details>
+  <details><summary>Wanneer krijg ik als verkoper betaald?</summary><p>{{ payout_hours }} uur na de avond van het evenement, zolang de koper geen probleem heeft gemeld. Je stelt je uitbetaling eenmalig in via Stripe met je IBAN.</p></details>
+  <details><summary>Kan ik mijn advertentie aanpassen of verwijderen?</summary><p>Verwijderen kan altijd zolang het ticket niet verkocht is. Wil je een andere prijs? Verwijder het en plaats het opnieuw.</p></details>
+  {% else %}
+  <details><summary>Am I allowed to resell my ticket?</summary><p>Usually yes, but some organisers ban resale or print your name on the ticket. Check the event's terms before you sell.</p></details>
+  <details><summary>Which tickets can I list?</summary><p>Tickets as a PDF or image with a QR code or barcode. Tickets that only live inside an organiser's app can't be sold on Nightswap yet.</p></details>
+  <details><summary>What if the seller sells the same ticket somewhere else too?</summary><p>Report it from your order before the payout date. You get your money back and the seller is blocked.</p></details>
+  <details><summary>When do I get paid as a seller?</summary><p>{{ payout_hours }} hours after the night of the event, as long as the buyer hasn't reported a problem. You set up payouts once through Stripe with your IBAN.</p></details>
+  <details><summary>Can I edit or remove my listing?</summary><p>You can remove it any time before it sells. Want a different price? Remove it and post it again.</p></details>
+  {% endif %}
+</div>
+{% endblock %}

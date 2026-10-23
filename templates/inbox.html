@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_messages') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head"><h1>{{ t('nav_messages') }}</h1></div>
+<div class="wrap">
+  {% if threads %}
+    <ul class="inbox">
+      {% for th in threads %}
+        {% set selling = th.seller_id == user.id %}
+        <li><a class="inbox-row {{ 'is-unread' if th.unread }}" href="{{ url_for('thread_page', thread_id=th.id) }}">
+          <span class="avatar" aria-hidden="true">{{ (th.buyer_name if selling else th.seller_name)[:1] }}</span>
+          <span class="sg-main">
+            <strong>{{ th.buyer_name if selling else th.seller_name }} <span class="muted small">· {{ t('role_buyer') if selling else t('role_seller') }}</span></strong>
+            <span>{{ th.event_name or th.venue }} · {{ fmt_date(th.event_date) }}</span>
+            <span class="inbox-preview">{{ previews[th.id] }}</span>
+          </span>
+          {% if th.unread %}<span class="unread-dot">{{ th.unread }}</span>{% endif %}
+        </a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty">
+      <h2>{{ t('inbox_empty_title') }}</h2>
+      <p class="muted">{{ t('inbox_empty_body') }}</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('phone_title') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" data-once>
+    {{ m.csrf() }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <h1>{{ t('phone_title') }}</h1>
+    <p class="muted">{{ t('phone_sub') }}</p>
+    <label class="field">
+      <span class="label">{{ t('phone_number') }}</span>
+      <input type="tel" name="phone" value="{{ phone }}" autocomplete="tel" placeholder="06 12345678" required autofocus>
+      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+    </label>
+    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('send_code') }}</button>
+  </form>
+</div>
+{% endblock %}

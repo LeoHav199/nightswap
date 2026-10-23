@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ t('meta_title') }}{% endblock %}</title>
+  <meta name="description" content="{{ t('meta_description') }}">
+  <meta name="theme-color" content="#0d0a13">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  <link rel="manifest" href="{{ url_for('manifest') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Nightswap">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}" data-csrf="{{ csrf_token }}">
+  <div class="loadbar" aria-hidden="true"></div>
+  <div class="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.5 10.5a7.6 7.6 0 0 1 13.4-4.6"/><path d="M18.6 2.4v4h-4"/><path d="M19.5 13.5a7.6 7.6 0 0 1-13.4 4.6"/><path d="M5.4 21.6v-4h4"/></svg></div>
+  {% if test_mode %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo" href="{{ url_for('index') }}" aria-label="Nightswap">
+        <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><defs><mask id="ns-cut-top"><rect width="24" height="24" fill="#fff"/><circle cx="1" cy="12" r="2.2"/><circle cx="23" cy="12" r="2.2"/><path d="M7 10h9.5L14 7.5M17 14H7.5l2.5 2.5" fill="none" stroke="#000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect x="1" y="5" width="22" height="14" rx="2" mask="url(#ns-cut-top)"/></svg>
+        <span>nightswap</span>
+      </a>
+      <nav class="nav">
+        <a class="hide-sm {{ 'is-active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">{{ t('nav_buy') }}</a>
+        <a class="hide-sm {{ 'is-active' if request.endpoint == 'how' }}" href="{{ url_for('how') }}">{{ t('nav_how') }}</a>
+        {% if user %}<a class="hide-sm {{ 'is-active' if request.endpoint in ('inbox', 'thread_page') }}" href="{{ url_for('inbox') }}">{{ t('nav_messages') }}{% if unread %} <span class="count">{{ unread }}</span>{% endif %}</a>{% endif %}
+        <details class="lang-menu">
+          <summary aria-label="{{ t('language') }}">{{ lang|upper }}</summary>
+          <ul>
+            {% for code, name in lang_names.items() %}
+              <li><a href="{{ url_for('set_lang', code=code, next=request.full_path) }}" hreflang="{{ code }}" lang="{{ code }}" class="{{ 'is-on' if code == lang }}">{{ name }}</a></li>
+            {% endfor %}
+          </ul>
+        </details>
+        <a class="btn btn-accent btn-sm hide-sm" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
+        {% if user %}
+          <a class="nav-account hide-sm {{ 'is-active' if request.endpoint in ('account', 'account_data') }}" href="{{ url_for('account') }}" aria-label="{{ t('nav_account') }}">
+            <span class="nav-avatar" aria-hidden="true">{{ (user.first_name or '?')[:1] }}</span>{{ t('nav_account') }}</a>
+        {% else %}
+          <a class="nav-account hide-sm" href="{{ url_for('login') }}">{{ t('nav_login') }}</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="wrap flashes">
+          {% for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <div>
+        <div class="logo logo-sm">
+          <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><defs><mask id="ns-cut-foot"><rect width="24" height="24" fill="#fff"/><circle cx="1" cy="12" r="2.2"/><circle cx="23" cy="12" r="2.2"/><path d="M7 10h9.5L14 7.5M17 14H7.5l2.5 2.5" fill="none" stroke="#000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect x="1" y="5" width="22" height="14" rx="2" mask="url(#ns-cut-foot)"/></svg>
+          <span>nightswap</span>
+        </div>
+        <p class="muted small">{{ t('footer_tagline') }}</p>
+      </div>
+      <nav class="footer-links">
+        <a href="{{ url_for('how') }}">{{ t('nav_how') }}</a>
+        <a href="{{ url_for('how') }}#fees">{{ t('footer_fees') }}</a>
+        <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>
+        <a href="{{ url_for('privacy') }}">{{ t('footer_privacy') }}</a>
+        <a href="{{ url_for('credits') }}">{{ t('photo_credits') }}</a>
+        <a href="mailto:hello@nightswap.nl">{{ t('footer_contact') }}</a>
+      </nav>
+    </div>
+  </footer>
+  {% set ep = request.endpoint %}
+  <nav class="tabbar" aria-label="{{ t('nav_main') }}">
+    <a class="{{ 'is-on' if ep in ('index', 'event_page', 'listing_page') and not request.args.get('focus') }}" href="{{ url_for('index') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4V7.5Z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg>
+      <span>{{ t('nav_buy') }}</span></a>
+    <a class="{{ 'is-on' if request.args.get('focus') == 'search' }}" href="{{ url_for('index', focus='search') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>
+      <span>{{ t('search') }}</span></a>
+    <a class="tab-sell {{ 'is-on' if ep == 'sell' }}" href="{{ url_for('sell') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ t('nav_sell_short') }}</span></a>
+    <a class="{{ 'is-on' if ep in ('inbox', 'thread_page') }}" href="{{ url_for('inbox') if user else url_for('login', next=url_for('inbox')) }}">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h0a2 2 0 0 1-2-2V6.5Z"/></svg>{% if unread %}<span class="tab-badge">{{ unread }}</span>{% endif %}</span>
+      <span>{{ t('nav_messages_short') }}</span></a>
+    <a class="{{ 'is-on' if ep in ('account', 'order_page', 'phone', 'student', 'login') }}" href="{{ url_for('account') if user else url_for('login') }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.2-3.2 3.8-4.8 7-4.8s5.8 1.6 7 4.8"/></svg>
+      <span>{{ t('nav_account') if user else t('nav_login') }}</span></a>
+  </nav>
+  <div class="install" data-install hidden>
+    <div class="install-text"><strong>{{ t('install_title') }}</strong><span data-install-hint data-ios="{{ t('install_ios') }}">{{ t('install_body') }}</span></div>
+    <button class="btn btn-accent btn-sm" type="button" data-install-go>{{ t('install_cta') }}</button>
+    <button class="install-x" type="button" data-install-close aria-label="{{ t('close') }}">×</button>
+  </div>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>

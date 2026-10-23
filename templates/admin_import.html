@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Import events · Admin · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Found {{ found|length }} events</h1><p class="muted small">From <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>. Untick anything you don't want; check venue and category.</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_events') }}">← Events</a>
+</div>
+<div class="wrap account">
+  <form method="post" action="{{ url_for('admin_event_import_confirm') }}">
+    {{ m.csrf() }}<input type="hidden" name="payload" value="{{ payload }}"><input type="hidden" name="url" value="{{ url }}">
+    <ul class="table-list">
+      {% for e in found %}
+      <li class="admin-event-row import-row">
+        <label class="import-pick"><input type="checkbox" name="pick" value="{{ loop.index0 }}" {{ 'checked' if not e.exists }} {{ 'disabled' if e.exists }}></label>
+        <div class="tl-main">
+          <strong>{{ e.name }}{% if e.exists %} <span class="tag">already added</span>{% endif %}</strong>
+          <span class="muted small">{{ fmt_date(e.event_date) }}{% if e.door_time %} · {{ e.door_time }}{% endif %}{% if e.end_time %}–{{ e.end_time }}{% endif %} · {{ e.city }}{% if e.ticket_url %} · <a href="{{ e.ticket_url }}" target="_blank" rel="noopener">tickets</a>{% endif %}</span>
+        </div>
+        <input class="import-venue" type="text" name="venue_{{ loop.index0 }}" value="{{ e.venue }}" placeholder="Venue" aria-label="Venue">
+        <select name="category_{{ loop.index0 }}" aria-label="Category">{% for c in categories %}<option value="{{ c }}" {{ 'selected' if e.category == c }}>{{ t('cat_' ~ c) }}</option>{% endfor %}</select>
+      </li>
+      {% endfor %}
+    </ul>
+    <p><button class="btn btn-accent" type="submit">Add selected events</button></p>
+  </form>
+</div>
+{% endblock %}

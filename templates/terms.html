@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ t('footer_terms') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap prose">
+  {% if lang == 'nl' %}
+  <h1>Voorwaarden</h1>
+  <p class="muted">Laatst bijgewerkt: oktober 2026</p>
+  <h2>1. Wat Nightswap doet</h2>
+  <p>Nightswap is een platform waarop particulieren tickets voor evenementen aan elkaar doorverkopen. Nightswap is zelf geen verkoper of organisator van evenementen.</p>
+  <h2>2. Verkopen</h2>
+  <p>Je verkoopt alleen tickets die van jou zijn, die geldig zijn en die je niet ook ergens anders aanbiedt. Je prijs is maximaal {{ 'de nominale waarde' if price_cap == 100 else price_cap ~ '% van de nominale waarde' }}. Je bent zelf verantwoordelijk voor het naleven van de voorwaarden van de organisator.</p>
+  <h2>3. Kopen en kosten</h2>
+  <p>Kopers betalen de prijs van de verkoper plus servicekosten van {{ fee_label }} per ticket. Verkopers betalen geen kosten.</p>
+  <h2>4. Betaling en uitbetaling</h2>
+  <p>Betalingen worden verwerkt door Stripe. Het bedrag wordt vastgehouden en {{ payout_hours }} uur na de avond van het evenement aan de verkoper uitbetaald, tenzij de koper vóór dat moment een probleem meldt.</p>
+  <h2>5. Problemen en terugbetaling</h2>
+  <p>Werkt een ticket niet, dan meld je dat via je bestelling vóór de uitbetaling. Na onderzoek betalen we het volledige bedrag terug. Verkopers die ongeldige of dubbel verkochte tickets aanbieden, worden geblokkeerd en kunnen aansprakelijk worden gesteld.</p>
+  <h2>6. Contact</h2>
+  <p><a href="mailto:hello@nightswap.nl">hello@nightswap.nl</a></p>
+  {% else %}
+  <h1>Terms</h1>
+  <p class="muted">Last updated: October 2026</p>
+  <h2>1. What Nightswap does</h2>
+  <p>Nightswap is a platform where individuals resell event tickets to each other. Nightswap itself does not sell tickets or organise events.</p>
+  <h2>2. Selling</h2>
+  <p>Only sell tickets that are yours, that are valid, and that you are not offering anywhere else. Your price can be at most {{ 'the face value' if price_cap == 100 else price_cap ~ '% of the face value' }}. You are responsible for following the organiser's terms.</p>
+  <h2>3. Buying and fees</h2>
+  <p>Buyers pay the seller's price plus a service fee of {{ fee_label }} per ticket. Sellers pay no fees.</p>
+  <h2>4. Payment and payouts</h2>
+  <p>Payments are processed by Stripe. The amount is held and paid out to the seller {{ payout_hours }} hours after the night of the event, unless the buyer reports a problem before then.</p>
+  <h2>5. Problems and refunds</h2>
+  <p>If a ticket doesn't work, report it from your order before the payout. After review we refund the full amount. Sellers who list invalid or double-sold tickets are blocked and may be held liable.</p>
+  <h2>6. Contact</h2>
+  <p><a href="mailto:hello@nightswap.nl">hello@nightswap.nl</a></p>
+  {% endif %}
+</div>
+{% endblock %}

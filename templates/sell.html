@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('sell_title') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head">
+  <h1>{{ t('sell_title') }}</h1>
+  <p class="lead">{{ t('sell_sub') }}</p>
+</div>
+
+<div class="wrap sell">
+  <form class="panel form" method="post" enctype="multipart/form-data" data-sell-form data-once
+        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" novalidate>
+    {{ m.csrf() }}
+    {% set picked = form.get('venue', '') %}
+    {% set picked_event = (preset.id|string) if preset else form.get('event_id', '') %}
+
+    {% if preset %}
+      <input type="hidden" name="event_id" value="{{ preset.id }}">
+      <div class="picked-event">
+        <span class="sg-date" style="--venue: #5b2a86"><small>{{ fmt_date(preset.event_date, 'dow') }}</small>{{ preset.event_date[8:10]|int }}</span>
+        <span class="sg-main"><strong>{{ preset.name }}</strong><span>{{ preset.venue }}{% if preset.city != 'Rotterdam' %}, {{ preset.city }}{% endif %} · {{ fmt_date(preset.event_date, 'long') }}</span></span>
+        <a class="small" href="{{ url_for('sell') }}">{{ t('change') }}</a>
+      </div>
+    {% else %}
+      <fieldset class="field picker" data-picker data-api="{{ url_for('events_on_date') }}" data-selected="{{ picked_event }}">
+        <legend class="label">{{ t('which_event') }}</legend>
+        <input type="date" name="event_date" value="{{ form.get('event_date', '') }}" min="{{ today }}" max="{{ max_date }}" required aria-label="{{ t('date') }}" data-picker-date>
+        {{ m.field_error(errors, 'event_date') }}{{ m.field_error(errors, 'event') }}
+        <div class="picker-list" data-picker-list role="radiogroup"></div>
+        <label class="pick-new" data-pick-new hidden><input type="radio" name="event_id" value="new" {{ 'checked' if picked_event == 'new' }}> <span>{{ t('cant_find_event') }}</span></label>
+      </fieldset>
+
+      <div class="manual" data-manual>
+        <div class="grid-2">
+          <label class="field">
+            <span class="label">{{ t('venue') }}</span>
+            <select name="venue" data-venue>
+              <option value="" disabled {{ 'selected' if not picked }}>{{ t('choose_venue') }}</option>
+              {% for v in venues %}<option value="{{ v }}" {{ 'selected' if v == picked }}>{{ v }}</option>{% endfor %}
+              <option value="__other" {{ 'selected' if picked == '__other' }}>{{ t('other_venue') }}</option>
+            </select>
+            {{ m.field_error(errors, 'venue') }}
+          </label>
+          <label class="field">
+            <span class="label">{{ t('event_name') }}</span>
+            <input type="text" name="event_name" value="{{ form.get('event_name', '') }}" maxlength="80" placeholder="{{ t('event_name_placeholder') }}">
+          </label>
+        </div>
+
+        <div class="grid-2" data-other-venue {{ 'hidden' if picked != '__other' }}>
+          <label class="field">
+            <span class="label">{{ t('venue_name') }}</span>
+            <input type="text" name="other_venue" value="{{ form.get('other_venue', '') }}" maxlength="60">
+          </label>
+          <label class="field">
+            <span class="label">{{ t('city') }}</span>
+            <input type="text" name="city" value="{{ form.get('city', '') }}" maxlength="60" list="cities" autocomplete="address-level2">
+            <datalist id="cities">{% for c in city_suggestions %}<option value="{{ c }}">{% endfor %}</datalist>
+            {{ m.field_error(errors, 'city') }}
+          </label>
+        </div>
+
+        <fieldset class="field cat-pick">
+          <legend class="label">{{ t('category') }}</legend>
+          {% set picked_cat = form.get('category', 'club') %}
+          <div class="cat-options">
+            {% for c in categories %}
+              <label class="cat-option"><input type="radio" name="category" value="{{ c }}" {{ 'checked' if picked_cat == c }}><span>{{ t('cat_' ~ c) }}</span></label>
+            {% endfor %}
+          </div>
+          {{ m.field_error(errors, 'category') }}
+        </fieldset>
+
+        <label class="field">
+          <span class="label">{{ t('start_time') }} <span class="optional">{{ t('optional') }}</span></span>
+          <input type="time" name="start_time" value="{{ form.get('start_time', '') }}" step="900">
+          {{ m.field_error(errors, 'start_time') }}
+        </label>
+        <p class="hint">{{ t('new_event_hint') }}</p>
+      </div>
+    {% endif %}
+
+    <div class="grid-2">
+      <label class="field">
+        <span class="label">{{ t('face_value') }}</span>
+        <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="face_value" value="{{ form.get('face_value', '') }}" placeholder="25" required data-face></span>
+        <span class="hint">{{ t('face_value_hint') }}</span>
+        {{ m.field_error(errors, 'face_value') }}
+      </label>
+      <label class="field">
+        <span class="label">{{ t('your_price') }} <span class="optional">{{ t('per_ticket') }}</span></span>
+        <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="price" value="{{ form.get('price', '') }}" placeholder="20" required data-price></span>
+        <span class="hint" data-cap-hint>{{ t('price_hint') if price_cap == 100 else t('price_hint_pct', pct=price_cap) }}</span>
+        {{ m.field_error(errors, 'price') }}
+      </label>
+    </div>
+
+    <label class="field">
+      <span class="label">{{ t('ticket_file') }}</span>
+      <span class="file-drop">
+        <input type="file" name="ticket" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required multiple data-file data-many="{{ t('n_files') }}">
+        <span class="file-drop-text" data-file-label>{{ t('ticket_file_cta') }}</span>
+      </span>
+      <span class="hint">{{ t('ticket_file_hint_multi', n=max_tickets) }}</span>
+      {{ m.field_error(errors, 'ticket') }}
+    </label>
+
+    <details class="extra" {{ 'open' if errors.get('poster') }}>
+      <summary>{{ t('add_poster') }} <span class="optional">{{ t('optional') }}</span></summary>
+
+      <label class="field">
+        <span class="file-drop file-drop-sm">
+          <input type="file" name="poster" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" data-file>
+          <span class="file-drop-text" data-file-label>{{ t('poster_cta') }}</span>
+        </span>
+        <span class="hint">{{ t('poster_hint') }}</span>
+        {{ m.field_error(errors, 'poster') }}
+      </label>
+    </details>
+
+    {% if not user.adult_confirmed_at %}
+      <label class="consent"><input type="checkbox" name="adult" value="yes" {{ 'checked' if form.get('adult') == 'yes' }} required><span>{{ t('adult_confirm') }}</span></label>
+      {{ m.field_error(errors, 'adult') }}
+    {% endif %}
+    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('post_ticket') }}</button>
+    <p class="muted small center">{{ t('sell_agree_pre') }} <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>.</p>
+  </form>
+
+  <aside class="panel summary">
+    <h2 class="panel-title">{{ t('summary_title') }}</h2>
+    <dl class="breakdown">
+      <div><dt>{{ t('you_receive') }}</dt><dd data-receive>–</dd></div>
+      <div><dt>{{ t('buyer_pays') }}</dt><dd data-buyer-pays>–</dd></div>
+      <div><dt>{{ t('your_fee') }}</dt><dd>{{ money(0) }}</dd></div>
+    </dl>
+    <ol class="steps-mini">
+      <li>{{ t('sell_step_1') }}</li>
+      <li>{{ t('sell_step_2') }}</li>
+      <li>{{ t('sell_step_3', hours=payout_hours) }}</li>
+    </ol>
+    {% if not user.payouts_ready %}<p class="muted small">{{ t('payout_later_note') }}</p>{% endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ t('photo_credits') }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap prose credits-page">
+  <h1>{{ t('photo_credits') }}</h1>
+  <p class="muted">{{ t('credits_intro') }}</p>
+
+  {% if venues %}
+  <h2>{{ t('credits_venues') }}</h2>
+  <ul class="credit-list">
+    {% for v in venues %}
+    <li id="v-{{ v.slug }}">
+      <img src="{{ url_for('poster', name=v.photo_file) }}" alt="" loading="lazy">
+      <div>
+        <strong><a href="{{ url_for('venue_page', slug=v.slug) }}">{{ v.name }}</a></strong>
+        <span>{{ t('credits_photo') }}: {{ v.photo_credit or '—' }}</span>
+        <span>{{ t('credits_license') }}: {% if v.photo_license_url %}<a href="{{ v.photo_license_url }}" target="_blank" rel="noopener license">{{ v.photo_license }}</a>{% else %}{{ v.photo_license or '—' }}{% endif %}</span>
+        {% if v.photo_source_url %}<span>{{ t('credits_source') }}: <a href="{{ v.photo_source_url }}" target="_blank" rel="noopener">{{ v.photo_source_url.split('/')[2]|replace('www.', '') }}</a></span>{% endif %}
+        <span class="muted small">{{ t('credits_changes') }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if posters %}
+  <h2>{{ t('credits_posters') }}</h2>
+  <ul class="credit-list">
+    {% for e in posters %}
+    <li id="e-{{ e.id }}">
+      <img src="{{ url_for('poster', name=e.poster_file) }}" alt="" loading="lazy">
+      <div>
+        <strong><a href="{{ event_url(e.venue, e.event_date, e.name) }}">{{ e.name }}</a></strong>
+        <span>{{ t('poster_by', credit=e.poster_credit) }}</span>
+        <span class="muted small">{{ t('credits_poster_note') }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <p class="muted small">{{ t('credits_contact') }} <a href="mailto:hello@nightswap.nl">hello@nightswap.nl</a></p>
+</div>
+{% endblock %}

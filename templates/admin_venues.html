@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Venues & posters · Admin · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Venues & posters</h1><p class="muted">Photos and posters make the site feel real. Only use images you're allowed to use (ask the venue or organiser).</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+</div>
+<div class="wrap account">
+  <section class="account-section" id="events">
+    <h2>Upcoming events</h2>
+    <ul class="admin-grid">
+      {% for ev in events %}
+      <li class="panel">
+        {{ m.poster(ev.name, ev.venue, ev.date, ev.poster, ev.colour, 'card', ev.photo, None, art_url(ev.date, ev.venue, ev.name, ev.category)) }}
+        <p><strong>{{ ev.name or ev.venue }}</strong><br><span class="muted small">{{ ev.venue }}, {{ ev.city }} · {{ fmt_date(ev.date) }} · {{ t('cat_' ~ ev.category) }}</span></p>
+        <form method="post" action="{{ url_for('admin_poster') }}" enctype="multipart/form-data" class="admin-upload">
+          {{ m.csrf() }}<input type="hidden" name="venue" value="{{ ev.venue }}"><input type="hidden" name="date" value="{{ ev.date }}"><input type="hidden" name="name" value="{{ ev.name or '' }}">
+          <input type="file" name="poster" accept="image/jpeg,image/png,image/webp" required>
+          <button class="btn btn-ghost btn-sm" type="submit">{{ 'Replace poster' if ev.poster else 'Add poster' }}</button>
+        </form>
+      </li>
+      {% else %}<li class="muted">No upcoming events.</li>{% endfor %}
+    </ul>
+  </section>
+  <section class="account-section">
+    <h2>Venues</h2>
+    {% for v in venues %}
+      <form class="panel form admin-venue" id="v{{ v.id }}" method="post" enctype="multipart/form-data">
+        {{ m.csrf() }}<input type="hidden" name="id" value="{{ v.id }}">
+        <div class="admin-venue-head">
+          <strong>{{ v.name }}</strong> <span class="muted small">{{ v.city }} · <a href="{{ url_for('venue_page', slug=v.slug) }}">/venues/{{ v.slug }}</a></span>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span class="label">Address</span><input type="text" name="address" value="{{ v.address or '' }}" placeholder="Street 1, Rotterdam"></label>
+          <label class="field"><span class="label">Website</span><input type="text" name="website" value="{{ v.website or '' }}" placeholder="https://"></label>
+        </div>
+        <label class="field"><span class="label">Short description</span><textarea name="description" rows="2" maxlength="600">{{ v.description or '' }}</textarea></label>
+        <div class="grid-2">
+          <label class="field"><span class="label">Colour</span><input type="text" name="colour" value="{{ v.colour or '' }}" placeholder="#5b2a86"></label>
+          <label class="field"><span class="label">Photo {% if v.photo_file %}<span class="optional">(has one)</span>{% endif %}</span><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span class="label">Photo credit</span><input type="text" name="photo_credit" value="{{ v.photo_credit or '' }}" placeholder="Photographer name, or 'Nightswap'"></label>
+          <label class="field"><span class="label">Licence</span><input type="text" name="photo_license" value="{{ v.photo_license or '' }}" placeholder="CC BY-SA 4.0 / Own photo / With permission"></label>
+        </div>
+        <div class="grid-2">
+          <label class="field"><span class="label">Licence link</span><input type="url" name="photo_license_url" value="{{ v.photo_license_url or '' }}" placeholder="https://creativecommons.org/licenses/by-sa/4.0/"></label>
+          <label class="field"><span class="label">Source page</span><input type="url" name="photo_source_url" value="{{ v.photo_source_url or '' }}" placeholder="https://commons.wikimedia.org/wiki/File:..."></label>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="submit">Save</button>
+      </form>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ l.event_name or l.venue }} · {{ fmt_date(l.event_date) }} · Nightswap{% endblock %}
+{% block body_class %}{{ 'has-buybar' if available and not own }}{% endblock %}
+{% block content %}
+{% set url = base_url ~ url_for('listing_page', listing_id=l.id) %}
+<div class="wrap">
+  <a class="back" href="{{ event_url(l.venue, l.event_date, l.event_name) }}">← {{ l.event_name or l.venue }}</a>
+</div>
+
+<div class="wrap detail">
+  <section class="detail-main">
+    {{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'banner', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}
+    <h1 class="display">{{ l.event_name or l.venue }}</h1>
+    <p class="detail-date">{% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ l.venue }}</a>{% else %}{{ l.venue }}{% endif %}{% if l.city != 'Rotterdam' %}, {{ l.city }}{% endif %} · {{ fmt_date(l.event_date, 'long') }}{% if l.start_time %} · {{ l.start_time }}{% endif %}</p>
+
+    <dl class="facts">
+      <div><dt>{{ t('face_value') }}</dt><dd>{{ money(l.face_value_cents) }}</dd></div>
+      <div><dt>{{ t('tickets_label') }}</dt><dd>{{ t('sold_as_set', n=l.available) if l.sold_together and l.available else l.available }}</dd></div>
+      <div><dt>{{ t('ticket_type') }}</dt><dd>{{ t('ticket_type_file') }}</dd></div>
+    </dl>
+
+    <div class="seller-card">
+      <div class="avatar" aria-hidden="true">{{ l.seller_name[:1] }}</div>
+      <div>
+        <div class="seller-name">{{ t('sold_by', name=l.seller_name) }}</div>
+        <div class="badges">{{ m.seller_badges(l, stats) }}</div>
+        <div class="muted small">{{ t('member_since', date=fmt_date(l.seller_since, 'month')) }}{% if not own %} · <a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report_listing') }}</a>{% endif %}</div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel buy-box">
+    {% if own %}
+      {% if just_listed %}
+        <div class="share-box">
+          <h2 class="panel-title">{{ t('share_now_title') }}</h2>
+          <p class="muted small">{{ t('share_now_body') }}</p>
+          <div class="share-row">{{ m.share_button(l.event_name or l.venue, l.venue, l.event_date, money(with_fee(l.price_cents)), url, colour, l.poster_file, 'btn btn-accent btn-sm', l.category) }}</div>
+          <p class="muted small push-hint">{{ t('push_sell_hint') }}</p>
+          <div class="share-row">{{ m.push_toggle() }}</div>
+        </div>
+      {% endif %}
+
+      <h2 class="panel-title">{{ t('your_listing') }}</h2>
+      {% if l.status == 'active' and not past and l.available %}
+        {% if suggestions %}
+          <div class="nudge">
+            <strong>{{ t('nudge_title') }}</strong>
+            <p>{{ t('nudge_body', n=l.available) }}</p>
+            <div class="nudge-options">
+              {% for p in suggestions %}
+                <form method="post" action="{{ url_for('change_price', listing_id=l.id) }}">{{ m.csrf() }}<input type="hidden" name="price" value="{{ '%.2f'|format(p / 100) }}"><button class="btn btn-ghost btn-sm" type="submit">{{ t('set_to', price=money(p)) }}</button></form>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        <form class="price-edit" method="post" action="{{ url_for('change_price', listing_id=l.id) }}" data-once>
+          {{ m.csrf() }}
+          <label class="field">
+            <span class="label">{{ t('your_price') }} <span class="optional">{{ t('per_ticket') }}</span></span>
+            <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="price" value="{{ '%.2f'|format(l.price_cents / 100) if l.price_cents % 100 else l.price_cents // 100 }}"></span>
+            <span class="hint">{{ t('price_edit_hint', max=money(max_price), fee=fee_label) }}</span>
+          </label>
+          <button class="btn btn-ghost btn-block" type="submit">{{ t('save_price') }}</button>
+        </form>
+        <p class="muted small">{{ t('your_listing_body', amount=money(l.price_cents)) }}</p>
+        {% if not just_listed %}<div class="share-row">{{ m.share_button(l.event_name or l.venue, l.venue, l.event_date, money(with_fee(l.price_cents)), url, colour, l.poster_file, category=l.category) }}</div>{% endif %}
+        {% if not l.held %}
+          <form method="post" action="{{ url_for('remove_listing', listing_id=l.id) }}" data-confirm="{{ t('confirm_remove') }}">
+            {{ m.csrf() }}
+            <button class="btn-link danger" type="submit">{{ t('remove_listing') }}</button>
+          </form>
+        {% endif %}
+      {% elif l.status == 'sold' or not l.available %}
+        <p>{{ m.status_tag('sold') }}</p>
+      {% endif %}
+    {% elif not available %}
+      <h2 class="panel-title">{{ t('past_title') if past else (t('reserved_title') if l.held and l.status == 'active' else t('sold_title')) }}</h2>
+      <p class="muted">{{ t('reserved_body') if l.held and l.status == 'active' and not past else t('sold_body') }}</p>
+      <a class="btn btn-ghost btn-block" href="{{ event_url(l.venue, l.event_date, l.event_name) }}">{{ t('see_event') }}</a>
+    {% else %}
+      <form id="buyform" method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once data-buy
+            data-price="{{ l.price_cents }}" data-fee="{{ fee_for(l.price_cents) }}" data-lang="{{ lang }}">
+        {{ m.csrf() }}
+        {% if l.available > 1 and not l.sold_together %}
+          <label class="field qty-field">
+            <span class="label">{{ t('quantity') }}</span>
+            <select name="qty" data-qty>{% for n in range(1, l.available + 1) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select>
+          </label>
+        {% endif %}
+        {% set n = l.available if l.sold_together else 1 %}
+        <dl class="breakdown">
+          <div><dt><span data-n>{{ n }}</span>× {{ t('ticket') }}</dt><dd data-sub>{{ money(l.price_cents * n) }}</dd></div>
+          <div><dt>{{ t('service_fee') }}</dt><dd data-feesum>{{ money(fee_for(l.price_cents) * n) }}</dd></div>
+          <div class="breakdown-total"><dt>{{ t('total') }}</dt><dd data-total>{{ money(with_fee(l.price_cents) * n) }}</dd></div>
+        </dl>
+        <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('buy_now') }}</button>
+      </form>
+      <p class="pay-methods">{{ t('pay_methods') }}</p>
+      {% if not user %}<p class="muted small center">{{ t('login_to_buy') }}</p>{% endif %}
+      <ul class="assurances">
+        <li>{{ t('assure_instant') }}</li>
+        <li>{{ t('assure_refund', date=fmt_date(report_until.date(), 'long')) }}</li>
+        <li>{{ t('assure_hold') }}</li>
+      </ul>
+      <div class="ask">
+        <h3>{{ t('ask_title') }}</h3>
+        {% if user %}
+          <div class="chips">
+            {% for q in questions %}
+              <form method="post" action="{{ url_for('ask_question', listing_id=l.id) }}">{{ m.csrf() }}<input type="hidden" name="question" value="{{ q }}"><button class="chip" type="submit">{{ t(q) }}</button></form>
+            {% endfor %}
+          </div>
+          <form class="offer-form" method="post" action="{{ url_for('make_offer', listing_id=l.id) }}" data-once>
+            {{ m.csrf() }}
+            <label class="money-input"><span>€</span><input type="text" inputmode="decimal" name="amount" required aria-label="{{ t('your_offer') }}" placeholder="{{ (l.price_cents - 200) // 100 if l.price_cents > 300 else '' }}"></label>
+            {% if l.available > 1 and not l.sold_together %}<select name="qty" class="qty" aria-label="{{ t('quantity') }}">{% for n in range(1, l.available + 1) %}<option value="{{ n }}">{{ n }}×</option>{% endfor %}</select>{% endif %}
+            <button class="btn btn-ghost" type="submit">{{ t('make_offer') }}</button>
+          </form>
+          <p class="muted small">{{ t('ask_hint') }}</p>
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('login', next=request.path) }}">{{ t('login_to_ask') }}</a>
+        {% endif %}
+      </div>
+      <div class="share-row">{{ m.share_button(l.event_name or l.venue, l.venue, l.event_date, money(with_fee(l.price_cents)), url, colour, l.poster_file, category=l.category) }}</div>
+    {% endif %}
+  </aside>
+</div>
+{% if available and not own %}
+  {% set n0 = l.available if l.sold_together else 1 %}
+  <div class="buybar">
+    <div class="buybar-price"><strong data-buybar-total>{{ money(with_fee(l.price_cents) * n0) }}</strong><span>{{ t('incl_fee_short', fee=money(fee_for(l.price_cents))) if n0 == 1 else t('sold_as_set', n=n0) }}</span></div>
+    <button class="btn btn-accent btn-lg" type="submit" form="buyform">{{ t('buy_now') }}</button>
+  </div>
+{% endif %}
+{% endblock %}

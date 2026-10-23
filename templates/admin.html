@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Admin · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div>
+    <h1>Admin</h1>
+    <p class="muted">{{ stats.n }} paid orders · {{ money(stats.volume) }} volume · {{ money(stats.fees) }} fees</p>
+  </div>
+  <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
+</div>
+<div class="wrap account">
+  <section class="account-section">
+    <h2>Reported problems</h2>
+    {% for o in disputed %}
+      <div class="panel admin-case">
+        <p><strong>{{ o.event_name or o.venue }}</strong> · {{ o.venue }} · {{ fmt_date(o.event_date) }} · {{ money(o.total_cents) }} · <a href="{{ url_for('order_page', public_id=o.public_id) }}">{{ o.public_id }}</a></p>
+        <p class="muted small">Buyer {{ o.buyer_email }} {{ o.buyer_phone or '' }} · Seller {{ o.seller_email }} {{ o.seller_phone or '' }}</p>
+        <blockquote>{{ o.dispute_reason }}</blockquote>
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_order', public_id=o.public_id, action='refund') }}" data-confirm="Refund the buyer?">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Refund buyer</button></form>
+          <form method="post" action="{{ url_for('admin_order', public_id=o.public_id, action='keep') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Close, pay seller</button></form>
+        </div>
+      </div>
+    {% else %}<p class="muted">Nothing reported.</p>{% endfor %}
+  </section>
+  <section class="account-section">
+    <h2>Reported listings{% if reports %} <span class="count">{{ reports|length }}</span>{% endif %}</h2>
+    {% for r in reports %}
+      <div class="panel admin-case">
+        <p><strong>{{ r.event_name or r.venue }}</strong> · {{ r.venue }} · {{ fmt_date(r.event_date) }} · <a href="{{ url_for('listing_page', listing_id=r.listing_id) }}">listing</a> ({{ r.listing_status }})</p>
+        <p class="muted small">Reason: <strong>{{ r.reason }}</strong> · seller {{ r.seller_email }} · reported by {{ r.reporter_email or r.email or '?' }} · {{ r.created_at[:16] }}</p>
+        {% if r.details %}<blockquote>{{ r.details }}</blockquote>{% endif %}
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='remove') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Remove listing</button></form>
+          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='block') }}" data-confirm="Block this seller?">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Block seller</button></form>
+          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='close') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Nothing wrong</button></form>
+        </div>
+      </div>
+    {% else %}<p class="muted">No open reports.</p>{% endfor %}
+  </section>
+
+  <section class="account-section">
+    <h2>Flagged messages</h2>
+    <p class="muted small">Messages where contact or payment details were hidden, or where someone mentioned dealing outside Nightswap. Repeat offenders: consider warning or blocking them.</p>
+    {% for msg in flagged %}
+      <div class="panel admin-case">
+        <p><strong>{{ msg.sender_name }}</strong> · {{ msg.sender_email }} · {{ msg.strikes }} flagged in total · {{ msg.flags }} · <a href="{{ url_for('thread_page', thread_id=msg.thread_id) }}">conversation</a></p>
+        <blockquote>{{ msg.raw_body or msg.body }}</blockquote>
+      </div>
+    {% else %}<p class="muted">Nothing flagged.</p>{% endfor %}
+  </section>
+
+  <section class="account-section">
+    <h2>Recent orders</h2>
+    <ul class="table-list">
+      {% for o in recent %}
+      <li><a href="{{ url_for('order_page', public_id=o.public_id) }}">
+        <span class="tl-main"><strong>{{ o.event_name or o.venue }}</strong><span class="muted small">{{ o.buyer_email }} ← {{ o.seller_email }} · payout {{ o.payout_due_at or '–' }}</span></span>
+        {{ m.status_tag(o.status) }}<span class="tl-amount">{{ money(o.total_cents) }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

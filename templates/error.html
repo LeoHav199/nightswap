@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap empty">
+  <h1>{{ t('error_' ~ code ~ '_title') }}</h1>
+  <p class="muted">{{ t('error_' ~ code ~ '_body') }}</p>
+  <a class="btn btn-ghost" href="{{ url_for('index') }}">{{ t('back_to_tickets') }}</a>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Users · Admin · Nightswap{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Users</h1><p class="muted">Find someone by email, name or phone. Blocking takes their listings off sale, cancels their checkouts, holds their payouts and signs them out.</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+</div>
+<div class="wrap account">
+  <form class="admin-import panel" method="get"><input type="search" name="q" value="{{ q }}" placeholder="email, name or 06…" autofocus><button class="btn btn-accent" type="submit">Search</button></form>
+  {% if q %}
+  <ul class="table-list">
+    {% for u in rows %}
+    <li class="admin-event-row">
+      <div class="tl-main"><strong>{{ u.first_name }} {% if u.blocked_at %}<span class="tag tag-disputed">blocked</span>{% endif %}{% if u.deleted_at %}<span class="tag">deleted</span>{% endif %}</strong>
+        <span class="muted small">{{ u.email }} · {{ u.phone or 'no phone' }}{% if u.student_school %} · {{ u.student_school }}{% endif %} · since {{ u.created_at[:10] }}<br>
+        {{ u.listings }} listings · {{ u.sales }} sales · {{ u.buys }} purchases · {{ u.flagged }} flagged messages · {{ u.reported }} reports{% if u.blocked_reason %} · reason: {{ u.blocked_reason }}{% endif %}</span></div>
+      {% if u.blocked_at %}
+        <form method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='unblock') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Unblock</button></form>
+      {% elif not u.deleted_at %}
+        <form class="block-form" method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='block') }}" data-confirm="Block {{ u.email }}?">{{ m.csrf() }}
+          <input type="text" name="reason" placeholder="Reason (internal)" required><button class="btn btn-accent btn-sm">Block</button></form>
+      {% endif %}
+    </li>
+    {% else %}<li class="muted" style="padding:14px 4px">Nobody found.</li>{% endfor %}
+  </ul>
+  {% endif %}
+  <section class="account-section"><h2>Blocked</h2>
+    <ul class="table-list">
+      {% for u in blocked %}<li class="admin-event-row"><div class="tl-main"><strong>{{ u.email }}</strong><span class="muted small">{{ u.blocked_at[:16] }} · {{ u.blocked_reason or '' }}</span></div>
+        <form method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='unblock') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Unblock</button></form></li>
+      {% else %}<li class="muted" style="padding:14px 4px">No blocked users.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

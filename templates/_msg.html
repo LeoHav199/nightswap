@@ -1,0 +1,46 @@
+{# One chat message. Used by the conversation page and by the live updates. #}
+{% import "_macros.html" as m with context %}
+      {% set mine = msg.sender_id == user.id %}
+      {% if msg.kind == 'system' %}
+        <li class="msg-system">{{ t(msg.body) }}</li>
+      {% elif msg.kind in ('offer', 'offer_accepted', 'offer_declined') %}
+        {% set o = offers[msg.offer_id] %}
+        <li class="msg {{ 'mine' if mine }} msg-offer">
+          <div class="bubble">
+            <span class="msg-who">{{ t('you') if mine else names[msg.sender_id] }}</span>
+            {% if msg.kind == 'offer' %}
+              <strong class="offer-amount">{{ money(o.amount_cents) }}</strong>
+              <span>{{ t('offer_per_ticket', n=o.quantity) }} · {{ t('offer_buyer_pays', amount=money(with_fee(o.amount_cents) * o.quantity)) }}</span>
+              {% if o.status == 'pending' %}
+                {% if not is_buyer %}
+                  <div class="offer-actions">
+                    <form method="post" action="{{ url_for('respond_offer', offer_id=o.id, action='accept') }}">{{ m.csrf() }}<button class="btn btn-accent btn-sm" type="submit">{{ t('accept') }}</button></form>
+                    <form method="post" action="{{ url_for('respond_offer', offer_id=o.id, action='decline') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('decline') }}</button></form>
+                  </div>
+                {% else %}
+                  <form class="offer-actions" method="post" action="{{ url_for('respond_offer', offer_id=o.id, action='withdraw') }}">{{ m.csrf() }}<span class="muted small">{{ t('offer_waiting') }}</span><button class="btn-link" type="submit">{{ t('withdraw') }}</button></form>
+                {% endif %}
+              {% else %}
+                <span class="tag tag-offer-{{ o.status }}">{{ t('offer_status_' ~ o.status) }}</span>
+              {% endif %}
+            {% else %}
+              {{ t('msg_offer_accepted', amount=money(o.amount_cents), n=o.quantity) if msg.kind == 'offer_accepted' else t('msg_offer_declined', amount=money(o.amount_cents), n=o.quantity) }}
+              {% if msg.kind == 'offer_accepted' and is_buyer and o.status == 'accepted' and can_buy %}
+                <form class="offer-actions" method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once>
+                  {{ m.csrf() }}<input type="hidden" name="offer_id" value="{{ o.id }}"><input type="hidden" name="back" value="{{ request.path }}">
+                  <button class="btn btn-accent" type="submit">{{ t('pay_amount', amount=money(with_fee(o.amount_cents) * o.quantity)) }}</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </div>
+        </li>
+      {% else %}
+        <li class="msg {{ 'mine' if mine }}">
+          <div class="bubble">
+            <span class="msg-who">{{ t('you') if mine else names[msg.sender_id] }}</span>
+            {{ t(msg.body) if msg.kind == 'question' else msg.body }}
+            {% if msg.flags and mine %}<span class="msg-flag">{{ t('msg_hidden_note') }}</span>{% endif %}
+          </div>
+          <time class="msg-time">{{ msg.created_at[11:16] }}</time>
+        </li>
+      {% endif %}
