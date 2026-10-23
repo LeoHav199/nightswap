@@ -2,6 +2,7 @@
 # Runs every test suite against a throwaway database. Usage, from the project folder: sh tests/run_all.sh
 cd "$(dirname "$0")/.." || exit 1
 PY="${PYTHON:-../.venv/bin/python}"
+export LOAD_STARTER_DATA=0  # tests start from an empty database
 status=0
 for t in tests/*_test.py; do
   out=$("$PY" "$t" "$PWD" 2>&1)

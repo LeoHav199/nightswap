@@ -101,6 +101,8 @@ def init():
         fcntl.flock(lock, fcntl.LOCK_EX)
         try:
             _init()
+            import starter
+            starter.load_once()  # a brand-new database starts with the real events and venue photos
         finally:
             fcntl.flock(lock, fcntl.LOCK_UN)
 

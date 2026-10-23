@@ -515,6 +515,7 @@ def template_globals():
         "is_admin": g.get("is_admin"),
         "csrf_token": session.get("csrf", ""),
         "test_mode": payments.is_test_mode(),
+        "sms_enabled": config.SMS_ENABLED,
         "fee_for": fee_for,
         "with_fee": with_fee,
         "fee_label": fee_label(),
@@ -1759,6 +1760,13 @@ def logout():
     return redirect(url_for("index"))
 
 
+def send_phone_code(number, text):
+    """Texts the code, or emails it to the signed-in user while SMS isn't set up (beta)."""
+    if config.SMS_ENABLED:
+        return notify.send_sms(number, text)
+    return notify.send_email(g.user["email"], text, text)
+
+
 @app.route("/account/phone", methods=["GET", "POST"])
 @login_required
 def phone():
@@ -1776,7 +1784,7 @@ def phone():
             session["phone_pending"] = number
             session["phone_next"] = nxt
             if code:
-                sent = notify.send_sms(number, t("sms_code", code=code))
+                sent = send_phone_code(number, t("sms_code", code=code))
                 if not sent and config.DEV:
                     flash(t("dev_code", code=code), "dev")
             return redirect(url_for("phone_verify"))
@@ -2455,7 +2463,7 @@ def admin_verify():
     elif not request.args.get("sent"):
         code = issue_code("admin", g.user["phone"])
         if code:
-            sent = notify.send_sms(g.user["phone"], t("sms_admin_code", code=code))
+            sent = send_phone_code(g.user["phone"], t("sms_admin_code", code=code))
             if not sent and config.DEV:
                 flash(t("dev_code", code=code), "dev")
         return redirect(url_for("admin_verify", next=nxt, sent=1))
@@ -2624,6 +2632,14 @@ def init_db_command():
     """Create the database tables."""
     db.init()
     click.echo("Database ready at %s" % config.DATABASE)
+
+
+@app.cli.command("export-starter")
+def export_starter_command():
+    """Save the current events and venue photos as starter data for a new (live) database."""
+    import starter
+    events, venues = starter.export()
+    click.echo("Saved %d events and %d venues to starter_data/" % (events, venues))
 
 
 @app.cli.command("release-payouts")

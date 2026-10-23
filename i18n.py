@@ -196,6 +196,8 @@ STRINGS = {
         "phone_number": "Phone number",
         "send_code": "Send code",
         "phone_verify_sub": "We sent a 6-digit code by text to {phone}.",
+        "phone_verify_sub_email": "To confirm {phone}, we sent a 6-digit code to your email, {email}.",
+        "admin_check_sub_email": "We sent a code to your email, {email}. Enter it to open the admin area.",
         "verify": "Verify",
 
         "hi": "Hi {name}",
@@ -733,6 +735,8 @@ STRINGS = {
         "phone_number": "Telefoonnummer",
         "send_code": "Code versturen",
         "phone_verify_sub": "We hebben een code van 6 cijfers per sms gestuurd naar {phone}.",
+        "phone_verify_sub_email": "Om {phone} te bevestigen, hebben we een code van 6 cijfers naar je e-mail gestuurd: {email}.",
+        "admin_check_sub_email": "We hebben een code naar je e-mail gestuurd: {email}. Vul hem in om het beheergedeelte te openen.",
         "verify": "Bevestigen",
 
         "hi": "Hoi {name}",

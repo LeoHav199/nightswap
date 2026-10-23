@@ -35,6 +35,7 @@ INSTANCE_DIR = os.path.join(DATA_DIR, "instance")
 DATABASE = os.path.join(INSTANCE_DIR, "nightswap.sqlite3")
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 TASK_SECRET = env("TASK_SECRET")   # protects /tasks/hourly, which a cron service calls every hour
+LOAD_STARTER_DATA = env("LOAD_STARTER_DATA", "1") == "1"  # a brand-new database starts with starter_data/ (off in tests)
 
 # Business rules -------------------------------------------------------------
 # Buyer service fee per ticket: a percentage of the ticket price, with a minimum (and an optional maximum).
@@ -108,6 +109,7 @@ MAIL_FROM = env("MAIL_FROM", "Nightswap <hello@nightswap.nl>")
 TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
 TWILIO_FROM = env("TWILIO_FROM")
+SMS_ENABLED = bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM)  # without it, phone codes go by email (beta)
 
 
 # Apple Wallet passes. Needs an Apple Developer account: create a Pass Type ID and its
@@ -141,8 +143,6 @@ def check_production():
     missing = []
     if not SMTP_HOST:
         missing.append("SMTP_HOST")
-    if not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM):
-        missing.append("TWILIO_*")
     if not STRIPE_SECRET_KEY:
         missing.append("STRIPE_SECRET_KEY")
     if not BASE_URL:

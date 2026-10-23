@@ -108,6 +108,8 @@ STRINGS = {
     "phone_number": "Numéro de téléphone",
     "send_code": "Envoyer le code",
     "phone_verify_sub": "On a envoyé un code à 6 chiffres par SMS au {phone}.",
+    "phone_verify_sub_email": "Pour confirmer le {phone}, on a envoyé un code à 6 chiffres à ton adresse e-mail, {email}.",
+    "admin_check_sub_email": "On a envoyé un code à ton adresse e-mail, {email}. Saisis-le pour ouvrir l'espace admin.",
     "verify": "Vérifier",
     "hi": "Salut {name}",
     "log_out": "Se déconnecter",
