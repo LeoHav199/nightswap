@@ -27,7 +27,8 @@ def env(key, default=""):
 
 ENV = env("NIGHTSWAP_ENV", "development")
 DEV = ENV != "production"
-BASE_URL = env("BASE_URL").rstrip("/")  # empty: use the address the visitor opened
+# The site's public address. Render provides RENDER_EXTERNAL_URL; set BASE_URL once you have your own domain.
+BASE_URL = (env("BASE_URL") or env("RENDER_EXTERNAL_URL")).rstrip("/")  # empty: use the address the visitor opened
 
 # Where the database and uploaded files live. On a host, point DATA_DIR at a persistent disk.
 DATA_DIR = env("DATA_DIR") or BASE_DIR

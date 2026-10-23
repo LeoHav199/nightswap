@@ -25,26 +25,19 @@ services:
         generateValue: true
       - key: TASK_SECRET
         generateValue: true
-      # Fill these in on Render (Dashboard → Environment):
-      - key: BASE_URL              # e.g. https://nightswap.onrender.com, later https://nightswap.nl
+      # Render asks for these when you create the service:
+      - key: ADMIN_EMAILS          # your email, so you can open /admin
         sync: false
-      - key: ADMIN_EMAILS
+      - key: STRIPE_SECRET_KEY     # sk_test_... for the beta
         sync: false
-      - key: STRIPE_SECRET_KEY
+      - key: SMTP_HOST             # Brevo: smtp-relay.brevo.com
         sync: false
-      - key: STRIPE_WEBHOOK_SECRET
+      - key: SMTP_USER             # Brevo SMTP login
         sync: false
-      - key: SMTP_HOST
+      - key: SMTP_PASSWORD         # Brevo SMTP key
         sync: false
-      - key: SMTP_USER
+      - key: MAIL_FROM             # e.g. Nightswap <you@icloud.com>, a sender verified in Brevo
         sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: MAIL_FROM
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_FROM
-        sync: false
+      # Add later under Environment, when you have them:
+      #   BASE_URL (your own domain, e.g. https://nightswap.nl), STRIPE_WEBHOOK_SECRET,
+      #   TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM (until then phone codes go by email)

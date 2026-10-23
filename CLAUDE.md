@@ -27,6 +27,7 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
 - Tests: `sh tests/run_all.sh` runs all 209 checks against a throwaway database. Run it after every change.
+- `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 
 ## Deploying (not done yet)
@@ -35,7 +36,7 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
   - GitHub repo
   - Render account
   - email sending (Brevo SMTP)
-  - Twilio, or make SMS optional for the friends beta
+  - Twilio (optional: without it, phone codes are emailed, see `config.SMS_ENABLED`)
   - cron-job.org POSTing hourly to `/tasks/hourly` with header `X-Task-Secret`
   - a domain
 - Before real money:
