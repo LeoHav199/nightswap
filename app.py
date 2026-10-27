@@ -1121,7 +1121,7 @@ def order_calendar(public_id):
     esc = lambda v: str(v).replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;")  # noqa: E731
     lines = [
         "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Spare//EN", "BEGIN:VEVENT",
-        "UID:%s@sparetickets.nl" % order["public_id"], "DTSTAMP:%sZ" % fmt(utcnow()),
+        "UID:%s@sparetickets.eu" % order["public_id"], "DTSTAMP:%sZ" % fmt(utcnow()),
         "DTSTART;TZID=Europe/Amsterdam:%s" % fmt(start), "DTEND;TZID=Europe/Amsterdam:%s" % fmt(end),
         "SUMMARY:%s" % esc(listing["event_name"] or listing["venue"]),
         "LOCATION:%s" % esc("%s, %s" % (listing["venue"], listing["city"])),
