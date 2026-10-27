@@ -35,7 +35,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=not config.DEV,
-    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=365),  # stay signed in for a year; each visit extends it
 )
 app.teardown_appcontext(db.close)
 if config.TRUST_PROXY:

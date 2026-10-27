@@ -274,6 +274,7 @@
       if (startY === null) return;
       pull = Math.max(0, Math.min(120, (e.touches[0].clientY - startY) * 0.5));
       ptr.style.transform = "translate(-50%, " + (pull - 50) + "px) rotate(" + pull * 3 + "deg)";
+      ptr.classList.toggle("pulling", pull > 6);
       ptr.classList.toggle("ready", pull >= LIMIT);
     }, { passive: true });
     window.addEventListener("touchend", function () {
@@ -282,9 +283,10 @@
         ptr.style.transform = "";
         ptr.classList.add("spinning");
         startLoading();
-        location.reload();
+        setTimeout(function () { location.reload(); }, 650);  // let the spinner turn a moment, like a native app
       } else {
         ptr.style.transform = "";
+        ptr.classList.remove("pulling", "ready");
       }
       startY = null; pull = 0;
     });

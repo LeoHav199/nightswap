@@ -23,7 +23,11 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+/* Feel like an app on phones: the page never drifts sideways; side-scrolling strips keep their swipes to themselves. */
+html, body { overflow-x: clip; overscroll-behavior-x: none; }
+.days, .cat-chips, .tonight-row, .ticket-qrs { overscroll-behavior-x: contain; }
+.tabbar, .nav, .btn, .day-tab, .cat-option { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 body {
   margin: 0;
   min-height: 100vh;
@@ -634,8 +638,9 @@ body { padding-top: env(safe-area-inset-top); }
   position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 50%; z-index: 90;
   width: 38px; height: 38px; padding: 8px; border-radius: 50%;
   background: var(--surface-2); border: 1px solid var(--line-strong);
-  transform: translate(-50%, -60px); transition: transform .2s; pointer-events: none;
+  transform: translate(-50%, -60px); transition: transform .2s, opacity .15s; pointer-events: none; opacity: 0;
 }
+.ptr.pulling, .ptr.spinning { opacity: 1; }
 .ptr svg { width: 100%; height: 100%; fill: none; stroke: var(--muted); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 .ptr.ready svg { stroke: var(--accent); }
 .ptr.spinning { transform: translate(-50%, 30px); animation: ptrspin .8s linear infinite; }
@@ -745,7 +750,10 @@ body { padding-top: env(safe-area-inset-top); }
 
 /* Page transitions (Chrome, Edge, Safari 18+): fade between pages, poster flies into the event page. */
 @view-transition { navigation: auto; }
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: .18s; }
+::view-transition-old(root) { animation: vt-out .2s ease-in both; }
+::view-transition-new(root) { animation: vt-in .32s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(8px); } }
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }
   .ticket.just-paid, .ticket.just-paid .ticket-top, .confetti i, .live-dot, .flag-hot::before { animation: none; }
