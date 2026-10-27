@@ -48,7 +48,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - email sending: done with iCloud SMTP (smtp.mail.me.com, leohavgarde@icloud.com, app-specific password). Check with `flask --app app test-email <address>`. Switch to Brevo once there's a domain to authenticate; Brevo with an @icloud.com sender lands in spam.
   - Twilio (optional: without it, phone codes are emailed, see `config.SMS_ENABLED`)
   - cron-job.org: done, job "Nightswap hourly" POSTs to `/tasks/hourly` with header `X-Task-Secret` (value = TASK_SECRET on Render). Test run gave 200 on 27 Oct 2026.
-  - domain: sparetickets.eu chosen, Leo is buying it (TransIP). Then connect it in Render (Settings → Custom Domains) and set BASE_URL.
+  - domain: sparetickets.eu bought at TransIP on 27 Oct 2026 (€9.67 first year, paid by iDEAL, no auto-debit). Renewal there is €26.99 + VAT, so **before Oct 2027 transfer it to a registrar with a cheaper .eu renewal**. Connect it in Render (Settings → Custom Domains) and set BASE_URL.
   - MAIL_FROM on Render still needs to say `Spare <leohavgarde@icloud.com>` after the rename.
   - Stripe webhook (STRIPE_WEBHOOK_SECRET): optional backup, orders are already confirmed when the buyer returns from Stripe
 - Tested on the live site 27 Oct 2026: listing, Stripe test checkout, problem report and admin refund all work.
