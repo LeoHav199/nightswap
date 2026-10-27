@@ -50,7 +50,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - cron-job.org: done, job "Nightswap hourly" POSTs to `/tasks/hourly` with header `X-Task-Secret` (value = TASK_SECRET on Render). Test run gave 200 on 27 Oct 2026.
   - domain: sparetickets.eu bought at TransIP on 27 Oct 2026 (€9.67 first year, paid by iDEAL, no auto-debit). Renewal there is €26.99 + VAT, so **before Oct 2027 transfer it to a registrar with a cheaper .eu renewal**. Connect it in Render (Settings → Custom Domains) and set BASE_URL.
   - Render's MAIL_FROM should be `Spare <hello@sparetickets.eu>`; BASE_URL is https://sparetickets.eu.
-  - Stripe webhook (STRIPE_WEBHOOK_SECRET): optional backup, orders are already confirmed when the buyer returns from Stripe
+  - Stripe webhook: done (test mode, 27 Oct 2026). Destination "dynamic-celebration" → https://sparetickets.eu/webhooks/stripe, events checkout.session.completed / async_payment_succeeded / expired, snapshot payload; STRIPE_WEBHOOK_SECRET is on Render. Deliveries return 200. Live mode will need its own webhook and secret.
 - Tested on the live site 27 Oct 2026: listing, Stripe test checkout, problem report and admin refund all work.
 - Before real money:
   - KvK registration
