@@ -44,13 +44,13 @@
     <details class="panel outreach">
       <summary><strong>Message to send organisers</strong> <span class="muted small">(copy, paste, adjust)</span></summary>
       <p class="label">English</p>
-      <pre>Hi! I run Spare (sparetickets.eu), a resale platform for students in Rotterdam. Students who can't make it sell their ticket to someone who can, never above face value, so your night stays full and nobody gets scammed.
+      <pre>Hi! I run Spare (sparetickets.eu), a resale platform for students in Rotterdam. Students who can't make it sell their ticket to someone who can, {{ 'never above face value' if price_cap == 100 else 'never more than ' ~ price_markup ~ '% above face value' }}, so your night stays full and nobody gets scammed.
 
 [EVENT NAME] is listed on our site with a link to your official ticket shop. Could we use your poster for it? You can upload it here in 30 seconds: [LINK TO "ORGANISER? ADD YOUR POSTER"]. Or reply with the image and a yes, and I'll add it.
 
 We'd also love to talk about being your official resale option. Happy to hear what you think!</pre>
       <p class="label">Nederlands</p>
-      <pre>Hoi! Ik ben van Spare (sparetickets.eu), een doorverkoopplatform voor studenten in Rotterdam. Studenten die niet kunnen, verkopen hun ticket aan iemand die wel kan, nooit boven de nominale waarde. Zo blijft jullie avond vol en wordt niemand opgelicht.
+      <pre>Hoi! Ik ben van Spare (sparetickets.eu), een doorverkoopplatform voor studenten in Rotterdam. Studenten die niet kunnen, verkopen hun ticket aan iemand die wel kan, {{ 'nooit boven de nominale waarde' if price_cap == 100 else 'nooit meer dan ' ~ price_markup ~ '% boven de nominale waarde' }}. Zo blijft jullie avond vol en wordt niemand opgelicht.
 
 [NAAM EVENEMENT] staat op onze site, met een link naar jullie officiële ticketshop. Mogen we jullie poster daarvoor gebruiken? Uploaden kan hier in 30 seconden: [LINK NAAR "ORGANISATOR? VOEG JE POSTER TOE"]. Of stuur de afbeelding terug met een "ja", dan zet ik hem erop.
 

@@ -4,7 +4,7 @@
 <section class="wrap home-head">
   <div>
     <h1>{{ t('hero_title_city', city=city) if city != 'all' else t('hero_title_nl') }}</h1>
-    <p class="lead">{{ t('hero_sub') }}</p>
+    <p class="lead">{{ t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup) }}</p>
   </div>
   <form class="search" method="get" action="{{ url_for('index') }}" role="search">
     {% if day %}<input type="hidden" name="day" value="{{ day }}">{% endif %}

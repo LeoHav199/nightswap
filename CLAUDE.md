@@ -12,7 +12,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 
 ## Product decisions (already made, don't reopen without asking)
 - Launch city is **Rotterdam only** (`ENABLED_CITIES`, `SHOW_ALL_NETHERLANDS=0`). The code supports more cities for later.
-- Prices are capped at face value. The buyer pays an **8% fee, minimum €1**, set with `FEE_PERCENT`/`FEE_MIN_CENTS`. A flat €1 fee was tried and dropped because it didn't earn enough.
+- Prices are capped at **face value + 20%** (`PRICE_CAP_PERCENT=120`; changed from a face-value cap on 27 Oct 2026 so sellers can earn a little, like TicketSwap). Texts switch automatically between "never above face value" and "never more than X% above". Check the law before expanding: Belgium is believed to ban resale above the original price. The buyer pays an **8% fee, minimum €1**, set with `FEE_PERCENT`/`FEE_MIN_CENTS`. A flat €1 fee was tried and dropped because it didn't earn enough.
 - Contact details are required for safety: an email code at sign-in, a phone code before selling, and sellers must be 18+.
 - Sellers are paid out 48h after the event (`PAYOUT_DELAY_HOURS`). Buyers get refunds if an event is cancelled or a ticket is disputed.
 - Most sellers sell once, so the track-record badge only appears after 2+ sales.

@@ -88,7 +88,7 @@ ok("2 tickets, sold together" in html(seller.get("/t/%d" % pair)), "one PDF with
 
 # --- Edit price + cap
 r = seller.post("/t/%d/price" % lid, data={"price": "25", "_csrf": csrf(seller)}, follow_redirects=True)
-ok("maximum for this ticket is €20" in html(r), "price edit respects the face-value cap")
+ok("maximum for this ticket is €24" in html(r), "price edit respects the cap (face value + 20%)")
 r = seller.post("/t/%d/price" % lid, data={"price": "15,50", "_csrf": csrf(seller)}, follow_redirects=True)
 ok("Price updated to €15.50" in html(r), "price edit saved")
 

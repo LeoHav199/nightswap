@@ -523,6 +523,7 @@ def template_globals():
         "fee_min": config.FEE_MIN_CENTS,
         "fee_max": config.FEE_MAX_CENTS,
         "price_cap": config.PRICE_CAP_PERCENT,
+        "price_markup": config.PRICE_CAP_PERCENT - 100,  # e.g. 20 for "up to 20% above face value"
         "payout_hours": config.PAYOUT_DELAY_HOURS,
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,

@@ -37,7 +37,8 @@ pdf = b"%PDF-1.4 unique test ticket"
 def post(face, price, data=pdf):
     return seller.post("/sell", data={"venue": "Perron", "event_date": "2026-11-07", "face_value": face, "price": price,
         "event_name": "Test Night", "adult": "yes", "ticket": (io.BytesIO(data), "t.pdf"), "poster": (io.BytesIO(b"\x89PNG fake poster"), "p.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
-r = post("20", "25"); ok("maximum for this ticket is €20" in r.get_data(as_text=True), "price cap enforced")
+r = post("20", "25"); ok("maximum for this ticket is €24" in r.get_data(as_text=True), "price cap enforced (face value + 20%)")
+ok(A.max_price(2000) == 2400 and A.max_price(1550) == 1860, "sellers may ask up to 20% above face value")
 r = post("20", "18,50"); ok(r.status_code == 302 and "/t/" in r.location, "listing created")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = post("20", "18"); ok("already been listed" in r.get_data(as_text=True), "duplicate file blocked")

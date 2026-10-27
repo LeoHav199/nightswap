@@ -90,7 +90,7 @@
       <label class="field">
         <span class="label">{{ t('your_price') }} <span class="optional">{{ t('per_ticket') }}</span></span>
         <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="price" value="{{ form.get('price', '') }}" placeholder="20" required data-price></span>
-        <span class="hint" data-cap-hint>{{ t('price_hint') if price_cap == 100 else t('price_hint_pct', pct=price_cap) }}</span>
+        <span class="hint" data-cap-hint>{{ t('price_hint') if price_cap == 100 else t('price_hint_pct', pct=price_markup) }}</span>
         {{ m.field_error(errors, 'price') }}
       </label>
     </div>

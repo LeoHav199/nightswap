@@ -31,7 +31,7 @@
     <dl class="breakdown">
       <div><dt>Kopers</dt><dd>{{ fee }} per ticket</dd></div>
       <div><dt>Verkopers</dt><dd>Gratis</dd></div>
-      <div><dt>Maximale prijs</dt><dd>{{ 'Nominale waarde' if price_cap == 100 else price_cap ~ '% van de nominale waarde' }}</dd></div>
+      <div><dt>Maximale prijs</dt><dd>{{ 'Nominale waarde' if price_cap == 100 else 'Nominale waarde + ' ~ price_markup ~ '%' }}</dd></div>
     </dl>
     <p class="muted">Geen percentages en geen verborgen kosten. De prijs die je in de lijst ziet is wat je betaalt.</p>
   </section>
@@ -67,7 +67,7 @@
     <dl class="breakdown">
       <div><dt>Buyers</dt><dd>{{ fee }} per ticket</dd></div>
       <div><dt>Sellers</dt><dd>Free</dd></div>
-      <div><dt>Maximum price</dt><dd>{{ 'Face value' if price_cap == 100 else price_cap ~ '% of face value' }}</dd></div>
+      <div><dt>Maximum price</dt><dd>{{ 'Face value' if price_cap == 100 else 'Face value + ' ~ price_markup ~ '%' }}</dd></div>
     </dl>
     <p class="muted">No percentages and no hidden costs. The price you see in the list is what you pay.</p>
   </section>

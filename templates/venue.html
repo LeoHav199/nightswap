@@ -3,7 +3,7 @@
 {% block title %}{{ t('venue_title', venue=venue.name) }}{% endblock %}
 {% block head %}
   <meta property="og:title" content="{{ t('venue_title', venue=venue.name) }}">
-  <meta property="og:description" content="{{ t('venue_meta', venue=venue.name, city=venue.city) }}">
+  <meta property="og:description" content="{{ t('venue_meta', venue=venue.name, city=venue.city) if price_cap == 100 else t('venue_meta_pct', venue=venue.name, city=venue.city, pct=price_markup) }}">
   {% if venue.photo_file %}<meta property="og:image" content="{{ base_url }}{{ url_for('poster', name=venue.photo_file) }}">{% endif %}
 {% endblock %}
 {% block content %}

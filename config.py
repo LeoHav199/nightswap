@@ -43,7 +43,7 @@ LOAD_STARTER_DATA = env("LOAD_STARTER_DATA", "1") == "1"  # a brand-new database
 FEE_PERCENT = float(env("NIGHTSWAP_FEE_PERCENT", "8"))
 FEE_MIN_CENTS = int(env("NIGHTSWAP_FEE_MIN_CENTS", "100"))
 FEE_MAX_CENTS = int(env("NIGHTSWAP_FEE_MAX_CENTS", "0"))   # 0 = no maximum
-PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "100"))
+PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price as % of face value: 120 = up to 20% above
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes
 MAX_FACE_VALUE_CENTS = 50000

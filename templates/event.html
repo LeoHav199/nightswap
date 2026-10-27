@@ -3,7 +3,7 @@
 {% block title %}{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }} · Spare{% endblock %}
 {% block head %}
   <meta property="og:title" content="{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }}">
-  <meta property="og:description" content="{{ t('og_event', venue=ev.venue, n=ev.count) }}">
+  <meta property="og:description" content="{{ t('og_event', venue=ev.venue, n=ev.count) if price_cap == 100 else t('og_event_pct', venue=ev.venue, n=ev.count, pct=price_markup) }}">
   {% if ev.poster or ev.photo %}<meta property="og:image" content="{{ base_url }}{{ url_for('poster', name=ev.poster or ev.photo) }}">{% endif %}
   <script type="application/ld+json">{{ {
     "@context": "https://schema.org", "@type": "Event", "name": ev.name or ev.venue,
