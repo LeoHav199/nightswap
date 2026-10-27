@@ -412,7 +412,7 @@
     var W = 1080, H = 1920, P = 1180, c = document.createElement("canvas");
     c.width = W; c.height = H;
     var ctx = c.getContext("2d");
-    ctx.fillStyle = "#0d0a13"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#15132b"; ctx.fillRect(0, 0, W, H);
 
     // Poster area
     ctx.save();
@@ -444,26 +444,26 @@
     ctx.restore();
 
     // Ticket-stub tear line
-    ctx.fillStyle = "#16121e"; ctx.beginPath();
+    ctx.fillStyle = "#1d1a37"; ctx.beginPath();
     ctx.roundRect ? ctx.roundRect(60, 60 + P, W - 120, H - P - 220, [0, 0, 36, 36]) : ctx.rect(60, 60 + P, W - 120, H - P - 220);
     ctx.fill();
-    ctx.fillStyle = "#0d0a13";
+    ctx.fillStyle = "#15132b";
     [[60, 60 + P], [W - 60, 60 + P]].forEach(function (pt) { ctx.beginPath(); ctx.arc(pt[0], pt[1], 30, 0, Math.PI * 2); ctx.fill(); });
-    ctx.setLineDash([22, 18]); ctx.strokeStyle = "#0d0a13"; ctx.lineWidth = 6;
+    ctx.setLineDash([22, 18]); ctx.strokeStyle = "#15132b"; ctx.lineWidth = 6;
     ctx.beginPath(); ctx.moveTo(110, 60 + P); ctx.lineTo(W - 110, 60 + P); ctx.stroke(); ctx.setLineDash([]);
 
     // Details
-    ctx.fillStyle = "#f4f1f8"; ctx.font = '600 58px "Instrument Sans"';
+    ctx.fillStyle = "#f5f3ec"; ctx.font = '600 58px "Instrument Sans"';
     ctx.fillText(wrapLines(ctx, d.title, W - 240, 1)[0], 120, 60 + P + 120);
-    ctx.fillStyle = "#a49db1"; ctx.font = '400 44px "Instrument Sans"';
+    ctx.fillStyle = "#a9a6c0"; ctx.font = '400 44px "Instrument Sans"';
     ctx.fillText(d.venue + " · " + d.date, 120, 60 + P + 190);
-    ctx.fillStyle = "#ffd84d"; ctx.font = '800 150px "Big Shoulders Display"';
+    ctx.fillStyle = "#d4ff3a"; ctx.font = '800 150px "Big Shoulders Display"';
     ctx.fillText(d.price, 120, 60 + P + 360);
 
     // Wordmark
-    ctx.fillStyle = "#f4f1f8"; ctx.font = '900 64px "Big Shoulders Display"';
-    ctx.fillText("nightswap", 120, H - 90);
-    ctx.fillStyle = "#a49db1"; ctx.font = '500 36px "Instrument Sans"'; ctx.textAlign = "right";
+    ctx.fillStyle = "#f5f3ec"; ctx.font = '900 64px "Inter Tight"';
+    ctx.fillText("spare", 120, H - 90);
+    ctx.fillStyle = "#a9a6c0"; ctx.font = '500 36px "Instrument Sans"'; ctx.textAlign = "right";
     ctx.fillText(d.url.replace(/^https?:\/\//, "").split("/")[0], W - 120, H - 96);
     return c;
   }
@@ -474,6 +474,7 @@
       btn.disabled = true;
       Promise.all([
         document.fonts ? document.fonts.load('900 150px "Big Shoulders Display"') : null,
+        document.fonts ? document.fonts.load('900 64px "Inter Tight"') : null,
         document.fonts ? document.fonts.load('600 50px "Instrument Sans"') : null,
         loadImage(d.poster),
         d.poster ? null : loadImage(d.art),
@@ -481,13 +482,13 @@
         var canvas = drawStory(d, res[2], res[3]);
         canvas.toBlob(function (blob) {
           btn.disabled = false;
-          var file = new File([blob], "nightswap.png", { type: "image/png" });
+          var file = new File([blob], "spare.png", { type: "image/png" });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             navigator.share({ files: [file], text: d.text + " " + d.url }).catch(function () {});
             return;
           }
           var a = document.createElement("a");
-          a.href = URL.createObjectURL(blob); a.download = "nightswap.png"; a.click();
+          a.href = URL.createObjectURL(blob); a.download = "spare.png"; a.click();
           if (navigator.clipboard) navigator.clipboard.writeText(d.url).catch(function () {});
           btn.textContent = d.done;
         }, "image/png");

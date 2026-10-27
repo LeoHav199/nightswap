@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
-{% block title %}Venues & posters · Admin · Nightswap{% endblock %}
+{% block title %}Venues & posters · Admin · Spare{% endblock %}
 {% block content %}
 <div class="wrap narrow-head account-head">
   <div><h1>Venues & posters</h1><p class="muted">Photos and posters make the site feel real. Only use images you're allowed to use (ask the venue or organiser).</p></div>
@@ -41,7 +41,7 @@
           <label class="field"><span class="label">Photo {% if v.photo_file %}<span class="optional">(has one)</span>{% endif %}</span><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></label>
         </div>
         <div class="grid-2">
-          <label class="field"><span class="label">Photo credit</span><input type="text" name="photo_credit" value="{{ v.photo_credit or '' }}" placeholder="Photographer name, or 'Nightswap'"></label>
+          <label class="field"><span class="label">Photo credit</span><input type="text" name="photo_credit" value="{{ v.photo_credit or '' }}" placeholder="Photographer name, or 'Spare'"></label>
           <label class="field"><span class="label">Licence</span><input type="text" name="photo_license" value="{{ v.photo_license or '' }}" placeholder="CC BY-SA 4.0 / Own photo / With permission"></label>
         </div>
         <div class="grid-2">

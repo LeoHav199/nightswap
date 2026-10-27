@@ -30,9 +30,9 @@ def email_html(subject, body):
         if not lines:
             return
         text = "<br>".join(html.escape(ln) for ln in lines)
-        text = re.sub(r"(https?://[^\s<]+)", r'<a href="\1" style="color:#ff5a8a">\1</a>', text)
+        text = re.sub(r"(https?://[^\s<]+)", r'<a href="\1" style="color:#d4ff3a">\1</a>', text)
         if len(lines) == 1 and len(text) < 40 and CODE_LINE.search(text):
-            text = CODE_LINE.sub(r'<span style="font-size:32px;letter-spacing:6px;font-weight:700;color:#f4f1f8">\1</span>', text)
+            text = CODE_LINE.sub(r'<span style="font-size:32px;letter-spacing:6px;font-weight:700;color:#f5f3ec">\1</span>', text)
         parts.append('<p style="margin:0 0 16px">%s</p>' % text)
 
     for block in body.strip().split("\n\n"):
@@ -43,22 +43,22 @@ def email_html(subject, body):
             if URL_LINE.match(ln):
                 flush(lines)
                 lines = []
-                parts.append('<p style="margin:8px 0 24px"><a href="%s" style="display:inline-block;background:#ff5a8a;color:#22060f;'
-                             'font-weight:700;text-decoration:none;padding:13px 22px;border-radius:999px">Open Nightswap</a></p>'
+                parts.append('<p style="margin:8px 0 24px"><a href="%s" style="display:inline-block;background:#d4ff3a;color:#15132b;'
+                             'font-weight:700;text-decoration:none;padding:13px 22px;border-radius:999px">Open Spare</a></p>'
                              % html.escape(ln, quote=True))
             else:
                 lines.append(ln)
         flush(lines)
     return (
-        '<!doctype html><html><body style="margin:0;background:#0d0a13;padding:24px 12px;font-family:-apple-system,Segoe UI,'
+        '<!doctype html><html><body style="margin:0;background:#15132b;padding:24px 12px;font-family:-apple-system,Segoe UI,'
         'Helvetica,Arial,sans-serif">'
         '<table role="presentation" width="100%%" cellpadding="0" cellspacing="0"><tr><td align="center">'
-        '<table role="presentation" width="100%%" style="max-width:520px;background:#16121e;border-radius:14px" cellpadding="0" cellspacing="0">'
-        '<tr><td style="padding:22px 28px 6px;font-size:26px;font-weight:900;color:#f4f1f8;letter-spacing:.5px">'
-        '%s nightswap</td></tr>'
-        '<tr><td style="padding:12px 28px 24px;color:#d3cedc;font-size:15px;line-height:1.55">%s</td></tr>'
+        '<table role="presentation" width="100%%" style="max-width:520px;background:#1d1a37;border-radius:14px" cellpadding="0" cellspacing="0">'
+        '<tr><td style="padding:22px 28px 6px;font-size:26px;font-weight:900;color:#f5f3ec;letter-spacing:.5px">'
+        '%s spare</td></tr>'
+        '<tr><td style="padding:12px 28px 24px;color:#d6d4e4;font-size:15px;line-height:1.55">%s</td></tr>'
         '</table>'
-        '<p style="color:#736b81;font-size:12px;margin:16px 0 0">Nightswap · Rotterdam · <a href="mailto:%s" style="color:#736b81">%s</a></p>'
+        '<p style="color:#77739a;font-size:12px;margin:16px 0 0">Spare · Rotterdam · <a href="mailto:%s" style="color:#77739a">%s</a></p>'
         '</td></tr></table></body></html>'
     ) % (_logo_img(), "".join(parts), config.SUPPORT_EMAIL, config.SUPPORT_EMAIL)
 

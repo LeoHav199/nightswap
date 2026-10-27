@@ -1,29 +1,33 @@
-"""Draws the Nightswap logo (ticket stub with swap arrows) as PNG icons.
+"""Draws the Spare logo (a tilted ticket with a dashed tear line) as PNG icons.
 
 Run from the project folder:  ../.venv/bin/python tools/make_icons.py
 The shapes match the SVG mark in templates/base.html and static/favicon.svg.
 """
 from PIL import Image, ImageDraw
 
-BG = (13, 10, 19, 255)
-ACCENT = (255, 90, 138, 255)
+BG = (21, 19, 43, 255)
+ACCENT = (212, 255, 58, 255)
 SS = 4  # supersampling for smooth edges
 
 
 def mark_mask(px):
-    """The mark on a 24-unit grid, drawn into a px-by-px mask (white = pink)."""
+    """The mark on a 24-unit grid, drawn into a px-by-px mask (white = lime)."""
     big = px * SS
     u = big / 24
     m = Image.new("L", (big, big), 0)
     d = ImageDraw.Draw(m)
-    d.rounded_rectangle([1 * u, 5 * u, 23 * u, 19 * u], radius=2 * u, fill=255)
-    for cx in (1, 23):
-        d.ellipse([(cx - 2.2) * u, (12 - 2.2) * u, (cx + 2.2) * u, (12 + 2.2) * u], fill=0)
-    w = 1.9 * u
-    for a, b in (((7, 10), (16.5, 10)), ((16.5, 10), (14, 7.5)), ((17, 14), (7.5, 14)), ((7.5, 14), (10, 16.5))):
-        d.line([a[0] * u, a[1] * u, b[0] * u, b[1] * u], fill=0, width=round(w))
-        for x, y in (a, b):
-            d.ellipse([x * u - w / 2, y * u - w / 2, x * u + w / 2, y * u + w / 2], fill=0)
+    d.rounded_rectangle([1.6 * u, 6.2 * u, 22.4 * u, 17.8 * u], radius=2.2 * u, fill=255)
+    for cx in (1.6, 22.4):
+        d.ellipse([(cx - 2) * u, 10 * u, (cx + 2) * u, 14 * u], fill=0)
+    w = 0.9 * u  # the dashed tear line: short rounded dashes, like stroke-dasharray "0.5 1.6"
+    y = 7.6
+    while y <= 16.4:
+        y2 = min(y + 0.5, 16.4)
+        d.line([15.6 * u, y * u, 15.6 * u, y2 * u], fill=0, width=round(w))
+        for yy in (y, y2):
+            d.ellipse([15.6 * u - w / 2, yy * u - w / 2, 15.6 * u + w / 2, yy * u + w / 2], fill=0)
+        y += 2.1
+    m = m.rotate(10, resample=Image.BICUBIC, center=(big / 2, big / 2))  # tilted, like the SVG's rotate(-10)
     return m.resize((px, px), Image.LANCZOS)
 
 

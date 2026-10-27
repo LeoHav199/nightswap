@@ -136,5 +136,5 @@ ok(buyer2.get("/account").status_code == 302, "deleted user is signed out")
 # ---- Branded email
 import notify as N
 h = N.email_html("x", "Hi Bo,\n\nYour ticket:\nhttps://nightswap.nl/orders/X\n\nNightswap")
-ok("Open Nightswap" in h and "nightswap" in h and "#ff5a8a" in h, "emails get a branded HTML version with a button")
+ok("Open Spare" in h and "spare" in h and "#d4ff3a" in h, "emails get a branded HTML version with a button")
 print("FAILED:", fails or "none")

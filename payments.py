@@ -1,8 +1,8 @@
 """Payments through Stripe Connect ("separate charges and transfers").
 
-The buyer pays Nightswap. The money stays on the platform's Stripe balance
+The buyer pays Spare. The money stays on the platform's Stripe balance
 until the payout date, then the ticket price is transferred to the seller's
-connected Stripe account. Nightswap never holds funds outside Stripe.
+connected Stripe account. Spare never holds funds outside Stripe.
 
 Without STRIPE_SECRET_KEY, every function falls back to a simulated flow so
 the full site can be used locally.
@@ -38,7 +38,7 @@ def create_checkout(order, title, buyer_email, success_url, cancel_url):
     if order["fee_cents"]:
         items.append({
             "price_data": {"currency": "eur", "unit_amount": order["fee_cents"],
-                           "product_data": {"name": "Nightswap service fee"}},
+                           "product_data": {"name": "Spare service fee"}},
             "quantity": 1,
         })
     session = stripe.checkout.Session.create(
@@ -100,7 +100,7 @@ def payout_onboarding_url(user, return_url, refresh_url):
     """Returns (stripe_account_id, url) for Stripe's hosted payout setup.
 
     Sellers are "recipient" accounts: they only receive transfers from
-    Nightswap. Nightswap collects the fees and covers refunds and losses.
+    Spare. Spare collects the fees and covers refunds and losses.
     """
     account_id = user["stripe_account_id"]
     if not account_id:

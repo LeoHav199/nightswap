@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{% block title %}{{ t('meta_title') }}{% endblock %}</title>
   <meta name="description" content="{{ t('meta_description') }}">
-  <meta name="theme-color" content="#0d0a13">
+  <meta name="theme-color" content="#15132b">
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('manifest') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Nightswap">
+  <meta name="apple-mobile-web-app-title" content="Spare">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Inter+Tight:wght@900&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   {% block head %}{% endblock %}
 </head>
@@ -25,9 +25,9 @@
   {% if test_mode %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="logo" href="{{ url_for('index') }}" aria-label="Nightswap">
-        <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><defs><mask id="ns-cut-top"><rect width="24" height="24" fill="#fff"/><circle cx="1" cy="12" r="2.2"/><circle cx="23" cy="12" r="2.2"/><path d="M7 10h9.5L14 7.5M17 14H7.5l2.5 2.5" fill="none" stroke="#000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect x="1" y="5" width="22" height="14" rx="2" mask="url(#ns-cut-top)"/></svg>
-        <span>nightswap</span>
+      <a class="logo" href="{{ url_for('index') }}" aria-label="Spare">
+        <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><defs><mask id="ns-cut-top"><rect width="24" height="24" fill="#fff"/><g transform="rotate(-10 12 12)"><circle cx="1.6" cy="12" r="2"/><circle cx="22.4" cy="12" r="2"/><path d="M15.6 7.6v8.8" fill="none" stroke="#000" stroke-width="0.9" stroke-linecap="round" stroke-dasharray="0.5 1.6"/></g></mask></defs><rect x="1.6" y="6.2" width="20.8" height="11.6" rx="2.2" transform="rotate(-10 12 12)" mask="url(#ns-cut-top)"/></svg>
+        <span>spare</span>
       </a>
       <nav class="nav">
         <a class="hide-sm {{ 'is-active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">{{ t('nav_buy') }}</a>
@@ -67,8 +67,8 @@
     <div class="wrap footer-inner">
       <div>
         <div class="logo logo-sm">
-          <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><defs><mask id="ns-cut-foot"><rect width="24" height="24" fill="#fff"/><circle cx="1" cy="12" r="2.2"/><circle cx="23" cy="12" r="2.2"/><path d="M7 10h9.5L14 7.5M17 14H7.5l2.5 2.5" fill="none" stroke="#000" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></mask></defs><rect x="1" y="5" width="22" height="14" rx="2" mask="url(#ns-cut-foot)"/></svg>
-          <span>nightswap</span>
+          <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><defs><mask id="ns-cut-foot"><rect width="24" height="24" fill="#fff"/><g transform="rotate(-10 12 12)"><circle cx="1.6" cy="12" r="2"/><circle cx="22.4" cy="12" r="2"/><path d="M15.6 7.6v8.8" fill="none" stroke="#000" stroke-width="0.9" stroke-linecap="round" stroke-dasharray="0.5 1.6"/></g></mask></defs><rect x="1.6" y="6.2" width="20.8" height="11.6" rx="2.2" transform="rotate(-10 12 12)" mask="url(#ns-cut-foot)"/></svg>
+          <span>spare</span>
         </div>
         <p class="muted small">{{ t('footer_tagline') }}</p>
       </div>
@@ -78,7 +78,7 @@
         <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>
         <a href="{{ url_for('privacy') }}">{{ t('footer_privacy') }}</a>
         <a href="{{ url_for('credits') }}">{{ t('photo_credits') }}</a>
-        <a href="mailto:hello@nightswap.nl">{{ t('footer_contact') }}</a>
+        <a href="mailto:hello@sparetickets.nl">{{ t('footer_contact') }}</a>
       </nav>
     </div>
   </footer>

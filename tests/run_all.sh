@@ -3,6 +3,7 @@
 cd "$(dirname "$0")/.." || exit 1
 PY="${PYTHON:-../.venv/bin/python}"
 export LOAD_STARTER_DATA=0  # tests start from an empty database
+export SMTP_HOST= TWILIO_ACCOUNT_SID=  # never send real emails or texts from tests, even when .env has them
 status=0
 for t in tests/*_test.py; do
   out=$("$PY" "$t" "$PWD" 2>&1)

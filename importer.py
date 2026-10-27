@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 
 MAX_BYTES = 4 * 1024 * 1024
-USER_AGENT = "Mozilla/5.0 (compatible; NightswapEventImport/1.0; +https://nightswap.nl)"
+USER_AGENT = "Mozilla/5.0 (compatible; SpareEventImport/1.0; +https://sparetickets.nl)"
 LD_JSON = re.compile(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', re.S | re.I)
 TAGS = re.compile(r"<[^>]+>")
 

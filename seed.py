@@ -35,7 +35,7 @@ LISTINGS = [
 
 def fake_pdf(label):
     body = ("Sample ticket %s %s" % (label, secrets.token_hex(4))).encode()
-    return b"%PDF-1.4\n% Nightswap sample ticket\n" + body + b"\n%%EOF\n"
+    return b"%PDF-1.4\n% Spare sample ticket\n" + body + b"\n%%EOF\n"
 
 
 def run():

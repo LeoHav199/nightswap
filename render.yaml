@@ -1,4 +1,6 @@
 # Render blueprint: connect this repository in Render ("New → Blueprint") and it sets everything up.
+# The service, disk and NIGHTSWAP_* names keep the old project name on purpose: renaming them here
+# would make Render create a new, empty service instead of updating the live one.
 services:
   - type: web
     name: nightswap
@@ -36,8 +38,8 @@ services:
         sync: false
       - key: SMTP_PASSWORD         # iCloud: app-specific password (Brevo: SMTP key)
         sync: false
-      - key: MAIL_FROM             # e.g. Nightswap <you@icloud.com>, must be the same iCloud address
+      - key: MAIL_FROM             # e.g. Spare <you@icloud.com>, must be the same iCloud address
         sync: false
       # Add later under Environment, when you have them:
-      #   BASE_URL (your own domain, e.g. https://nightswap.nl), STRIPE_WEBHOOK_SECRET,
+      #   BASE_URL (your own domain, e.g. https://sparetickets.nl), STRIPE_WEBHOOK_SECRET,
       #   TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM (until then phone codes go by email)

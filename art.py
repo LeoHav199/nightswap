@@ -9,7 +9,7 @@ about and it stays sharp at any size.
 import hashlib
 import random
 
-ACCENTS = ["#ff5a8a", "#ffd84d", "#7c5cff", "#3fd0ff", "#ff8a3d", "#5fe3a1", "#ff4fd8"]
+ACCENTS = ["#d4ff3a", "#ff5a8a", "#7c5cff", "#3fd0ff", "#ff8a3d", "#5fe3a1", "#ff4fd8"]
 W, H = 500, 400
 
 
@@ -57,8 +57,8 @@ def _festival(rnd, base, accents):
     # sun stripes, then the ground
     for i in range(6):
         y = horizon - 60 + i * 13
-        parts.append('<rect x="0" y="%d" width="%d" height="%d" fill="#0d0a13" opacity=".85"/>' % (y, W, 2 + i))
-    parts.append('<rect x="0" y="%d" width="%d" height="%d" fill="#0d0a13"/>' % (horizon, W, H - horizon))
+        parts.append('<rect x="0" y="%d" width="%d" height="%d" fill="#15132b" opacity=".85"/>' % (y, W, 2 + i))
+    parts.append('<rect x="0" y="%d" width="%d" height="%d" fill="#15132b"/>' % (horizon, W, H - horizon))
     for i in range(1, 7):
         y = horizon + i * i * 4
         parts.append('<line x1="0" y1="%d" x2="%d" y2="%d" stroke="%s" stroke-width="1.2" opacity="%.2f"/>' % (
@@ -88,7 +88,7 @@ def svg(key, category, base_colour):
     rnd = random.Random(seed)
     accents = rnd.sample(ACCENTS, 3)
     base = base_colour if base_colour and len(base_colour) == 7 else "#5b2a86"
-    bg = _mix(base, "#0d0a13", .72)
+    bg = _mix(base, "#15132b", .72)
     body = STYLES.get(category, _club)(rnd, base, accents)
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d" preserveAspectRatio="xMidYMid slice">'

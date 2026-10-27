@@ -1,7 +1,7 @@
-// Nightswap service worker: fast repeat visits and an offline page.
+// Spare service worker: fast repeat visits and an offline page.
 // Pages always come from the network first (prices and availability change constantly);
 // static files are served from cache and refreshed in the background.
-const VERSION = "nightswap-v5";
+const VERSION = "spare-v6";
 // Static file URLs carry ?v=<hash>, so a changed file is a new URL and is always fetched fresh.
 const PRECACHE = ["/offline", "/static/favicon.svg", "/static/icons/icon-192.png"];
 
@@ -47,8 +47,8 @@ self.addEventListener("fetch", (event) => {
 // Push notifications: sales, ticket alerts, event-day reminders.
 self.addEventListener("push", (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { title: "Nightswap", body: event.data && event.data.text() }; }
-  event.waitUntil(self.registration.showNotification(data.title || "Nightswap", {
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = { title: "Spare", body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || "Spare", {
     body: data.body || "",
     icon: "/static/icons/icon-192.png",
     badge: "/static/icons/icon-192.png",

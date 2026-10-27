@@ -1080,7 +1080,7 @@ def download_ticket(public_id, ticket_id):
         abort(404)
     ext = ticket["file"].rsplit(".", 1)[-1]
     return send_file(os.path.join(config.UPLOAD_DIR, ticket["file"]), mimetype=FILE_TYPES[ext][1],
-                     as_attachment=True, download_name="nightswap-ticket-%s-%s.%s" % (order["public_id"], ticket_id, ext))
+                     as_attachment=True, download_name="spare-ticket-%s-%s.%s" % (order["public_id"], ticket_id, ext))
 
 
 @app.route("/orders/<public_id>/tickets/<int:ticket_id>/wallet")
@@ -1106,7 +1106,7 @@ def wallet_pass(public_id, ticket_id):
         app.logger.exception("Could not build Wallet pass")
         abort(404)
     resp = app.response_class(pkpass, mimetype="application/vnd.apple.pkpass")
-    resp.headers["Content-Disposition"] = 'attachment; filename="nightswap-%s.pkpass"' % ticket_id
+    resp.headers["Content-Disposition"] = 'attachment; filename="spare-%s.pkpass"' % ticket_id
     return resp
 
 
@@ -1120,8 +1120,8 @@ def order_calendar(public_id):
     fmt = lambda d: d.strftime("%Y%m%dT%H%M%S")  # noqa: E731
     esc = lambda v: str(v).replace("\\", "\\\\").replace(",", "\\,").replace(";", "\\;")  # noqa: E731
     lines = [
-        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Nightswap//EN", "BEGIN:VEVENT",
-        "UID:%s@nightswap" % order["public_id"], "DTSTAMP:%sZ" % fmt(utcnow()),
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Spare//EN", "BEGIN:VEVENT",
+        "UID:%s@sparetickets.nl" % order["public_id"], "DTSTAMP:%sZ" % fmt(utcnow()),
         "DTSTART;TZID=Europe/Amsterdam:%s" % fmt(start), "DTEND;TZID=Europe/Amsterdam:%s" % fmt(end),
         "SUMMARY:%s" % esc(listing["event_name"] or listing["venue"]),
         "LOCATION:%s" % esc("%s, %s" % (listing["venue"], listing["city"])),
@@ -1129,7 +1129,7 @@ def order_calendar(public_id):
         "END:VEVENT", "END:VCALENDAR",
     ]
     resp = app.response_class("\r\n".join(lines) + "\r\n", mimetype="text/calendar")
-    resp.headers["Content-Disposition"] = 'attachment; filename="nightswap-%s.ics"' % public_id
+    resp.headers["Content-Disposition"] = 'attachment; filename="spare-%s.ics"' % public_id
     return resp
 
 
@@ -1145,7 +1145,7 @@ def report_problem(public_id):
         flash(t("err_report_short"), "error")
         return redirect(url_for("order_page", public_id=public_id))
     db.run("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=?", reason, order["id"])
-    notify.notify_admins("Nightswap: problem reported (%s)" % public_id,
+    notify.notify_admins("Spare: problem reported (%s)" % public_id,
                          "%s\n\n%s" % (reason, base_url() + url_for("admin")))
     flash(t("report_sent"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
@@ -1955,16 +1955,16 @@ def manifest():
     icon = lambda name, size, purpose="any": {  # noqa: E731
         "src": url_for("static", filename="icons/" + name), "sizes": size, "type": "image/png", "purpose": purpose}
     data = {
-        "name": "Nightswap",
-        "short_name": "Nightswap",
+        "name": "Spare",
+        "short_name": "Spare",
         "description": t("meta_description"),
         "lang": g.lang,
         "start_url": "/?source=app",
         "scope": "/",
         "display": "standalone",
         "orientation": "portrait",
-        "background_color": "#0d0a13",
-        "theme_color": "#0d0a13",
+        "background_color": "#15132b",
+        "theme_color": "#15132b",
         "icons": [icon("icon-192.png", "192x192"), icon("icon-512.png", "512x512"),
                   icon("icon-maskable-512.png", "512x512", "maskable")],
         "shortcuts": [
@@ -2302,7 +2302,7 @@ def submit_poster(event_id):
                           VALUES (?, ?, ?, ?, ?, ?)""", event_id, g.user["id"], name, organisation,
                        " ".join(form.get("role", "").split())[:60] or None,
                        " ".join(form.get("credit", "").split())[:80] or None)
-                notify.notify_admins("Nightswap: poster sent in for %s" % e["name"],
+                notify.notify_admins("Spare: poster sent in for %s" % e["name"],
                                      "%s (%s) sent a poster.\n\n%s" % (organisation, g.user["email"], base_url() + url_for("admin_events")))
                 flash(t("poster_thanks"), "ok")
                 return redirect(event_url(e["venue"], e["event_date"], e["name"]))
@@ -2334,7 +2334,7 @@ def tell(user_id, subject, body, url, push_title=None):
     u = db.one("SELECT * FROM users WHERE id=?", user_id)
     if not u or u["deleted_at"]:
         return
-    notify.send_email(u["email"], subject, body.replace("{name}", u["first_name"] or "") + "\n\n" + base_url() + url + "\n\nNightswap")
+    notify.send_email(u["email"], subject, body.replace("{name}", u["first_name"] or "") + "\n\n" + base_url() + url + "\n\nSpare")
     push.send(user_id, push_title or subject, body.split("\n")[0].replace("{name}", u["first_name"] or "")[:120], url)
 
 
@@ -2434,7 +2434,7 @@ def report_listing(listing_id):
         else:
             db.run("INSERT INTO reports (listing_id, reporter_id, email, reason, details) VALUES (?, ?, ?, ?, ?)",
                    listing_id, g.user["id"] if g.user else None, None if g.user else email, reason, details or None)
-            notify.notify_admins("Nightswap: listing reported (%s)" % reason,
+            notify.notify_admins("Spare: listing reported (%s)" % reason,
                                  "%s\n\n%s" % (details, base_url() + url_for("admin")))
             flash(t("report_listing_thanks"), "ok")
             return redirect(url_for("listing_page", listing_id=listing_id))
@@ -2557,7 +2557,7 @@ def account_export():
         "reports_made": rows("SELECT listing_id, reason, details, created_at FROM reports WHERE reporter_id=?", uid),
     }
     resp = app.response_class(json.dumps(data, indent=2, ensure_ascii=False), mimetype="application/json")
-    resp.headers["Content-Disposition"] = 'attachment; filename="nightswap-my-data.json"'
+    resp.headers["Content-Disposition"] = 'attachment; filename="spare-my-data.json"'
     return resp
 
 
@@ -2665,7 +2665,7 @@ def test_email_command(to):
     if not config.SMTP_HOST:
         raise click.ClickException("SMTP_HOST is not set.")
     with app.test_request_context(base_url=config.BASE_URL or "http://localhost:5001"):
-        ok = notify.send_email(to, "Nightswap test email", "If you can read this, email sending works.")
+        ok = notify.send_email(to, "Spare test email", "If you can read this, email sending works.")
     if not ok:
         raise click.ClickException("Sending failed, see the error above.")
     click.echo("Sent to %s from %s" % (to, config.MAIL_FROM))

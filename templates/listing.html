@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
-{% block title %}{{ l.event_name or l.venue }} · {{ fmt_date(l.event_date) }} · Nightswap{% endblock %}
+{% block title %}{{ l.event_name or l.venue }} · {{ fmt_date(l.event_date) }} · Spare{% endblock %}
 {% block body_class %}{{ 'has-buybar' if available and not own }}{% endblock %}
 {% block content %}
 {% set url = base_url ~ url_for('listing_page', listing_id=l.id) %}

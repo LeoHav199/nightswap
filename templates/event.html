@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
-{% block title %}{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }} · Nightswap{% endblock %}
+{% block title %}{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }} · Spare{% endblock %}
 {% block head %}
   <meta property="og:title" content="{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }}">
   <meta property="og:description" content="{{ t('og_event', venue=ev.venue, n=ev.count) }}">

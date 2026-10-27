@@ -40,7 +40,7 @@ ok(r.status_code == 302 and any("poster sent in" in s for _, s in SENT), "poster
 ok("credits#" not in html(visitor.get(url)) and "is-art" in html(visitor.get(url)), "poster not shown before approval")
 apage = html(admin.get("/admin/events"))
 ok("Posters sent in" in apage and "promo@exchangeparty.nl" in apage, "admin sees the submission with the sender's email")
-ok("Message to send organisers" in apage and "Hoi! Ik ben van Nightswap" in apage, "outreach message template (EN + NL) on the admin page")
+ok("Message to send organisers" in apage and "Hoi! Ik ben van Spare" in apage, "outreach message template (EN + NL) on the admin page")
 with app.app_context(): sid = A.db.one("SELECT id FROM poster_submissions")["id"]
 admin.post("/admin/posters/%d/approve" % sid, data={"_csrf": csrf(admin)})
 page = html(visitor.get(url))

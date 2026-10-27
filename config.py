@@ -93,7 +93,7 @@ STUDENT_DOMAINS = {
     "leidenuniv.nl": "Leiden University",
 }
 
-SUPPORT_EMAIL = env("SUPPORT_EMAIL", "hello@nightswap.nl")
+SUPPORT_EMAIL = env("SUPPORT_EMAIL", "hello@sparetickets.nl")
 ADMIN_SECOND_FACTOR = env("ADMIN_SECOND_FACTOR", "1") != "0"   # admins confirm a text code every 12 hours
 TRUST_PROXY = env("TRUST_PROXY", "0") == "1"                     # set to 1 behind Render/Fly so client IPs are read correctly
 
@@ -105,7 +105,7 @@ SMTP_HOST = env("SMTP_HOST")
 SMTP_PORT = int(env("SMTP_PORT", "587"))
 SMTP_USER = env("SMTP_USER")
 SMTP_PASSWORD = env("SMTP_PASSWORD")
-MAIL_FROM = env("MAIL_FROM", "Nightswap <hello@nightswap.nl>")
+MAIL_FROM = env("MAIL_FROM", "Spare <hello@sparetickets.nl>")
 
 TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
@@ -115,7 +115,7 @@ SMS_ENABLED = bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM)  # 
 
 # Apple Wallet passes. Needs an Apple Developer account: create a Pass Type ID and its
 # certificate, export certificate + private key as PEM, and download Apple's WWDR (G4) certificate.
-APPLE_PASS_TYPE_ID = env("APPLE_PASS_TYPE_ID")          # e.g. pass.nl.nightswap.ticket
+APPLE_PASS_TYPE_ID = env("APPLE_PASS_TYPE_ID")          # e.g. pass.nl.sparetickets.ticket
 APPLE_TEAM_ID = env("APPLE_TEAM_ID")
 APPLE_PASS_CERT = env("APPLE_PASS_CERT")                # path to the pass certificate (PEM)
 APPLE_PASS_KEY = env("APPLE_PASS_KEY")                  # path to its private key (PEM)

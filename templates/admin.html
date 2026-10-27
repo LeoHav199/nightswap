@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
-{% block title %}Admin · Nightswap{% endblock %}
+{% block title %}Admin · Spare{% endblock %}
 {% block content %}
 <div class="wrap narrow-head account-head">
   <div>
@@ -42,7 +42,7 @@
 
   <section class="account-section">
     <h2>Flagged messages</h2>
-    <p class="muted small">Messages where contact or payment details were hidden, or where someone mentioned dealing outside Nightswap. Repeat offenders: consider warning or blocking them.</p>
+    <p class="muted small">Messages where contact or payment details were hidden, or where someone mentioned dealing outside Spare. Repeat offenders: consider warning or blocking them.</p>
     {% for msg in flagged %}
       <div class="panel admin-case">
         <p><strong>{{ msg.sender_name }}</strong> · {{ msg.sender_email }} · {{ msg.strikes }} flagged in total · {{ msg.flags }} · <a href="{{ url_for('thread_page', thread_id=msg.thread_id) }}">conversation</a></p>

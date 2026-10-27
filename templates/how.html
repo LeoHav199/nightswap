@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ t('nav_how') }} · Nightswap{% endblock %}
+{% block title %}{{ t('nav_how') }} · Spare{% endblock %}
 {% block content %}
 {% set fee = fee_label %}
 <div class="wrap narrow-head">
@@ -87,13 +87,13 @@
   <h2>{{ t('faq') }}</h2>
   {% if lang == 'nl' %}
   <details><summary>Mag ik mijn ticket doorverkopen?</summary><p>Meestal wel, maar sommige organisatoren verbieden doorverkoop of zetten je naam op het ticket. Check de voorwaarden van het evenement voordat je verkoopt.</p></details>
-  <details><summary>Welke tickets kan ik aanbieden?</summary><p>Tickets als PDF of afbeelding met een QR- of barcode. Tickets die alleen in de app van een organisator staan, kun je (nog) niet via Nightswap verkopen.</p></details>
+  <details><summary>Welke tickets kan ik aanbieden?</summary><p>Tickets als PDF of afbeelding met een QR- of barcode. Tickets die alleen in de app van een organisator staan, kun je (nog) niet via Spare verkopen.</p></details>
   <details><summary>Wat als de verkoper hetzelfde ticket ook ergens anders verkoopt?</summary><p>Meld het via je bestelling vóór de uitbetaling. Je krijgt je geld terug en de verkoper wordt geblokkeerd.</p></details>
   <details><summary>Wanneer krijg ik als verkoper betaald?</summary><p>{{ payout_hours }} uur na de avond van het evenement, zolang de koper geen probleem heeft gemeld. Je stelt je uitbetaling eenmalig in via Stripe met je IBAN.</p></details>
   <details><summary>Kan ik mijn advertentie aanpassen of verwijderen?</summary><p>Verwijderen kan altijd zolang het ticket niet verkocht is. Wil je een andere prijs? Verwijder het en plaats het opnieuw.</p></details>
   {% else %}
   <details><summary>Am I allowed to resell my ticket?</summary><p>Usually yes, but some organisers ban resale or print your name on the ticket. Check the event's terms before you sell.</p></details>
-  <details><summary>Which tickets can I list?</summary><p>Tickets as a PDF or image with a QR code or barcode. Tickets that only live inside an organiser's app can't be sold on Nightswap yet.</p></details>
+  <details><summary>Which tickets can I list?</summary><p>Tickets as a PDF or image with a QR code or barcode. Tickets that only live inside an organiser's app can't be sold on Spare yet.</p></details>
   <details><summary>What if the seller sells the same ticket somewhere else too?</summary><p>Report it from your order before the payout date. You get your money back and the seller is blocked.</p></details>
   <details><summary>When do I get paid as a seller?</summary><p>{{ payout_hours }} hours after the night of the event, as long as the buyer hasn't reported a problem. You set up payouts once through Stripe with your IBAN.</p></details>
   <details><summary>Can I edit or remove my listing?</summary><p>You can remove it any time before it sells. Want a different price? Remove it and post it again.</p></details>

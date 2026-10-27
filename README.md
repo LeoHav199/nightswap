@@ -1,4 +1,4 @@
-# Nightswap
+# Spare
 
 Student-to-student club ticket resale for Rotterdam. Flask + SQLite, Stripe Connect for payments, English and Dutch.
 
@@ -17,9 +17,9 @@ Add your email to `ADMIN_EMAILS` in `.env` to see `/admin`.
 ## How money moves
 
 1. The buyer pays ticket price + service fee (default 8%, at least €1) through Stripe Checkout (iDEAL or card).
-2. The money stays on Nightswap's Stripe balance. The buyer can download the ticket right away.
+2. The money stays on Spare's Stripe balance. The buyer can download the ticket right away.
 3. Until `PAYOUT_DELAY_HOURS` (default 48) after the event night, the buyer can report a problem, which puts the payout on hold for review in `/admin`.
-4. `flask --app app release-payouts` (run it hourly via cron) transfers the ticket price to the seller's Stripe Express account. Nightswap keeps the fee.
+4. `flask --app app release-payouts` (run it hourly via cron) transfers the ticket price to the seller's Stripe Express account. Spare keeps the fee.
 
 Sellers set up payouts (IBAN + ID check, hosted by Stripe) only after their first sale, so posting a ticket stays quick.
 
@@ -90,4 +90,4 @@ The venue list is in `config.py` (`VENUES`). Sellers can also type another venue
 
 ## Logo and icons
 
-The logo is a ticket stub with two swap arrows. The SVG version is in `templates/base.html` and `static/favicon.svg`; the PNG app, Wallet and email icons are drawn by `tools/make_icons.py` (run `../.venv/bin/python tools/make_icons.py` after changing the shape or colours).
+The logo is a tilted lime ticket with a dashed tear line, next to the lowercase "spare" wordmark (Inter Tight, weight 900). The SVG version is in `templates/base.html` and `static/favicon.svg`; the PNG app, Wallet and email icons are drawn by `tools/make_icons.py` (run `../.venv/bin/python tools/make_icons.py` after changing the shape or colours).

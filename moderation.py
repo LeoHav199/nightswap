@@ -1,4 +1,4 @@
-"""Keeps deals on Nightswap: hides contact and payment details in messages.
+"""Keeps deals on Spare: hides contact and payment details in messages.
 
 Contact data (phone numbers, emails, links, social handles, IBANs) is masked.
 Mentions of other channels or off-platform payment ("whatsapp me", "tikkie",
@@ -36,7 +36,7 @@ OFF_PLATFORM = re.compile(
     r"\b(whats\s?app|whatsap|wa\.me|app\s+me|appen|dm\s*me|text\s*me|call\s*me|bel\s*me|sms|"
     r"instagram|insta|snapchat|telegram|signal|messenger|"
     r"tikkie|betaalverzoek|paypal|revolut|bunq|iban|overmaken|bank\s*transfer|cash|contant|"
-    r"outside\s+(the\s+)?(app|site|nightswap)|buiten\s+(de\s+)?(app|site|nightswap)|"
+    r"outside\s+(the\s+)?(app|site|spare|nightswap)|buiten\s+(de\s+)?(app|site|spare|nightswap)|"
     r"without\s+(the\s+)?fee|zonder\s+(de\s+)?kosten)\b",
     re.I,
 )

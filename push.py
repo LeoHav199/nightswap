@@ -1,6 +1,6 @@
 """Web push notifications (works in installed web apps on iPhone and in Chrome/Firefox/Edge).
 
-The VAPID key pair identifies Nightswap to the browsers' push services. It is
+The VAPID key pair identifies Spare to the browsers' push services. It is
 created on first use and kept in instance/vapid_private.pem, or set
 VAPID_PRIVATE_KEY (PEM) in the environment. Keep it stable: changing it
 invalidates every existing subscription.

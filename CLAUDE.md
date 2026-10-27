@@ -1,6 +1,6 @@
-# Nightswap
+# Spare (formerly Nightswap)
 
-Ticket resale for students in Rotterdam: club nights, student parties, and some festivals and concerts. Owner: Leo. The site is in English and Dutch, plus French, German and Spanish.
+Ticket resale for students in Rotterdam, at sparetickets.nl: club nights, student parties, and some festivals and concerts. Owner: Leo. The site is in English and Dutch, plus French, German and Spanish.
 
 ## Working with Leo
 - Leo is a student building this as a business, not a developer. Explain steps plainly, one at a time, with exactly where to click; give commands in separate code blocks he can paste.
@@ -19,7 +19,9 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
 - Messages hide phone numbers, handles and links, and flag attempts to deal off the platform (`moderation.py`).
 - Venue photos come from Wikimedia Commons, credited on `/credits` and not on the images. When no photo exists, a generated poster is shown (`art.py`).
 - The homepage shows events with tickets first, then a compact "Coming up" list, so it never looks empty.
-- Logo: a ticket stub with two swap arrows, in pink `#ff5a8a` on dark `#0d0a13`. The PNG icons are drawn by `tools/make_icons.py`.
+- Name: **Spare** (renamed from Nightswap on 27 Oct 2026; Leo and his partner chose it). Domain sparetickets.nl, because spare.nl is taken.
+- Logo: a tilted lime ticket with a dashed tear line plus a lowercase "spare" wordmark (Inter Tight 900), lime `#d4ff3a` on navy `#15132b`, off-white text `#f5f3ec`. Keep the brand on dark backgrounds; lime is unreadable on white. The PNG icons are drawn by `tools/make_icons.py`.
+- Internal names keep "nightswap" on purpose: the repo, the Render service and disk, `NIGHTSWAP_*` settings, the database file and the preview server names. Renaming those would break the live site or make Render create a new empty service.
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
 
 ## Stack
@@ -46,7 +48,8 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
   - email sending: done with iCloud SMTP (smtp.mail.me.com, leohavgarde@icloud.com, app-specific password). Check with `flask --app app test-email <address>`. Switch to Brevo once there's a domain to authenticate; Brevo with an @icloud.com sender lands in spam.
   - Twilio (optional: without it, phone codes are emailed, see `config.SMS_ENABLED`)
   - cron-job.org: done, job "Nightswap hourly" POSTs to `/tasks/hourly` with header `X-Task-Secret` (value = TASK_SECRET on Render). Test run gave 200 on 27 Oct 2026.
-  - a domain: next step
+  - domain: sparetickets.nl chosen, Leo is buying it (TransIP). Then connect it in Render (Settings → Custom Domains) and set BASE_URL.
+  - MAIL_FROM on Render still needs to say `Spare <leohavgarde@icloud.com>` after the rename.
   - Stripe webhook (STRIPE_WEBHOOK_SECRET): optional backup, orders are already confirmed when the buyer returns from Stripe
 - Tested on the live site 27 Oct 2026: listing, Stripe test checkout, problem report and admin refund all work.
 - Before real money:
@@ -56,7 +59,7 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
   - Apple Developer account for Wallet passes
 
 ## Ideas already weighed
-- Nightswap buying early-bird tickets itself and reselling them: **rejected**. It breaks the face-value promise, organisers can void bulk-resold tickets, it competes with our own sellers, and we'd carry the inventory risk and legal grey zone.
+- Spare buying early-bird tickets itself and reselling them: **rejected**. It breaks the face-value promise, organisers can void bulk-resold tickets, it competes with our own sellers, and we'd carry the inventory risk and legal grey zone.
 - To fix the shortage of sellers instead (suggested, not built yet): first-hand ticket sales for student associations and small organisers (strongest), commission through official ticket-shop referral links, showing "X people are looking" to bring out sellers, reminders before the night, and official organiser allocations later.
 
 ## Still open
