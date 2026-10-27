@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('cs_meta_title') }}{% endblock %}
+{% block body_class %}coming-soon{% endblock %}
+{% block content %}
+{% set promise = t('trust_cap_body') if price_cap == 100 else t('trust_cap_body_pct', pct=price_markup) %}
+<section class="wrap cs">
+  <div class="cs-copy">
+    <p class="cs-kicker"><span class="live-dot" aria-hidden="true"></span>{{ t('cs_kicker') }}</p>
+    <h1 class="cs-title">{{ t('cs_title') }}</h1>
+    <p class="lead">{{ t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup) }}</p>
+
+    {% if joined %}
+      <div class="panel cs-form cs-done" id="joined">
+        <h2>{{ t('cs_joined_title') }}</h2>
+        <p class="muted">{{ t('cs_joined_body', email=joined) }}</p>
+        <a class="btn btn-accent btn-block" href="https://wa.me/?text={{ t('cs_share_text', url=base_url ~ '/')|urlencode }}" target="_blank" rel="noopener">{{ t('cs_share') }}</a>
+      </div>
+    {% else %}
+      <form class="panel cs-form" method="post" action="{{ url_for('waitlist_join') }}" id="join" data-once>
+        {{ m.csrf() }}
+        <label class="field">
+          <span class="label">{{ t('email') }}</span>
+          <input type="email" name="email" value="{{ email }}" autocomplete="email" inputmode="email" required>
+          {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+        </label>
+        <fieldset class="cs-interest">
+          <legend class="label">{{ t('cs_interest') }}</legend>
+          <div class="cat-options">
+            {% for k in ('buy', 'sell', 'organise') %}
+              <label class="cat-option"><input type="radio" name="interest" value="{{ k }}" {{ 'checked' if interest == k }}><span>{{ t('cs_interest_' ~ k) }}</span></label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <button class="btn btn-accent btn-lg btn-block" type="submit">{{ t('cs_cta') }}</button>
+        <p class="muted small cs-fine">{{ t('cs_fineprint') }} <a href="{{ url_for('privacy') }}">{{ t('footer_privacy') }}</a></p>
+      </form>
+    {% endif %}
+    {% if waiting >= 20 %}<p class="cs-count">{{ t('cs_count', n=waiting) }}</p>{% endif %}
+  </div>
+
+  <div class="cs-art" aria-hidden="true">
+    <div class="cs-ticket">
+      <span class="cs-ticket-top">{{ t('cs_ticket_label') }}</span>
+      <span class="cs-ticket-word">spare</span>
+      <span class="cs-ticket-city">Rotterdam</span>
+    </div>
+  </div>
+</section>
+
+<section class="wrap cs-points">
+  <div class="panel"><h2>{{ t('cs_point_sell_title') }}</h2><p class="muted">{{ t('cs_point_sell_body', hours=payout_hours) }}</p></div>
+  <div class="panel"><h2>{{ t('cs_point_safe_title') }}</h2><p class="muted">{{ t('cs_point_safe_body') }}</p></div>
+  <div class="panel"><h2>{{ t('cs_point_fair_title') }}</h2><p class="muted">{{ promise }}</p></div>
+</section>
+{% endblock %}

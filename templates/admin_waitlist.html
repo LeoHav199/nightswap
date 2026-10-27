@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Waitlist · Admin · Spare{% endblock %}
+{% block content %}
+{% set waiting = rows|selectattr('notified_at', 'none')|list|length %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Waitlist</h1><p class="muted">{{ rows|length }} people asked to hear when Spare launches. {{ waiting }} haven't had the launch email yet.</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+</div>
+<div class="wrap account">
+  <div class="admin-actions">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_waitlist', format='csv') }}">Download as spreadsheet (CSV)</a>
+    {% if waiting %}
+      <form method="post" action="{{ url_for('admin_waitlist_notify') }}" data-confirm="Send the launch email to the next {{ [waiting, 20]|min }} people? Only do this once the site is open.">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Send launch email (next {{ [waiting, 20]|min }})</button></form>
+    {% endif %}
+  </div>
+  <ul class="table-list">
+    {% for r in rows %}
+    <li class="admin-event-row">
+      <div class="tl-main"><strong>{{ r.email }}</strong>
+        <span class="muted small">{{ r.interest }} · {{ r.lang or '?' }} · signed up {{ r.created_at[:16] }}{% if r.notified_at %} · launch email sent {{ r.notified_at[:16] }}{% endif %}</span></div>
+      <form method="post" action="{{ url_for('admin_waitlist_delete', entry_id=r.id) }}" data-confirm="Remove {{ r.email }}?">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Remove</button></form>
+    </li>
+    {% else %}<li class="muted" style="padding:14px 4px">Nobody yet. Share sparetickets.eu!</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

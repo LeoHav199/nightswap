@@ -22,7 +22,8 @@
 <body class="{% block body_class %}{% endblock %}" data-csrf="{{ csrf_token }}">
   <div class="loadbar" aria-hidden="true"></div>
   <div class="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.5 10.5a7.6 7.6 0 0 1 13.4-4.6"/><path d="M18.6 2.4v4h-4"/><path d="M19.5 13.5a7.6 7.6 0 0 1-13.4 4.6"/><path d="M5.4 21.6v-4h4"/></svg></div>
-  {% if test_mode %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
+  {% if test_mode and not bare %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
+  {% if coming_soon and is_admin %}<div class="testbar adminbar">Coming-soon mode is on: visitors only see the sign-up page. <a href="{{ url_for('admin') }}#launch">Change</a></div>{% endif %}
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="logo" href="{{ url_for('index') }}" aria-label="Spare">
@@ -30,9 +31,11 @@
         <span>spare</span>
       </a>
       <nav class="nav">
+        {% if not bare %}
         <a class="hide-sm {{ 'is-active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">{{ t('nav_buy') }}</a>
         <a class="hide-sm {{ 'is-active' if request.endpoint == 'how' }}" href="{{ url_for('how') }}">{{ t('nav_how') }}</a>
         {% if user %}<a class="hide-sm {{ 'is-active' if request.endpoint in ('inbox', 'thread_page') }}" href="{{ url_for('inbox') }}">{{ t('nav_messages') }}{% if unread %} <span class="count">{{ unread }}</span>{% endif %}</a>{% endif %}
+        {% endif %}
         <details class="lang-menu">
           <summary aria-label="{{ t('language') }}">{{ lang|upper }}</summary>
           <ul>
@@ -41,12 +44,14 @@
             {% endfor %}
           </ul>
         </details>
+        {% if not bare %}
         <a class="btn btn-accent btn-sm hide-sm" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
         {% if user %}
           <a class="nav-account hide-sm {{ 'is-active' if request.endpoint in ('account', 'account_data') }}" href="{{ url_for('account') }}" aria-label="{{ t('nav_account') }}">
             <span class="nav-avatar" aria-hidden="true">{{ (user.first_name or '?')[:1] }}</span>{{ t('nav_account') }}</a>
         {% else %}
           <a class="nav-account hide-sm" href="{{ url_for('login') }}">{{ t('nav_login') }}</a>
+        {% endif %}
         {% endif %}
       </nav>
     </div>
@@ -83,6 +88,7 @@
     </div>
   </footer>
   {% set ep = request.endpoint %}
+  {% if not bare %}
   <nav class="tabbar" aria-label="{{ t('nav_main') }}">
     <a class="{{ 'is-on' if ep in ('index', 'event_page', 'listing_page') and not request.args.get('focus') }}" href="{{ url_for('index') }}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4V7.5Z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg>
@@ -105,6 +111,7 @@
     <button class="btn btn-accent btn-sm" type="button" data-install-go>{{ t('install_cta') }}</button>
     <button class="install-x" type="button" data-install-close aria-label="{{ t('close') }}">×</button>
   </div>
+  {% endif %}
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </body>
 </html>

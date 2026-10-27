@@ -862,3 +862,45 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .lang-menu a { display: block; padding: 9px 12px; border-radius: 6px; text-decoration: none; color: var(--text); font-size: 15px; }
 .lang-menu a:hover, .lang-menu a.is-on { background: var(--line); }
 .lang-menu a.is-on::after { content: " ✓"; color: var(--accent); }
+
+/* Coming soon ------------------------------------------------------------- */
+.adminbar { background: #1f2a0a; color: var(--accent); }
+.adminbar a { color: inherit; margin-left: 6px; }
+.coming-soon main { padding-bottom: 32px; }
+.cs { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; align-items: center; padding-top: 48px; padding-bottom: 32px; }
+.cs-kicker { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 18px; color: var(--accent); font-size: 14px; font-weight: 600; letter-spacing: .02em; }
+.cs-title { font: 900 clamp(44px, 7vw, 84px)/0.92 var(--display); text-transform: uppercase; max-width: 9em; }
+.cs-form { margin-top: 28px; max-width: 460px; display: grid; gap: 16px; }
+.cs-form h2 { font: 800 28px/1 var(--display); text-transform: uppercase; }
+.cs-done p { margin: 0; }
+.cs-interest { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cs-interest .cat-options { grid-template-columns: repeat(3, 1fr); }
+.cs-fine { margin: 0; }
+.cs-fine a { color: var(--muted); }
+.cs-count { margin: 16px 0 0; color: var(--accent); font-weight: 600; }
+.cs-art { display: flex; justify-content: center; padding: 24px 0; }
+.cs-ticket {
+  position: relative; width: min(100%, 400px); aspect-ratio: 1.75; padding: 26px 30px 26px 46px; border-radius: 22px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background: var(--accent); color: var(--accent-ink); transform: rotate(-10deg);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, .45);
+  -webkit-mask: radial-gradient(circle 22px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 22px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+          mask: radial-gradient(circle 22px at 0 50%, transparent 98%, #000) left / 51% 100% no-repeat,
+                radial-gradient(circle 22px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
+}
+.cs-ticket::after { content: ""; position: absolute; top: 18px; bottom: 18px; right: 30%; border-left: 4px dotted var(--accent-ink); opacity: .85; }
+.cs-ticket-top, .cs-ticket-city { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.cs-ticket-word { font: 900 clamp(56px, 8vw, 92px)/0.9 var(--brand); letter-spacing: -0.05em; }
+.cs-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-bottom: 40px; }
+.cs-points h2 { font: 800 24px/1 var(--display); text-transform: uppercase; margin-bottom: 10px; }
+.cs-points p { margin: 0; }
+@media (max-width: 900px) {
+  .cs { grid-template-columns: 1fr; gap: 8px; padding-top: 32px; }
+  .cs-art { order: -1; padding: 8px 0 16px; }
+  .cs-ticket { width: min(78%, 320px); padding: 18px 22px 18px 38px; border-radius: 18px; }
+  .cs-points { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .cs-interest .cat-options { grid-template-columns: 1fr; }
+}

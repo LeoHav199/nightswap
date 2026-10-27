@@ -236,3 +236,20 @@ CREATE TABLE IF NOT EXISTS hits (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS hits_key ON hits (key, created_at);
+
+-- Small switches the admin can flip without a redeploy (e.g. coming_soon, preview_code).
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
+
+-- People who asked to hear when Spare launches (coming-soon mode).
+CREATE TABLE IF NOT EXISTS waitlist (
+  id          INTEGER PRIMARY KEY,
+  email       TEXT NOT NULL UNIQUE,
+  interest    TEXT NOT NULL DEFAULT 'buy',   -- buy | sell | organise
+  lang        TEXT,
+  token       TEXT NOT NULL,                 -- for the "remove me" link
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  notified_at TEXT                           -- when the launch email went out
+);

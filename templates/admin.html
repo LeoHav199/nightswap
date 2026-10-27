@@ -10,6 +10,28 @@
   <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
 </div>
 <div class="wrap account">
+  <section class="account-section" id="launch">
+    <h2>Launch</h2>
+    <div class="panel admin-case">
+      {% if coming_soon %}
+        <p><strong>Coming-soon mode is on.</strong> Visitors see a sign-up page; you (as admin) and people with the preview link see the full site.</p>
+        <p class="muted small">{{ waitlist.n }} on the waitlist · {{ waitlist.sell }} want to sell · {{ waitlist.organise }} organise events · <a href="{{ url_for('admin_waitlist') }}">See the list</a></p>
+        {% if preview_link %}
+          <p class="muted small">Preview link for friends (lets them use the full site in test mode):</p>
+          <p><input type="text" value="{{ preview_link }}" readonly onclick="this.select()" aria-label="Preview link"></p>
+        {% endif %}
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Open Spare to everyone?">{{ m.csrf() }}<input type="hidden" name="action" value="open"><button class="btn btn-accent btn-sm">Open the site to everyone</button></form>
+          <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Make a new preview link? The old one stops working.">{{ m.csrf() }}<input type="hidden" name="action" value="new_link"><button class="btn btn-ghost btn-sm">New preview link</button></form>
+        </div>
+      {% else %}
+        <p><strong>The site is open to everyone.</strong>{% if waitlist.n %} {{ waitlist.n }} people on the waitlist, {{ waitlist.waiting }} not emailed yet · <a href="{{ url_for('admin_waitlist') }}">See the list</a>{% endif %}</p>
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Switch to coming-soon mode? Visitors will only see the sign-up page.">{{ m.csrf() }}<input type="hidden" name="action" value="coming_soon"><button class="btn btn-ghost btn-sm">Switch to coming-soon mode</button></form>
+        </div>
+      {% endif %}
+    </div>
+  </section>
   <section class="account-section">
     <h2>Reported problems</h2>
     {% for o in disputed %}

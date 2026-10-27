@@ -1,5 +1,7 @@
+import csv
 import hashlib
 import hmac
+import io
 import json
 import os
 import re
@@ -200,6 +202,28 @@ def rate_limited(action, limit, minutes, who=None):
     if secrets.randbelow(50) == 0:
         db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
     return False
+
+
+def get_setting(key, default=None):
+    row = db.one("SELECT value FROM settings WHERE key=?", key)
+    return row["value"] if row else default
+
+
+def set_setting(key, value):
+    db.run("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", key, value)
+
+
+# Coming-soon mode: visitors see a sign-up page; admins and people with the preview link see the full site.
+# These pages stay reachable for everyone (sign-in for admins, legal pages, payments and cron).
+OPEN_WHILE_COMING_SOON = {
+    "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
+    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "terms", "privacy", "credits",
+    "stripe_webhook", "hourly_tasks",
+}
+
+
+def coming_soon_on():
+    return get_setting("coming_soon") == "1"
 
 
 def login_required(view):
@@ -471,6 +495,12 @@ def before():
         if not hmac.compare_digest(sent, session["csrf"]):
             abort(400)
 
+    g.coming_soon = coming_soon_on()
+    preview = session.get("preview")
+    g.sees_site = not g.coming_soon or g.is_admin or bool(preview and preview == get_setting("preview_code"))
+    if not g.sees_site and request.endpoint not in OPEN_WHILE_COMING_SOON:
+        return redirect(url_for("index"))
+
 
 @app.after_request
 def security_headers(resp):
@@ -527,6 +557,7 @@ def template_globals():
         "payout_hours": config.PAYOUT_DELAY_HOURS,
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
+        "coming_soon": g.get("coming_soon"),
     }
 
 
@@ -704,6 +735,8 @@ def view_transition_name(ev):
 
 @app.route("/")
 def index():
+    if not g.sees_site:
+        return coming_soon_page()
     release_unpaid()
     q = request.args.get("q", "").strip()[:60]
     day = request.args.get("day", "").strip()
@@ -2027,6 +2060,56 @@ def privacy():
 
 
 # --------------------------------------------------------------------------
+# Coming soon: waitlist and preview link
+# --------------------------------------------------------------------------
+
+WAITLIST_INTERESTS = ("buy", "sell", "organise")
+
+
+def coming_soon_page(error=None, email="", interest="buy"):
+    count = db.one("SELECT COUNT(*) AS n FROM waitlist")["n"]
+    joined = session.get("waitlisted")
+    return render_template("coming_soon.html", bare=True, error=error, email=email, interest=interest,
+                           joined=joined, waiting=count)
+
+
+@app.route("/waitlist", methods=["POST"])
+def waitlist_join():
+    email = request.form.get("email", "").strip().lower()
+    interest = request.form.get("interest", "buy")
+    if interest not in WAITLIST_INTERESTS:
+        interest = "buy"
+    if not EMAIL_RE.match(email) or len(email) > 254:
+        return coming_soon_page(t("err_email"), email, interest), 400
+    if rate_limited("waitlist", 10, 60):
+        return coming_soon_page(t("err_too_many_tries"), email, interest), 429
+    db.run("""INSERT INTO waitlist (email, interest, lang, token) VALUES (?, ?, ?, ?)
+              ON CONFLICT(email) DO UPDATE SET interest=excluded.interest, lang=excluded.lang""",
+           email, interest, g.lang, secrets.token_urlsafe(16))
+    session["waitlisted"] = email
+    return redirect(url_for("index") + "#joined")
+
+
+@app.route("/waitlist/leave/<token>")
+def waitlist_leave(token):
+    db.run("DELETE FROM waitlist WHERE token=?", token)
+    session.pop("waitlisted", None)
+    flash(t("cs_left"), "ok")
+    return redirect(url_for("index"))
+
+
+@app.route("/preview/<code>")
+def preview(code):
+    """The link Leo shares with friends so they can try the full site before launch."""
+    current = get_setting("preview_code")
+    if not current or not hmac.compare_digest(code, current):
+        abort(404)
+    session["preview"] = code
+    flash(t("cs_preview_on"), "ok")
+    return redirect(url_for("index"))
+
+
+# --------------------------------------------------------------------------
 # Admin
 # --------------------------------------------------------------------------
 
@@ -2052,7 +2135,72 @@ def admin():
                                s.id AS seller_id, u.email AS reporter_email
                         FROM reports r JOIN listings l ON l.id = r.listing_id JOIN users s ON s.id = l.seller_id
                         LEFT JOIN users u ON u.id = r.reporter_id WHERE r.status='open' ORDER BY r.id""")
-    return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports)
+    waitlist = db.one("""SELECT COUNT(*) AS n, COALESCE(SUM(interest='sell'),0) AS sell, COALESCE(SUM(interest='organise'),0) AS organise,
+                                COALESCE(SUM(notified_at IS NULL),0) AS waiting FROM waitlist""")
+    preview_code = get_setting("preview_code")
+    preview_link = base_url() + url_for("preview", code=preview_code) if preview_code else None
+    return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
+                           waitlist=waitlist, preview_link=preview_link)
+
+
+@app.route("/admin/launch", methods=["POST"])
+@admin_required
+def admin_launch():
+    """Coming-soon switch and the friends' preview link."""
+    action = request.form.get("action")
+    if action == "coming_soon":
+        set_setting("coming_soon", "1")
+        if not get_setting("preview_code"):
+            set_setting("preview_code", secrets.token_urlsafe(8))
+        flash("Coming-soon mode is on: visitors see the sign-up page.", "ok")
+    elif action == "open":
+        set_setting("coming_soon", "0")
+        flash("The site is open to everyone.", "ok")
+    elif action == "new_link":
+        set_setting("preview_code", secrets.token_urlsafe(8))
+        flash("New preview link made. The old one no longer works.", "ok")
+    return redirect(url_for("admin") + "#launch")
+
+
+@app.route("/admin/waitlist")
+@admin_required
+def admin_waitlist():
+    rows = db.all("SELECT * FROM waitlist ORDER BY id DESC")
+    if request.args.get("format") == "csv":
+        out = io.StringIO()
+        writer = csv.writer(out)
+        writer.writerow(["email", "interest", "language", "signed_up", "launch_email_sent"])
+        for r in rows:
+            writer.writerow([r["email"], r["interest"], r["lang"], r["created_at"], r["notified_at"] or ""])
+        resp = app.response_class(out.getvalue(), mimetype="text/csv")
+        resp.headers["Content-Disposition"] = 'attachment; filename="spare-waitlist.csv"'
+        return resp
+    return render_template("admin_waitlist.html", rows=rows)
+
+
+@app.route("/admin/waitlist/notify", methods=["POST"])
+@admin_required
+def admin_waitlist_notify():
+    """Sends the launch email in small batches, so one click never runs into the server's time limit."""
+    sent = 0
+    for r in db.all("SELECT * FROM waitlist WHERE notified_at IS NULL ORDER BY id LIMIT 20"):
+        lang = r["lang"] if r["lang"] in i18n.LANGS else "en"
+        leave = base_url() + url_for("waitlist_leave", token=r["token"])
+        body = i18n.t(lang, "mail_launch_body", url=base_url() + url_for("index"), leave=leave)
+        if notify.send_email(r["email"], i18n.t(lang, "mail_launch_subject"), body):
+            db.run("UPDATE waitlist SET notified_at=? WHERE id=?", sqltime(utcnow()), r["id"])
+            sent += 1
+    left = db.one("SELECT COUNT(*) AS n FROM waitlist WHERE notified_at IS NULL")["n"]
+    flash("Launch email sent to %d people. %d still to go%s." % (sent, left, ": click again" if left else ""), "ok")
+    return redirect(url_for("admin_waitlist"))
+
+
+@app.route("/admin/waitlist/<int:entry_id>/delete", methods=["POST"])
+@admin_required
+def admin_waitlist_delete(entry_id):
+    db.run("DELETE FROM waitlist WHERE id=?", entry_id)
+    flash("Removed from the waitlist.", "ok")
+    return redirect(url_for("admin_waitlist"))
 
 
 def save_image(upload):
