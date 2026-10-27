@@ -1,7 +1,7 @@
 // Spare service worker: fast repeat visits and an offline page.
 // Pages always come from the network first (prices and availability change constantly);
 // static files are served from cache and refreshed in the background.
-const VERSION = "spare-v7";
+const VERSION = "spare-v8";
 // Static file URLs carry ?v=<hash>, so a changed file is a new URL and is always fetched fresh.
 const PRECACHE = ["/offline", "/static/favicon.svg", "/static/icons/icon-192.png"];
 

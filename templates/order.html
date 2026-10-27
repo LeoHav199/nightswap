@@ -122,7 +122,7 @@
     {% if paid %}
       <div class="seller-card">
         {% set other = seller if is_buyer else buyer %}
-        <div class="avatar" aria-hidden="true">{{ other.first_name[:1] }}</div>
+        {{ m.avatar(other.avatar, other.first_name) }}
         <div>
           <div class="seller-name">{{ t('seller_is', name=other.first_name) if is_buyer else t('buyer_is', name=other.first_name) }}</div>
           <a class="btn btn-ghost btn-sm" href="{{ url_for('order_chat', public_id=order.public_id) }}">{{ t('message_name', name=other.first_name) }}</a>

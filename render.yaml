@@ -23,6 +23,8 @@ services:
         value: /var/data
       - key: TRUST_PROXY
         value: "1"
+      - key: TZ                    # local time for 'tonight', reminders and the date: Rotterdam, not UTC
+        value: Europe/Amsterdam
       - key: SECRET_KEY
         generateValue: true
       - key: TASK_SECRET

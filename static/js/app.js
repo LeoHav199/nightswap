@@ -498,6 +498,87 @@
     });
   });
 
+  // Settings saved on this device only (sounds, vibration, which pop-up was closed).
+  function readPref(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function savePref(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+
+  // Tap sounds for the bottom menu: off unless someone picks one in Settings. Made in code, no sound files.
+  var audio = null;
+  function audioCtx() {
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (!C) return null;
+    if (!audio) audio = new C();
+    if (audio.state === "suspended") audio.resume();
+    return audio;
+  }
+  function tone(c, type, from, to, dur, vol, delay) {
+    var t0 = c.currentTime + (delay || 0), osc = c.createOscillator(), gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, t0);
+    if (to) osc.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain); gain.connect(c.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+  }
+  var SOUNDS = {
+    pop: function (c) { tone(c, "sine", 520, 920, 0.08, 0.25); },
+    click: function (c) { tone(c, "square", 1800, 900, 0.025, 0.06); },
+    bubble: function (c) { tone(c, "sine", 300, 1200, 0.11, 0.22); },
+    bass: function (c) { tone(c, "sine", 120, 50, 0.18, 0.55); },
+    chime: function (c) { tone(c, "triangle", 880, 0, 0.22, 0.14); tone(c, "triangle", 1320, 0, 0.26, 0.1, 0.06); }
+  };
+  function tapFeedback(kind) {
+    var k = kind || readPref("spare-sound");
+    if (k && SOUNDS[k]) { var c = audioCtx(); if (c) SOUNDS[k](c); }
+    if (readPref("spare-vibrate") === "1" && navigator.vibrate) navigator.vibrate(8);
+  }
+  document.addEventListener("pointerdown", function (e) {
+    if (e.target.closest && e.target.closest(".tabbar a")) tapFeedback();
+  }, { passive: true });
+
+  var soundBox = document.querySelector("[data-sound-settings]");
+  if (soundBox) {
+    var current = readPref("spare-sound") || "off";
+    soundBox.querySelectorAll("input[name=sound]").forEach(function (r) {
+      r.checked = r.value === current;
+      r.addEventListener("change", function () { savePref("spare-sound", r.value); tapFeedback(r.value); });
+    });
+    var vibRow = soundBox.querySelector("[data-vibrate-row]");
+    if (vibRow && navigator.vibrate) {
+      var vib = vibRow.querySelector("input");
+      vibRow.hidden = false;
+      vib.checked = readPref("spare-vibrate") === "1";
+      vib.addEventListener("change", function () { savePref("spare-vibrate", vib.checked ? "1" : "0"); if (vib.checked) navigator.vibrate(15); });
+    }
+  }
+
+  // "Tonight" pop-up: at most once a day, a moment after the page opens; one tap or a swipe down closes it.
+  var pop = document.querySelector("[data-tonight-pop]");
+  if (pop) {
+    var popDay = pop.dataset.day, popLink = pop.querySelector("a");
+    var here = popLink && new URL(popLink.href, location.href).href === location.href;
+    var closePop = function () {
+      savePref("spare-pop-day", popDay);
+      pop.classList.remove("in");
+      setTimeout(function () { pop.hidden = true; }, 250);
+    };
+    if (readPref("spare-pop-day") !== popDay && !here) {
+      setTimeout(function () {
+        var install = document.querySelector("[data-install]");
+        if (install && !install.hidden) return;
+        pop.hidden = false;
+        requestAnimationFrame(function () { pop.classList.add("in"); });
+      }, 2500);
+    }
+    pop.querySelector("[data-tonight-close]").addEventListener("click", closePop);
+    if (popLink) popLink.addEventListener("click", function () { savePref("spare-pop-day", popDay); });
+    var popY = null;
+    pop.addEventListener("touchstart", function (e) { popY = e.touches[0].clientY; }, { passive: true });
+    pop.addEventListener("touchmove", function (e) { if (popY !== null && e.touches[0].clientY - popY > 40) { popY = null; closePop(); } }, { passive: true });
+  }
+
   // Sell form: "other venue" field, live payout summary.
   var sell = document.querySelector("form[data-sell-form]");
   if (!sell) return;

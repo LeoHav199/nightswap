@@ -71,7 +71,7 @@
         {% for l in rows %}
         <li class="ticket-row">
           <div class="tr-seller">
-            <div class="avatar" aria-hidden="true">{{ l.seller_name[:1] }}</div>
+            {{ m.avatar(l.seller_avatar, l.seller_name) }}
             <div>
               <div class="tr-name">{{ l.seller_name }}
                 <span class="tr-qty">{{ t('sold_as_set', n=l.available) if l.sold_together else (t('n_available', n=l.available) if l.available > 1 else '') }}</span>

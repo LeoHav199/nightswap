@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m with context %}
 {% block title %}{{ t('nav_messages') }} · Spare{% endblock %}
 {% block content %}
 <div class="wrap narrow-head"><h1>{{ t('nav_messages') }}</h1></div>
@@ -8,7 +9,7 @@
       {% for th in threads %}
         {% set selling = th.seller_id == user.id %}
         <li><a class="inbox-row {{ 'is-unread' if th.unread }}" href="{{ url_for('thread_page', thread_id=th.id) }}">
-          <span class="avatar" aria-hidden="true">{{ (th.buyer_name if selling else th.seller_name)[:1] }}</span>
+          {{ m.avatar(th.buyer_avatar if selling else th.seller_avatar, th.buyer_name if selling else th.seller_name) }}
           <span class="sg-main">
             <strong>{{ th.buyer_name if selling else th.seller_name }} <span class="muted small">· {{ t('role_buyer') if selling else t('role_seller') }}</span></strong>
             <span>{{ th.event_name or th.venue }} · {{ fmt_date(th.event_date) }}</span>

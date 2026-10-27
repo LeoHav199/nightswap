@@ -21,7 +21,7 @@
     </dl>
 
     <div class="seller-card">
-      <div class="avatar" aria-hidden="true">{{ l.seller_name[:1] }}</div>
+      {{ m.avatar(l.seller_avatar, l.seller_name) }}
       <div>
         <div class="seller-name">{{ t('sold_by', name=l.seller_name) }}</div>
         <div class="badges">{{ m.seller_badges(l, stats) }}</div>

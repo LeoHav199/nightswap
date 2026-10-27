@@ -17,6 +17,7 @@ from flask import (Flask, abort, flash, g, redirect, render_template, request, s
 from markupsafe import escape
 
 import art
+import avatars
 import config
 import db
 import i18n
@@ -272,7 +273,7 @@ def browse(where="", *args):
     """Active listings with at least one ticket for sale, plus seller details."""
     sql = """
     SELECT * FROM (
-      SELECT l.*, u.first_name AS seller_name, u.phone_verified_at, u.student_verified_at, u.student_school,
+      SELECT l.*, u.first_name AS seller_name, u.avatar AS seller_avatar, u.phone_verified_at, u.student_verified_at, u.student_school,
              u.created_at AS seller_since,
              (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available') AS available
       FROM listings l JOIN users u ON u.id = l.seller_id
@@ -284,7 +285,7 @@ def browse(where="", *args):
 
 def listing_with_seller(listing_id):
     return db.one(
-        """SELECT l.*, u.first_name AS seller_name, u.created_at AS seller_since, u.phone_verified_at,
+        """SELECT l.*, u.first_name AS seller_name, u.avatar AS seller_avatar, u.created_at AS seller_since, u.phone_verified_at,
                   u.student_verified_at, u.student_school,
                   (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available') AS available,
                   (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'held') AS held
@@ -547,6 +548,27 @@ def version_static_files(endpoint, values):
     values["v"] = cached[1]
 
 
+TONIGHT_POP_PAGES = {"index", "event_page", "venue_page", "how", "account", "inbox", "settings", "credits"}
+
+
+def tonight_pop():
+    """Tonight's event with the most tickets for sale, for the small pop-up. None on checkout, chat, selling and so on."""
+    if request.endpoint not in TONIGHT_POP_PAGES or not g.get("sees_site", True) or datetime.now().hour < 12:
+        return None
+    day = today().isoformat()
+    row = db.one("""SELECT e.name, e.venue, COUNT(t.id) AS n, MIN(l.price_cents) AS price
+                    FROM events e JOIN listings l ON l.event_id = e.id AND l.status = 'active'
+                    JOIN tickets t ON t.listing_id = l.id AND t.status = 'available'
+                    WHERE e.event_date = ? AND e.status IN ('published', 'review') AND e.cancelled_at IS NULL
+                    GROUP BY e.id ORDER BY n DESC, price LIMIT 1""", day)
+    if not row:
+        return None
+    price = money(with_fee(row["price"]))
+    line = t("pop_line_one", price=price) if row["n"] == 1 else t("pop_line", n=row["n"], price=price)
+    return {"day": day, "name": row["name"], "venue": row["venue"], "line": line,
+            "url": event_url(row["venue"], day, row["name"])}
+
+
 @app.context_processor
 def template_globals():
     return {
@@ -574,6 +596,8 @@ def template_globals():
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"),
+        "avatar_icons": avatars.ICONS,
+        "tonight_pop": tonight_pop(),
     }
 
 
@@ -1321,7 +1345,7 @@ def inbox():
     uid = g.user["id"]
     threads = db.all(
         """SELECT th.*, l.venue, l.event_name, l.event_date, l.poster_file,
-                  b.first_name AS buyer_name, s.first_name AS seller_name,
+                  b.first_name AS buyer_name, s.first_name AS seller_name, b.avatar AS buyer_avatar, s.avatar AS seller_avatar,
                   (SELECT COUNT(*) FROM messages m WHERE m.thread_id = th.id AND m.read_at IS NULL
                      AND m.sender_id IS NOT NULL AND m.sender_id != ?) AS unread,
                   (SELECT m.id FROM messages m WHERE m.thread_id = th.id ORDER BY m.id DESC LIMIT 1) AS last_id
@@ -1900,6 +1924,19 @@ def student_verify():
             return redirect(url_for("account"))
         error = t("err_code")
     return render_template("student_verify.html", email=email, error=error)
+
+
+@app.route("/settings", methods=["GET", "POST"])
+def settings():
+    """Profile icon (saved on the account) and tap sounds (saved on this device by the page's script)."""
+    if request.method == "POST":
+        if not g.user:
+            return redirect(url_for("login", next=url_for("settings")))
+        key = request.form.get("avatar", "")
+        db.run("UPDATE users SET avatar=? WHERE id=?", key if key in avatars.ICONS else None, g.user["id"])
+        flash(t("avatar_saved"), "ok")
+        return redirect(url_for("settings"))
+    return render_template("settings.html")
 
 
 @app.route("/account")

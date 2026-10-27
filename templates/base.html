@@ -1,4 +1,4 @@
-<!doctype html>
+{% import "_macros.html" as m with context %}<!doctype html>
 <html lang="{{ lang }}">
 <head>
   <meta charset="utf-8">
@@ -48,7 +48,7 @@
         <a class="btn btn-accent btn-sm hide-sm" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
         {% if user %}
           <a class="nav-account hide-sm {{ 'is-active' if request.endpoint in ('account', 'account_data') }}" href="{{ url_for('account') }}" aria-label="{{ t('nav_account') }}">
-            <span class="nav-avatar" aria-hidden="true">{{ (user.first_name or '?')[:1] }}</span>{{ t('nav_account') }}</a>
+            {{ m.avatar(user.avatar, user.first_name, 'nav-avatar') }}{{ t('nav_account') }}</a>
         {% else %}
           <a class="nav-account hide-sm" href="{{ url_for('login') }}">{{ t('nav_login') }}</a>
         {% endif %}
@@ -80,6 +80,7 @@
       <nav class="footer-links">
         <a href="{{ url_for('how') }}">{{ t('nav_how') }}</a>
         <a href="{{ url_for('how') }}#fees">{{ t('footer_fees') }}</a>
+        <a href="{{ url_for('settings') }}">{{ t('settings') }}</a>
         <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>
         <a href="{{ url_for('privacy') }}">{{ t('footer_privacy') }}</a>
         <a href="{{ url_for('credits') }}">{{ t('photo_credits') }}</a>
@@ -106,6 +107,17 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.2-3.2 3.8-4.8 7-4.8s5.8 1.6 7 4.8"/></svg>
       <span>{{ t('nav_account') if user else t('nav_login') }}</span></a>
   </nav>
+  {% if tonight_pop %}
+  <div class="tonight-pop" data-tonight-pop data-day="{{ tonight_pop.day }}" hidden>
+    <span class="live-dot" aria-hidden="true"></span>
+    <a href="{{ tonight_pop.url }}">
+      <span class="tp-kicker">{{ t('tonight') }}</span>
+      <strong>{{ tonight_pop.name }}</strong>
+      <span class="tp-meta">{{ tonight_pop.venue }} · {{ tonight_pop.line }}</span>
+    </a>
+    <button class="tonight-pop-x" type="button" data-tonight-close aria-label="{{ t('close') }}">×</button>
+  </div>
+  {% endif %}
   <div class="install" data-install hidden>
     <div class="install-text"><strong>{{ t('install_title') }}</strong><span data-install-hint data-ios="{{ t('install_ios') }}">{{ t('install_body') }}</span></div>
     <button class="btn btn-accent btn-sm" type="button" data-install-go>{{ t('install_cta') }}</button>

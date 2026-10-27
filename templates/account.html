@@ -7,7 +7,7 @@
     <h1>{{ t('hi', name=user.first_name) }}</h1>
     <p class="muted">{{ user.email }}{% if user.phone_verified_at %} · {{ user.phone }}{% endif %}</p>
   </div>
-  <div class="head-actions">{% if is_admin %}<a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">Admin</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{{ url_for('account_data') }}">{{ t('your_data') }}</a><form method="post" action="{{ url_for('logout') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('log_out') }}</button></form></div>
+  <div class="head-actions">{% if is_admin %}<a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">Admin</a>{% endif %}<a class="btn btn-ghost btn-sm" href="{{ url_for('settings') }}">{{ t('settings') }}</a><a class="btn btn-ghost btn-sm" href="{{ url_for('account_data') }}">{{ t('your_data') }}</a><form method="post" action="{{ url_for('logout') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('log_out') }}</button></form></div>
 </div>
 
 <div class="wrap account">

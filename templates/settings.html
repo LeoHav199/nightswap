@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('settings') }} · Spare{% endblock %}
+{% block content %}
+<div class="wrap narrow-head">
+  <h1>{{ t('settings') }}</h1>
+</div>
+<div class="wrap account settings">
+  <section class="panel settings-block">
+    <h2>{{ t('avatar_title') }}</h2>
+    {% if user %}
+      <p class="muted">{{ t('avatar_hint') }}</p>
+      <form method="post" class="avatar-form">
+        {{ m.csrf() }}
+        <div class="avatar-grid">
+          <label class="avatar-choice"><input type="radio" name="avatar" value="" {{ 'checked' if not user.avatar or user.avatar not in avatar_icons }}>
+            <span class="avatar">{{ (user.first_name or '?')[:1] }}</span><span class="sr-only">{{ t('avatar_letter') }}</span></label>
+          {% for key in avatar_icons %}
+            <label class="avatar-choice"><input type="radio" name="avatar" value="{{ key }}" {{ 'checked' if user.avatar == key }}>
+              {{ m.avatar(key, user.first_name) }}<span class="sr-only">{{ t('avatar_option', n=loop.index) }}</span></label>
+          {% endfor %}
+        </div>
+        <button class="btn btn-accent" type="submit">{{ t('save') }}</button>
+      </form>
+    {% else %}
+      <p class="muted">{{ t('avatar_login') }}</p>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('login', next=url_for('settings')) }}">{{ t('nav_login') }}</a>
+    {% endif %}
+  </section>
+
+  <section class="panel settings-block" data-sound-settings>
+    <h2>{{ t('sounds_title') }}</h2>
+    <p class="muted">{{ t('sounds_hint') }}</p>
+    <div class="cat-options sound-options">
+      {% for k in ('off', 'pop', 'click', 'bubble', 'bass', 'chime') %}
+        <label class="cat-option"><input type="radio" name="sound" value="{{ k }}" {{ 'checked' if k == 'off' }}><span>{{ t('sound_' ~ k) }}</span></label>
+      {% endfor %}
+    </div>
+    <label class="check-row" data-vibrate-row hidden><input type="checkbox" name="vibrate"> <span>{{ t('vibrate_label') }}</span></label>
+    <p class="muted small">{{ t('sounds_device') }}</p>
+  </section>
+</div>
+{% endblock %}
