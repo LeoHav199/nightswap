@@ -142,6 +142,9 @@
     setInterval(poll, 4000);
     document.addEventListener("visibilitychange", poll);
     if (!form) return;
+    // Tapping Send would take focus from the message box, so the iPhone keyboard closes and reopens
+    // after every message and the page jumps. Keep focus in the box instead.
+    form.querySelector("button[type=submit]").addEventListener("mousedown", function (e) { e.preventDefault(); });
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var box = form.querySelector("textarea");
