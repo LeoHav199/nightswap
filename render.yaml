@@ -30,13 +30,13 @@ services:
         sync: false
       - key: STRIPE_SECRET_KEY     # sk_test_... for the beta
         sync: false
-      - key: SMTP_HOST             # Brevo: smtp-relay.brevo.com
+      - key: SMTP_HOST             # iCloud: smtp.mail.me.com (Brevo: smtp-relay.brevo.com)
         sync: false
-      - key: SMTP_USER             # Brevo SMTP login
+      - key: SMTP_USER             # iCloud: your @icloud.com address (Brevo: SMTP login)
         sync: false
-      - key: SMTP_PASSWORD         # Brevo SMTP key
+      - key: SMTP_PASSWORD         # iCloud: app-specific password (Brevo: SMTP key)
         sync: false
-      - key: MAIL_FROM             # e.g. Nightswap <you@icloud.com>, a sender verified in Brevo
+      - key: MAIL_FROM             # e.g. Nightswap <you@icloud.com>, must be the same iCloud address
         sync: false
       # Add later under Environment, when you have them:
       #   BASE_URL (your own domain, e.g. https://nightswap.nl), STRIPE_WEBHOOK_SECRET,

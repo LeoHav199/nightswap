@@ -2658,6 +2658,19 @@ def send_reminders_command():
     click.echo("Price nudges %d, rating requests %d" % (nudged, asked))
 
 
+@app.cli.command("test-email")
+@click.argument("to")
+def test_email_command(to):
+    """Send one test email, to check the SMTP settings."""
+    if not config.SMTP_HOST:
+        raise click.ClickException("SMTP_HOST is not set.")
+    with app.test_request_context(base_url=config.BASE_URL or "http://localhost:5001"):
+        ok = notify.send_email(to, "Nightswap test email", "If you can read this, email sending works.")
+    if not ok:
+        raise click.ClickException("Sending failed, see the error above.")
+    click.echo("Sent to %s from %s" % (to, config.MAIL_FROM))
+
+
 @app.cli.command("seed")
 def seed_command():
     """Fill a development database with sample listings."""
