@@ -46,7 +46,9 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
   - email sending: done with iCloud SMTP (smtp.mail.me.com, leohavgarde@icloud.com, app-specific password). Check with `flask --app app test-email <address>`. Switch to Brevo once there's a domain to authenticate; Brevo with an @icloud.com sender lands in spam.
   - Twilio (optional: without it, phone codes are emailed, see `config.SMS_ENABLED`)
   - cron-job.org: done, job "Nightswap hourly" POSTs to `/tasks/hourly` with header `X-Task-Secret` (value = TASK_SECRET on Render). Test run gave 200 on 27 Oct 2026.
-  - a domain
+  - a domain: next step
+  - Stripe webhook (STRIPE_WEBHOOK_SECRET): optional backup, orders are already confirmed when the buyer returns from Stripe
+- Tested on the live site 27 Oct 2026: listing, Stripe test checkout, problem report and admin refund all work.
 - Before real money:
   - KvK registration
   - Stripe live mode
