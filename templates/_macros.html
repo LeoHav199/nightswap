@@ -87,4 +87,4 @@
 {% endmacro %}
 
 {# A person's profile icon, or the first letter of their name when they haven't picked one. #}
-{% macro avatar(key, name, cls='avatar') %}<span class="{{ cls }}{{ ' has-icon' if key in avatar_icons }}" aria-hidden="true">{% if key in avatar_icons %}<svg viewBox="0 0 24 24">{{ avatar_icons[key]|safe }}</svg>{% else %}{{ (name or '?')[:1] }}{% endif %}</span>{% endmacro %}
+{% macro avatar(key, name, cls='avatar') %}<span class="{{ cls }}{{ ' has-icon' if key in avatar_icons }}" aria-hidden="true">{% if key in avatar_icons %}<svg viewBox="{{ avatar_viewbox }}">{{ avatar_icons[key]|safe }}</svg>{% else %}{{ (name or '?')[:1] }}{% endif %}</span>{% endmacro %}

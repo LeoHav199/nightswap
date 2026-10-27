@@ -13,9 +13,9 @@
       <form method="post" class="avatar-form">
         {{ m.csrf() }}
         <div class="avatar-grid">
-          <label class="avatar-choice"><input type="radio" name="avatar" value="" {{ 'checked' if not user.avatar or user.avatar not in avatar_icons }}>
+          <label class="avatar-choice"><input type="radio" name="avatar" value="" {{ 'checked' if not user.avatar or user.avatar not in avatar_choices }}>
             <span class="avatar">{{ (user.first_name or '?')[:1] }}</span><span class="sr-only">{{ t('avatar_letter') }}</span></label>
-          {% for key in avatar_icons %}
+          {% for key in avatar_choices %}
             <label class="avatar-choice"><input type="radio" name="avatar" value="{{ key }}" {{ 'checked' if user.avatar == key }}>
               {{ m.avatar(key, user.first_name) }}<span class="sr-only">{{ t('avatar_option', n=loop.index) }}</span></label>
           {% endfor %}
