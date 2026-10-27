@@ -2,6 +2,14 @@
 
 Ticket resale for students in Rotterdam: club nights, student parties, and some festivals and concerts. Owner: Leo. The site is in English and Dutch, plus French, German and Spanish.
 
+## Working with Leo
+- Leo is a student building this as a business, not a developer. Explain steps plainly, one at a time, with exactly where to click; give commands in separate code blocks he can paste.
+- Leo makes the product calls. When he suggests an idea, give an honest opinion (including "don't do this") and a recommendation, then build what he picks.
+- Leo signs up for outside services himself (GitHub, Stripe, Render, Brevo, all under his own email). Never ask him to paste keys, tokens or passwords into the chat; they go into `.env` locally or Render's Environment page.
+- Run `sh tests/run_all.sh` after changes, then commit and `git push` (his Mac has the GitHub token saved; on slow Wi-Fi a push can time out, so just retry).
+- To show the site on his phone or to family at home: start the `nightswap-phone` server and give http://<Mac's Wi-Fi IP>:5002. Home Wi-Fi only, since sign-in codes show on screen in development. If the preview tool can't reach the Desktop folder, start it with Bash instead: `../.venv/bin/flask --app app.py run --host 0.0.0.0 --port 5002`.
+- The project was built in an earlier Claude account; this file is the handover. History lives in git (`git log`).
+
 ## Product decisions (already made, don't reopen without asking)
 - Launch city is **Rotterdam only** (`ENABLED_CITIES`, `SHOW_ALL_NETHERLANDS=0`). The code supports more cities for later.
 - Prices are capped at face value. The buyer pays an **8% fee, minimum €1**, set with `FEE_PERCENT`/`FEE_MIN_CENTS`. A flat €1 fee was tried and dropped because it didn't earn enough.
