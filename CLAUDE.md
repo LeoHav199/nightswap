@@ -33,9 +33,9 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
 ## Deploying (not done yet)
 - `render.yaml` is ready: starter plan, Frankfurt region, 1 GB disk at `/var/data`, gunicorn without `--preload` (preloading crashes on macOS and isn't needed).
 - Still needed:
-  - GitHub repo
-  - Render account
-  - email sending (Brevo SMTP)
+  - GitHub repo: done, private at github.com/LeoHav199/nightswap (push with `git push`; Leo's Mac has the token saved)
+  - Render account: next step. New → Blueprint → pick the repo; it asks for ADMIN_EMAILS, STRIPE_SECRET_KEY, SMTP_HOST/USER/PASSWORD, MAIL_FROM
+  - email sending: Brevo free plan (Brevo kept pushing paid plans; app.brevo.com → SMTP & API → SMTP for the key), or iCloud SMTP as a fallback (smtp.mail.me.com, port 587, app-specific password)
   - Twilio (optional: without it, phone codes are emailed, see `config.SMS_ENABLED`)
   - cron-job.org POSTing hourly to `/tasks/hourly` with header `X-Task-Secret`
   - a domain
@@ -44,6 +44,10 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
   - Stripe live mode
   - terms and privacy reviewed
   - Apple Developer account for Wallet passes
+
+## Ideas already weighed
+- Nightswap buying early-bird tickets itself and reselling them: **rejected**. It breaks the face-value promise, organisers can void bulk-resold tickets, it competes with our own sellers, and we'd carry the inventory risk and legal grey zone.
+- To fix the shortage of sellers instead (suggested, not built yet): first-hand ticket sales for student associations and small organisers (strongest), commission through official ticket-shop referral links, showing "X people are looking" to bring out sellers, reminders before the night, and official organiser allocations later.
 
 ## Still open
 - Marketing plan: student associations, ambassadors, Instagram/TikTok, flyers at venues, organiser partnerships (Exchange Party, ESN), referral credit.
