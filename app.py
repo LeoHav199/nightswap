@@ -45,6 +45,7 @@ if config.TRUST_PROXY:
 config.check_production()
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+SOURCE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")  # ?from=<marketing link>
 PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 FILE_TYPES = {  # extension -> (magic bytes, mimetype)
     "pdf": (b"%PDF", "application/pdf"),
@@ -220,6 +221,19 @@ OPEN_WHILE_COMING_SOON = {
     "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "terms", "privacy", "credits",
     "stripe_webhook", "hourly_tasks",
 }
+
+
+def track_source():
+    """Remembers which marketing link (?from=esn) brought this visitor, and counts the visit once per session."""
+    src = request.args.get("from", "").strip().lower()
+    if request.method != "GET" or not SOURCE_RE.match(src):
+        return
+    seen = session.get("seen_sources", [])
+    if src not in seen and len(seen) < 10:
+        db.run("""INSERT INTO source_visits (source, day, visits) VALUES (?, ?, 1)
+                  ON CONFLICT(source, day) DO UPDATE SET visits = visits + 1""", src, today().isoformat())
+        session["seen_sources"] = seen + [src]
+    session.setdefault("source", src)  # the first link wins
 
 
 def coming_soon_on():
@@ -494,6 +508,8 @@ def before():
         sent = request.form.get("_csrf") or request.headers.get("X-CSRF-Token", "")
         if not hmac.compare_digest(sent, session["csrf"]):
             abort(400)
+
+    track_source()
 
     g.coming_soon = coming_soon_on()
     preview = session.get("preview")
@@ -1771,7 +1787,7 @@ def login_verify():
             error = t("err_code")
         else:
             if not user:
-                uid = db.run("INSERT INTO users (email, first_name) VALUES (?, ?)", email, name)
+                uid = db.run("INSERT INTO users (email, first_name, source) VALUES (?, ?, ?)", email, name, session.get("source"))
                 school = student_school(email)
                 if school:  # signed up with a university address: already verified
                     db.run("UPDATE users SET student_email=?, student_school=?, student_verified_at=? WHERE id=?",
@@ -2083,9 +2099,9 @@ def waitlist_join():
         return coming_soon_page(t("err_email"), email, interest), 400
     if rate_limited("waitlist", 10, 60):
         return coming_soon_page(t("err_too_many_tries"), email, interest), 429
-    db.run("""INSERT INTO waitlist (email, interest, lang, token) VALUES (?, ?, ?, ?)
+    db.run("""INSERT INTO waitlist (email, interest, lang, token, source) VALUES (?, ?, ?, ?, ?)
               ON CONFLICT(email) DO UPDATE SET interest=excluded.interest, lang=excluded.lang""",
-           email, interest, g.lang, secrets.token_urlsafe(16))
+           email, interest, g.lang, secrets.token_urlsafe(16), session.get("source"))
     session["waitlisted"] = email
     return redirect(url_for("index") + "#joined")
 
@@ -2193,6 +2209,72 @@ def admin_waitlist_notify():
     left = db.one("SELECT COUNT(*) AS n FROM waitlist WHERE notified_at IS NULL")["n"]
     flash("Launch email sent to %d people. %d still to go%s." % (sent, left, ": click again" if left else ""), "ok")
     return redirect(url_for("admin_waitlist"))
+
+
+def source_link(slug):
+    return base_url() + url_for("index", **{"from": slug})
+
+
+@app.route("/admin/sources", methods=["GET", "POST"])
+@admin_required
+def admin_sources():
+    """Marketing links with a QR code each, and how many visits and sign-ups every link brought in."""
+    error = None
+    if request.method == "POST":
+        label = request.form.get("label", "").strip()[:80]
+        slug = request.form.get("slug", "").strip().lower() or label.lower()
+        slug = re.sub(r"[^a-z0-9]+", "-", slug).strip("-")[:32]
+        if not label or not SOURCE_RE.match(slug):
+            error = "Give the link a name (letters or numbers)."
+        elif db.one("SELECT 1 FROM sources WHERE slug=?", slug):
+            error = "There is already a link called '%s'. Pick another code." % slug
+        else:
+            db.run("INSERT INTO sources (slug, label) VALUES (?, ?)", slug, label)
+            flash("Link made: %s" % source_link(slug), "ok")
+            return redirect(url_for("admin_sources") + "#src-" + slug)
+
+    labels = {r["slug"]: r for r in db.all("SELECT * FROM sources")}
+    visits = {r["source"]: r["n"] for r in db.all("SELECT source, SUM(visits) AS n FROM source_visits GROUP BY source")}
+    signups = {r["source"]: r for r in db.all("""SELECT source, COUNT(*) AS n, SUM(interest='sell') AS sell, SUM(interest='organise') AS organise
+                                                  FROM waitlist WHERE source IS NOT NULL GROUP BY source""")}
+    accounts = {r["source"]: r["n"] for r in db.all("SELECT source, COUNT(*) AS n FROM users WHERE source IS NOT NULL GROUP BY source")}
+    rows = []
+    for slug in set(labels) | set(visits) | set(signups) | set(accounts):
+        w = signups.get(slug)
+        n_visits, n_signups = visits.get(slug, 0), (w["n"] if w else 0)
+        rows.append({
+            "slug": slug, "label": labels[slug]["label"] if slug in labels else None, "link": source_link(slug),
+            "visits": n_visits, "signups": n_signups, "sell": (w["sell"] if w else 0), "organise": (w["organise"] if w else 0),
+            "accounts": accounts.get(slug, 0), "rate": round(100 * n_signups / n_visits) if n_visits else None,
+            "qr": qr_svg(source_link(slug)) if slug in labels else None,
+        })
+    rows.sort(key=lambda r: (r["label"] is None, -r["signups"], -r["visits"], r["slug"]))
+    direct = db.one("SELECT COUNT(*) AS n FROM waitlist WHERE source IS NULL")["n"]
+    return render_template("admin_sources.html", rows=rows, direct=direct, error=error,
+                           label=request.form.get("label", ""), slug=request.form.get("slug", ""))
+
+
+@app.route("/admin/sources/<slug>/qr.svg")
+@admin_required
+def admin_source_qr(slug):
+    """A print-ready QR code (black on white, with a quiet zone) for a flyer or poster."""
+    import qrcode
+    import qrcode.image.svg
+
+    if not db.one("SELECT 1 FROM sources WHERE slug=?", slug):
+        abort(404)
+    img = qrcode.make(source_link(slug), image_factory=qrcode.image.svg.SvgFillImage, box_size=20, border=4)
+    resp = app.response_class(img.to_string(encoding="unicode"), mimetype="image/svg+xml")
+    resp.headers["Content-Disposition"] = 'attachment; filename="spare-qr-%s.svg"' % slug
+    return resp
+
+
+@app.route("/admin/sources/<slug>/delete", methods=["POST"])
+@admin_required
+def admin_source_delete(slug):
+    db.run("DELETE FROM sources WHERE slug=?", slug)
+    flash("Link removed. Its numbers stay in the list as an unnamed code.", "ok")
+    return redirect(url_for("admin_sources"))
 
 
 @app.route("/admin/waitlist/<int:entry_id>/delete", methods=["POST"])

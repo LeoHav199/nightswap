@@ -23,6 +23,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Logo: a tilted lime ticket with a dashed tear line plus a lowercase "spare" wordmark (Inter Tight 900), lime `#d4ff3a` on navy `#15132b`, off-white text `#f5f3ec`. Keep the brand on dark backgrounds; lime is unreadable on white. The PNG icons are drawn by `tools/make_icons.py`.
 - Internal names keep "nightswap" on purpose: the repo, the Render service and disk, `NIGHTSWAP_*` settings, the database file and the preview server names. Renaming those would break the live site or make Render create a new empty service.
 - Coming-soon mode (before the real launch): switched on and off at /admin → Launch, stored in the `settings` table, so no redeploy. Visitors see a sign-up page (`coming_soon.html`); admins and friends with the preview link (`/preview/<code>`, renewable) see the full site. Sign-ups go into the `waitlist` table; /admin/waitlist lists them, exports CSV and sends the launch email in batches of 20, each with a remove-me link.
+- Marketing links: /admin/sources makes a `?from=<code>` link with a print-ready QR (SVG) per flyer batch, post, association or ambassador. Visits are counted once per session in `source_visits`; the first link a visitor came from is saved on their waitlist entry and account (`source`).
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
 
 ## Stack
@@ -37,7 +38,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 237 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 246 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 

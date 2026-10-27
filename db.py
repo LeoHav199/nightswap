@@ -28,6 +28,8 @@ def _columns(table):
 
 
 ADDED_COLUMNS = [
+    ("waitlist", "source", "TEXT"),       # which marketing link brought them (?from=)
+    ("users", "source", "TEXT"),
     ("users", "student_email", "TEXT"),
     ("users", "student_school", "TEXT"),
     ("users", "student_verified_at", "TEXT"),

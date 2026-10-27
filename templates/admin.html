@@ -7,7 +7,7 @@
     <h1>Admin</h1>
     <p class="muted">{{ stats.n }} paid orders · {{ money(stats.volume) }} volume · {{ money(stats.fees) }} fees</p>
   </div>
-  <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
+  <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_sources') }}">Links &amp; QR codes</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
 </div>
 <div class="wrap account">
   <section class="account-section" id="launch">
@@ -15,7 +15,7 @@
     <div class="panel admin-case">
       {% if coming_soon %}
         <p><strong>Coming-soon mode is on.</strong> Visitors see a sign-up page; you (as admin) and people with the preview link see the full site.</p>
-        <p class="muted small">{{ waitlist.n }} on the waitlist · {{ waitlist.sell }} want to sell · {{ waitlist.organise }} organise events · <a href="{{ url_for('admin_waitlist') }}">See the list</a></p>
+        <p class="muted small">{{ waitlist.n }} on the waitlist · {{ waitlist.sell }} want to sell · {{ waitlist.organise }} organise events · <a href="{{ url_for('admin_waitlist') }}">See the list</a> · <a href="{{ url_for('admin_sources') }}">Which links work</a></p>
         {% if preview_link %}
           <p class="muted small">Preview link for friends (lets them use the full site in test mode):</p>
           <p><input type="text" value="{{ preview_link }}" readonly onclick="this.select()" aria-label="Preview link"></p>

@@ -253,3 +253,18 @@ CREATE TABLE IF NOT EXISTS waitlist (
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   notified_at TEXT                           -- when the launch email went out
 );
+
+-- Marketing links (?from=<slug>), e.g. one per flyer batch, Instagram post or ambassador.
+CREATE TABLE IF NOT EXISTS sources (
+  slug       TEXT PRIMARY KEY,
+  label      TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Visits per marketing link per day (counted once per browser session; no personal data).
+CREATE TABLE IF NOT EXISTS source_visits (
+  source TEXT NOT NULL,
+  day    TEXT NOT NULL,
+  visits INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (source, day)
+);

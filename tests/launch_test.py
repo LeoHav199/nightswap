@@ -86,4 +86,27 @@ visitor.get("/waitlist/leave/" + leave.group(1).rsplit("/", 1)[1])
 with app.app_context():
     ok(A.db.one("SELECT COUNT(*) AS n FROM waitlist WHERE email='sam@student.eur.nl'")["n"] == 0, "the remove-me link deletes the entry")
 
+# --- Marketing links (?from=) and QR codes
+r = admin.post("/admin/sources", data={"label": "Flyers Maassilo", "_csrf": csrf(admin)}, follow_redirects=True)
+ok("/?from=flyers-maassilo" in html(r) and "<svg" in html(r), "admin makes a link with a QR code (code made from the name)")
+r = admin.post("/admin/sources", data={"label": "Again", "slug": "flyers-maassilo", "_csrf": csrf(admin)})
+ok("already a link" in html(r), "the same code can't be used twice")
+qr = admin.get("/admin/sources/flyers-maassilo/qr.svg")
+ok(qr.mimetype == "image/svg+xml" and "attachment" in qr.headers.get("Content-Disposition", ""), "QR code downloads as a print-ready SVG")
+ok(visitor.get("/admin/sources").status_code in (302, 404) and visitor.get("/admin/sources/flyers-maassilo/qr.svg").status_code in (302, 404),
+   "visitors can't see the links page or QR codes")
+admin.post("/admin/launch", data={"action": "coming_soon", "_csrf": csrf(admin)})
+scan = app.test_client()
+scan.get("/?from=flyers-maassilo"); scan.get("/?from=flyers-maassilo"); scan.get("/?from=ESN")
+scan.post("/waitlist", data={"email": "scan@test.nl", "interest": "sell", "_csrf": csrf(scan)})
+app.test_client().get("/?from=flyers-maassilo")
+app.test_client().get("/?from=<script>")
+with app.app_context():
+    ok(A.db.one("SELECT source FROM waitlist WHERE email='scan@test.nl'")["source"] == "flyers-maassilo", "a sign-up remembers the first link they came from")
+    ok(A.db.one("SELECT SUM(visits) AS n FROM source_visits WHERE source='flyers-maassilo'")["n"] == 2, "visits count once per browser, not per page load")
+    ok(not A.db.one("SELECT 1 FROM source_visits WHERE source LIKE '%script%'"), "junk link codes are ignored")
+page = html(admin.get("/admin/sources"))
+ok("Flyers Maassilo" in page and "2</strong> visits" in page and "1</strong> sign-ups (50%)" in page, "links page shows visits, sign-ups and conversion")
+ok(">esn" in page and "no name" in page, "codes nobody made (e.g. ?from=esn) still show up, unnamed")
+
 print("FAILED:", fails or "none")

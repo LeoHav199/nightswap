@@ -904,3 +904,17 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 @media (max-width: 420px) {
   .cs-interest .cat-options { grid-template-columns: 1fr; }
 }
+
+/* Admin: marketing links ---------------------------------------------------- */
+.src-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 20px; }
+.src-form .field-error { grid-column: 1 / -1; }
+.src-row { align-items: center; gap: 16px; }
+.src-row .tl-main { gap: 6px; }
+.src-row input { font-size: 13px; padding: 6px 10px; height: auto; }
+.src-qr { flex: none; width: 76px; height: 76px; background: #fff; border-radius: 8px; padding: 4px; display: block; }
+.src-qr svg { width: 100%; height: 100%; display: block; }
+.src-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .src-form { grid-template-columns: 1fr; }
+  .src-row { flex-wrap: wrap; }
+}

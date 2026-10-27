@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Links & QR codes · Admin · Spare{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Links &amp; QR codes</h1><p class="muted">Make one link per flyer batch, Instagram post, association or ambassador. Each gets its own QR code, and you see which ones bring people in.</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+</div>
+<div class="wrap account">
+  <form class="panel src-form" method="post">
+    {{ m.csrf() }}
+    <label class="field"><span class="label">Name</span><input type="text" name="label" value="{{ label }}" placeholder="e.g. Flyers at Maassilo, ESN Instagram, Ambassador Sara" required maxlength="80"></label>
+    <label class="field"><span class="label">Code in the link <span class="muted">(optional)</span></span><input type="text" name="slug" value="{{ slug }}" placeholder="e.g. maassilo" maxlength="32"></label>
+    {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+    <button class="btn btn-accent" type="submit">Make link + QR code</button>
+  </form>
+
+  <ul class="table-list src-list">
+    {% for r in rows %}
+    <li class="admin-event-row src-row" id="src-{{ r.slug }}">
+      {% if r.qr %}<a class="src-qr" href="{{ url_for('admin_source_qr', slug=r.slug) }}" title="Download QR code for printing">{{ r.qr|safe }}</a>{% endif %}
+      <div class="tl-main">
+        <strong>{{ r.label or r.slug }}{% if not r.label %} <span class="tag">no name</span>{% endif %}</strong>
+        <input type="text" value="{{ r.link }}" readonly onclick="this.select()" aria-label="Link">
+        <span class="small"><strong>{{ r.visits }}</strong> visits · <strong>{{ r.signups }}</strong> sign-ups{% if r.rate is not none %} ({{ r.rate }}%){% endif %} · {{ r.sell }} want to sell · {{ r.organise }} organise{% if r.accounts %} · {{ r.accounts }} accounts{% endif %}</span>
+      </div>
+      <div class="src-actions">
+        {% if r.qr %}<a class="btn btn-ghost btn-sm" href="{{ url_for('admin_source_qr', slug=r.slug) }}">Download QR</a>
+        <form method="post" action="{{ url_for('admin_source_delete', slug=r.slug) }}" data-confirm="Remove '{{ r.label }}'? Its numbers stay.">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Remove</button></form>{% endif %}
+      </div>
+    </li>
+    {% else %}<li class="muted" style="padding:14px 4px">No links yet. Make one above for your first flyers.</li>{% endfor %}
+  </ul>
+  <p class="muted small">Sign-ups without a link (typed the address, or shared from a friend's phone): <strong>{{ direct }}</strong>. Visits are counted once per browser session; nothing personal is stored.</p>
+</div>
+{% endblock %}
