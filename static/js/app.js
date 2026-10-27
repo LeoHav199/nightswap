@@ -142,6 +142,9 @@
     setInterval(poll, 4000);
     document.addEventListener("visibilitychange", poll);
     if (!form) return;
+    // Tapping Send would take focus from the message box, so the iPhone keyboard closes and reopens
+    // after every message and the page jumps. Keep focus in the box instead.
+    form.querySelector("button[type=submit]").addEventListener("mousedown", function (e) { e.preventDefault(); });
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var box = form.querySelector("textarea");
@@ -524,19 +527,32 @@
   }
   var SOUNDS = {
     pop: function (c) { tone(c, "sine", 520, 920, 0.08, 0.25); },
-    click: function (c) { tone(c, "square", 1800, 900, 0.025, 0.06); },
+    click: function (c) { tone(c, "square", 1800, 900, 0.03, 0.12); },
     bubble: function (c) { tone(c, "sine", 300, 1200, 0.11, 0.22); },
     bass: function (c) { tone(c, "sine", 120, 50, 0.18, 0.55); },
-    chime: function (c) { tone(c, "triangle", 880, 0, 0.22, 0.14); tone(c, "triangle", 1320, 0, 0.26, 0.1, 0.06); }
+    chime: function (c) { tone(c, "triangle", 880, 0, 0.22, 0.2); tone(c, "triangle", 1320, 0, 0.26, 0.14, 0.06); }
   };
   function tapFeedback(kind) {
     var k = kind || readPref("spare-sound");
     if (k && SOUNDS[k]) { var c = audioCtx(); if (c) SOUNDS[k](c); }
     if (readPref("spare-vibrate") === "1" && navigator.vibrate) navigator.vibrate(8);
   }
-  document.addEventListener("pointerdown", function (e) {
-    if (e.target.closest && e.target.closest(".tabbar a")) tapFeedback();
-  }, { passive: true });
+  // Phones only allow sound after a finished tap (not on first touch), and every new page needs that
+  // again. So wake the sound up on the first tap anywhere, and on a menu tap play the sound before
+  // opening the next page: changing pages at once would cut it off.
+  function wantsFeedback() { return SOUNDS[readPref("spare-sound")] || readPref("spare-vibrate") === "1"; }
+  ["touchend", "click", "keydown"].forEach(function (type) {
+    document.addEventListener(type, function () { if (SOUNDS[readPref("spare-sound")]) audioCtx(); }, { passive: true, capture: true });
+  });
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest(".tabbar a");
+    if (!a || !wantsFeedback() || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    e.preventDefault();
+    tapFeedback();
+    startLoading();
+    setTimeout(function () { window.location = a.href; }, 90);
+  });
+  window.addEventListener("pageshow", function () { if (audio && audio.state !== "running") audio.resume(); });
 
   var soundBox = document.querySelector("[data-sound-settings]");
   if (soundBox) {

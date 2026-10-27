@@ -928,10 +928,8 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 }
 
 /* Profile icons and settings ------------------------------------------------- */
-.avatar.has-icon, .nav-avatar.has-icon { color: var(--accent); }
-.avatar.has-icon svg { width: 60%; height: 60%; }
-.nav-avatar.has-icon svg { width: 66%; height: 66%; }
-.has-icon svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.avatar.has-icon, .nav-avatar.has-icon { overflow: hidden; }
+.has-icon svg { width: 100%; height: 100%; display: block; }
 .settings { display: grid; gap: 16px; max-width: 720px; }
 .settings-block h2 { font: 800 26px/1 var(--display); text-transform: uppercase; margin-bottom: 8px; }
 .settings-block .muted { margin-bottom: 16px; }

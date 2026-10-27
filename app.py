@@ -596,7 +596,7 @@ def template_globals():
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"),
-        "avatar_icons": avatars.ICONS,
+        "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
     }
 
@@ -1933,7 +1933,7 @@ def settings():
         if not g.user:
             return redirect(url_for("login", next=url_for("settings")))
         key = request.form.get("avatar", "")
-        db.run("UPDATE users SET avatar=? WHERE id=?", key if key in avatars.ICONS else None, g.user["id"])
+        db.run("UPDATE users SET avatar=? WHERE id=?", key if key in avatars.CHOICES else None, g.user["id"])
         flash(t("avatar_saved"), "ok")
         return redirect(url_for("settings"))
     return render_template("settings.html")
