@@ -38,12 +38,12 @@ Ticket resale for students in Rotterdam: club nights, student parties, and some 
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 
-## Deploying (not done yet)
+## Deploying (live at https://nightswap.onrender.com since 27 Oct 2026, Stripe test mode)
 - `render.yaml` is ready: starter plan, Frankfurt region, 1 GB disk at `/var/data`, gunicorn without `--preload` (preloading crashes on macOS and isn't needed).
 - Still needed:
   - GitHub repo: done, private at github.com/LeoHav199/nightswap (push with `git push`; Leo's Mac has the token saved)
-  - Render account: next step. New → Blueprint → pick the repo; it asks for ADMIN_EMAILS, STRIPE_SECRET_KEY, SMTP_HOST/USER/PASSWORD, MAIL_FROM
-  - email sending: Brevo free plan (Brevo kept pushing paid plans; app.brevo.com → SMTP & API → SMTP for the key), or iCloud SMTP as a fallback (smtp.mail.me.com, port 587, app-specific password)
+  - Render: done, Blueprint `nightswap` on the Starter plan (needed for the disk, and the free plan blocks SMTP). Settings live on Render's Environment page.
+  - email sending: done with iCloud SMTP (smtp.mail.me.com, leohavgarde@icloud.com, app-specific password). Check with `flask --app app test-email <address>`. Switch to Brevo once there's a domain to authenticate; Brevo with an @icloud.com sender lands in spam.
   - Twilio (optional: without it, phone codes are emailed, see `config.SMS_ENABLED`)
   - cron-job.org POSTing hourly to `/tasks/hourly` with header `X-Task-Secret`
   - a domain
