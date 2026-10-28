@@ -30,7 +30,8 @@ def _columns(table):
 ADDED_COLUMNS = [
     ("waitlist", "source", "TEXT"),       # which marketing link brought them (?from=)
     ("users", "source", "TEXT"),
-    ("users", "avatar", "TEXT"),          # profile icon key from avatars.ICONS, or NULL for the first letter
+    ("users", "avatar", "TEXT"),
+    ("orders", "resell_reminded_at", "TEXT"),  # the day-before "can't go? sell it" message          # profile icon key from avatars.ICONS, or NULL for the first letter
     ("users", "student_email", "TEXT"),
     ("users", "student_school", "TEXT"),
     ("users", "student_verified_at", "TEXT"),

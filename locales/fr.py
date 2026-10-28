@@ -585,4 +585,9 @@ STRINGS = {
     "picker_looking": "{n} cherchent",
     "sell_looking": "{n} personnes cherchent un billet pour cette soirée. Le tien partira sûrement vite.",
     "sell_looking_one": "1 personne cherche un billet pour cette soirée. Le tien pourrait partir vite.",
+    "mail_resell_subject": "Toujours partant pour {title} demain ?",
+    "mail_resell_body": "Salut {name},\n\nTon billet pour {title} est pour demain. Bonne soirée !\n\nTu ne peux plus y aller ? Revends ton billet sur Spare en une minute plutôt que de le perdre. {looking}Les personnes qui cherchent sont prévenues tout de suite, et tu es payé après la soirée.\n\n{url}\n\nSpare",
+    "mail_resell_looking": "{n} personnes cherchent encore un billet. ",
+    "push_resell_title": "Tu ne peux plus y aller demain ?",
+    "push_resell_body": "Revends ton billet pour {title} en une minute.",
 }

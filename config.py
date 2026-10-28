@@ -79,6 +79,7 @@ VENUES = [
 ]
 
 MAX_TICKETS_PER_LISTING = 6
+RESELL_HOUR = 12        # local time the day before an event when ticket holders get "can't go? sell it"
 NUDGE_HOUR = 14          # local time on the day of the event when unsold sellers get a price reminder
 
 # Email domains that earn a "verified student" badge (subdomains count too, e.g. student.eur.nl).

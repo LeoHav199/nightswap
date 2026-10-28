@@ -481,6 +481,32 @@ def send_reminders():
     return nudged, asked
 
 
+def send_resell_reminders():
+    """The day before an event: 'Can't make it any more? Sell your ticket.' Once per order, to buyers who still hold it."""
+    if datetime.now().hour < config.RESELL_HOUR:
+        return 0
+    tomorrow = (today() + timedelta(days=1)).isoformat()
+    sent = 0
+    for o in db.all("""SELECT o.*, l.venue, l.event_name, l.event_date, l.event_id FROM orders o JOIN listings l ON l.id = o.listing_id
+                       WHERE o.status = 'paid' AND o.resell_reminded_at IS NULL AND l.event_date = ?""", tomorrow):
+        db.run("UPDATE orders SET resell_reminded_at=? WHERE id=?", sqltime(utcnow()), o["id"])
+        relisted = db.one("""SELECT 1 FROM listings WHERE seller_id=? AND event_date=? AND lower(venue)=lower(?)
+                             AND lower(COALESCE(event_name, ''))=lower(?) AND status='active'""",
+                          o["buyer_id"], o["event_date"], o["venue"], o["event_name"] or "")
+        if relisted:
+            continue
+        buyer = db.one("SELECT * FROM users WHERE id=?", o["buyer_id"])
+        title = listing_title(o)
+        looking = looking_count(o["event_date"], o["venue"], o["event_name"])
+        path = url_for("sell", event=o["event_id"]) if o["event_id"] else url_for("sell")
+        notify.send_email(buyer["email"], t("mail_resell_subject", title=title),
+                          t("mail_resell_body", name=buyer["first_name"], title=title,
+                            looking=t("mail_resell_looking", n=looking) if looking > 1 else "", url=base_url() + path))
+        push.send(buyer["id"], t("push_resell_title"), t("push_resell_body", title=title), path, tag="resell-" + o["public_id"])
+        sent += 1
+    return sent
+
+
 # --------------------------------------------------------------------------
 # Request setup
 # --------------------------------------------------------------------------
@@ -710,6 +736,19 @@ def group_events(rows, events=()):
     order = {c: i for i, c in enumerate(config.CATEGORIES)}
     return sorted(out.values(), key=lambda e: (e["date"], 0 if e["count"] else 1, order.get(e["category"], 9),
                                                e["min_price"] or 0))
+
+
+def already_listed(column, value):
+    """True when this ticket file or code is (or was) on Spare, unless the person selling bought it here:
+    someone who can't go any more may resell a ticket they bought on Spare."""
+    rows = db.all("""SELECT t.status, o.buyer_id, o.status AS order_status FROM tickets t LEFT JOIN orders o ON o.id = t.order_id
+                     WHERE t.%s = ? AND t.status != 'void' ORDER BY t.id""" % column, value)
+    if not rows:
+        return False
+    if any(r["status"] != "sold" for r in rows):  # on sale or in someone's checkout right now
+        return True
+    last = rows[-1]  # only whoever bought it most recently may sell it on
+    return not (last["buyer_id"] == g.user["id"] and last["order_status"] in ("paid", "released"))
 
 
 def looking_count(event_date, venue, name):
@@ -1654,9 +1693,9 @@ def sell():
             all_codes = [c[0] for _, _, codes in files for c in codes]
             if len(set(file_hashes)) < len(file_hashes) or len(set(all_codes)) < len(all_codes):
                 errors["ticket"] = t("err_ticket_twice")
-            elif any(db.one("SELECT 1 FROM tickets WHERE file_hash=? AND status != 'void'", h) for h in file_hashes):
+            elif any(already_listed("file_hash", h) for h in file_hashes):
                 errors["ticket"] = t("err_ticket_duplicate")
-            elif any(db.one("SELECT 1 FROM tickets WHERE code_hash=? AND status != 'void'", c) for c in all_codes):
+            elif any(already_listed("code_hash", c) for c in all_codes):
                 errors["ticket"] = t("err_code_duplicate")
             elif sum(max(1, len(codes)) for _, _, codes in files) > config.MAX_TICKETS_PER_LISTING:
                 errors["ticket"] = t("err_too_many", n=config.MAX_TICKETS_PER_LISTING)
@@ -2907,8 +2946,10 @@ def hourly_tasks():
         abort(404)
     released, waiting = release_due_payouts()
     nudged, asked = send_reminders()
+    resell = send_resell_reminders()
     db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
-    return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked}
+    return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
+            "resell_reminders": resell}
 
 
 @app.cli.command("init-db")
@@ -2939,7 +2980,8 @@ def send_reminders_command():
     """Day-of-event price nudges and post-event rating requests. Run this hourly (cron)."""
     with app.test_request_context(base_url=config.BASE_URL or "http://localhost:5001"):
         nudged, asked = send_reminders()
-    click.echo("Price nudges %d, rating requests %d" % (nudged, asked))
+        resell = send_resell_reminders()
+    click.echo("Price nudges %d, rating requests %d, resell reminders %d" % (nudged, asked, resell))
 
 
 @app.cli.command("test-email")
