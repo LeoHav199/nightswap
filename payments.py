@@ -111,7 +111,10 @@ def payout_onboarding_url(user, return_url, refresh_url):
             identity={"country": "NL", "entity_type": "individual"},
             dashboard="express",
             defaults={"currency": "eur",
-                      "responsibilities": {"fees_collector": "application", "losses_collector": "application"}},
+                      "responsibilities": {"fees_collector": "application", "losses_collector": "application"},
+                      # Filled in for them, so a student selling one ticket isn't asked for "your website".
+                      "profile": {"product_description": "Resells personal event tickets they can no longer use, "
+                                                         "to other students through Spare (sparetickets.eu)."}},
             configuration={"recipient": {"capabilities": {"stripe_balance": {"stripe_transfers": {"requested": True}}}}},
         )
         account_id = account.id

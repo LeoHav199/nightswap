@@ -14,7 +14,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Launch city is **Rotterdam only** (`ENABLED_CITIES`, `SHOW_ALL_NETHERLANDS=0`). The code supports more cities for later.
 - Prices are capped at **face value + 20%** (`PRICE_CAP_PERCENT=120`; changed from a face-value cap on 27 Oct 2026 so sellers can earn a little, like TicketSwap). Texts switch automatically between "never above face value" and "never more than X% above". Check the law before expanding: Belgium is believed to ban resale above the original price. Fees (since 28 Oct 2026, chosen so every sale makes money): buyers pay **8%, minimum €1.50** (`FEE_PERCENT`/`FEE_MIN_CENTS`); sellers pay **5%, minimum €1**, taken from the payout (`SELLER_FEE_PERCENT`/`SELLER_FEE_MIN_CENTS`, stored per order in `seller_fee_cents`; older orders pay out in full). Why: Stripe NL charges €0.29 per iDEAL payment, 1.5% + €0.25 per EEA card, and for Connect €2 per seller per month they're paid plus 0.25% + €0.10 per payout, so the old buyer-only fee lost about €0.84 on a one-off €20 sale. A flat €1 fee was tried earlier and dropped too.
 - Contact details are required for safety: an email code at sign-in, a phone code before selling, and sellers must be 18+.
-- Sellers are paid out 48h after the event (`PAYOUT_DELAY_HOURS`). Buyers get refunds if an event is cancelled or a ticket is disputed.
+- Sellers are paid as soon as the buyer taps "👍 it worked" (`rate_order` → `release_payout`), and at the latest 48h after the event (`PAYOUT_DELAY_HOURS`); chosen on 28 Oct 2026 because a fixed 48h wait worried Leo. The seller's Stripe payout account gets a prefilled product description, so sellers aren't asked for a website. Buyers get refunds if an event is cancelled or a ticket is disputed.
 - Most sellers sell once, so the track-record badge only appears after 2+ sales.
 - Messages hide phone numbers, handles and links, and flag attempts to deal off the platform (`moderation.py`).
 - Venue photos come from Wikimedia Commons, credited on `/credits` and not on the images. When no photo exists, a generated poster is shown (`art.py`).
@@ -43,7 +43,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 320 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 324 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 

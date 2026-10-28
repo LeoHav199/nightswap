@@ -426,23 +426,29 @@ def release_due_payouts():
     due = db.all("SELECT * FROM orders WHERE status='paid' AND payout_due_at <= ?", sqltime(utcnow()))
     released = waiting = 0
     for order in due:
-        seller = db.one("SELECT * FROM users WHERE id=?", order["seller_id"])
-        if seller["blocked_at"]:
-            waiting += 1  # held until an admin refunds the buyer or unblocks the seller
-            continue
-        ready = seller["payouts_ready"] and (seller["stripe_account_id"] or not payments.live())
-        if payments.live() and seller["stripe_account_id"] and not ready:
-            ready = payments.payouts_ready(seller["stripe_account_id"])
-            if ready:
-                db.run("UPDATE users SET payouts_ready=1 WHERE id=?", seller["id"])
-        if not ready:
+        if release_payout(order):
+            released += 1
+        else:
             waiting += 1
-            continue
-        ref = payments.transfer_to_seller(order, seller)
-        db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?",
-               sqltime(utcnow()), ref, order["id"])
-        released += 1
     return released, waiting
+
+
+def release_payout(order):
+    """Sends one order's money to its seller. False when it has to wait (seller blocked or payouts not set up)."""
+    seller = db.one("SELECT * FROM users WHERE id=?", order["seller_id"])
+    if seller["blocked_at"]:
+        return False  # held until an admin refunds the buyer or unblocks the seller
+    ready = seller["payouts_ready"] and (seller["stripe_account_id"] or not payments.live())
+    if payments.live() and seller["stripe_account_id"] and not ready:
+        ready = payments.payouts_ready(seller["stripe_account_id"])
+        if ready:
+            db.run("UPDATE users SET payouts_ready=1 WHERE id=?", seller["id"])
+    if not ready:
+        return False
+    ref = payments.transfer_to_seller(order, seller)
+    db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?",
+           sqltime(utcnow()), ref, order["id"])
+    return True
 
 
 def notify_alerts(listing):
@@ -1336,6 +1342,13 @@ def rate_order(public_id):
             or order["status"] not in PAID_STATES or listing["event_date"] > today().isoformat()):
         abort(400)
     db.run("UPDATE orders SET rating=?, rated_at=? WHERE id=?", value, sqltime(utcnow()), order["id"])
+    if value == "up" and order["status"] == "paid":
+        # The buyer confirms the ticket worked: no need to keep the seller waiting for the full 48 hours.
+        db.run("UPDATE orders SET payout_due_at=? WHERE id=?", sqltime(utcnow()), order["id"])
+        try:
+            release_payout(db.one("SELECT * FROM orders WHERE id=?", order["id"]))
+        except Exception:
+            app.logger.exception("Early payout failed; the hourly task will try again")
     if value == "down" and order["status"] == "paid":
         flash(t("rated_down"), "error")
         return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")

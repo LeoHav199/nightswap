@@ -63,6 +63,18 @@ with app.app_context():
     A.db.run("UPDATE orders SET seller_fee_cents=100 WHERE id=?", o["id"])
 ok("€2.60 fees" in html(admin.get("/admin")), "admin totals include both fees (€1.60 + €1)")
 
+# --- Paid as soon as the buyer confirms the ticket worked
+with app.app_context():
+    A.db.run("UPDATE listings SET event_date=? WHERE id=?", date.today().isoformat(), lid)  # the night is here
+    A.db.run("UPDATE users SET payouts_ready=1 WHERE email='s@test.nl'")
+    o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
+ok(o["status"] == "paid" and o["payout_due_at"] > A.sqltime(A.utcnow()), "before confirming, the payout waits for its date")
+buyer.post("/orders/%s/rate" % pub, data={"rating": "up", "_csrf": csrf(buyer)})
+with app.app_context(): o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
+ok(o["status"] == "released" and o["rating"] == "up", "the buyer's thumbs-up pays the seller straight away")
+ok("on its way" in html(seller.get("/orders/%s" % pub)), "the seller sees the money is on its way")
+ok("as soon as the buyer confirms the ticket worked" in html(buyer.get("/how-it-works")).lower(), "How it works explains the early payout")
+
 # --- Explained honestly
 how = html(buyer.get("/how-it-works"))
 ok("5% (min. €1) per ticket, taken from the payout" in how and "8% (min. €1.50)" in how and ">Free<" not in how, "How it works lists both fees")
