@@ -18,6 +18,7 @@ from markupsafe import escape
 
 import art
 import avatars
+import backup
 import config
 import db
 import i18n
@@ -481,6 +482,22 @@ def send_reminders():
     return nudged, asked
 
 
+def nightly_backup(force=False):
+    """Once a day around 03:00: zip the database (and uploads when they fit) and email it to the admins."""
+    day = today().isoformat()
+    if not force and (datetime.now().hour != 3 or get_setting("last_backup_day") == day):
+        return False
+    data, name, full = backup.for_email()
+    size = "%.1f MB" % (len(data) / 1024 / 1024)
+    note = ("Database and uploaded tickets/posters." if full else
+            "Database only: the uploaded files were too big for email. Render's daily disk snapshots and the copies in /var/data/backups cover them.")
+    body = "Spare's nightly backup (%s, %s).\n\n%s\n\nKeep these emails. To restore, ask Claude to put this file back on the server." % (name, size, note)
+    for email in config.ADMIN_EMAILS:
+        notify.send_email(email, "Spare backup %s" % day, body, attachments=[(name, data)])
+    set_setting("last_backup_day", day)
+    return True
+
+
 def send_resell_reminders():
     """The day before an event: 'Can't make it any more? Sell your ticket.' Once per order, to buyers who still hold it."""
     if datetime.now().hour < config.RESELL_HOUR:
@@ -633,6 +650,26 @@ def template_globals():
 @app.errorhandler(413)
 def error_page(err):
     return render_template("error.html", code=err.code), err.code
+
+
+@app.errorhandler(500)
+def server_error(err):
+    """Something crashed: tell the admins by email (at most 5 an hour), and show a friendly page."""
+    original = getattr(err, "original_exception", None) or err
+    try:
+        if not app.debug and not app.testing and not rate_limited("crash-email", 5, 60, who="site"):
+            import traceback
+            trace = "".join(traceback.format_exception(type(original), original, original.__traceback__))[-6000:]
+            who = g.get("user")["email"] if g.get("user") else "not signed in"
+            notify.notify_admins("Spare error: %s on %s" % (type(original).__name__, request.path),
+                                 "Something went wrong for a visitor.\n\nPage: %s %s\nUser: %s\nTime: %s\n\n%s"
+                                 % (request.method, request.full_path, who, utcnow(), trace))
+    except Exception:
+        app.logger.exception("Could not send the error email")
+    try:
+        return render_template("error.html", code=500), 500
+    except Exception:
+        return "Something went wrong. Please try again in a minute.", 500
 
 
 # --------------------------------------------------------------------------
@@ -2251,6 +2288,16 @@ def admin():
                            waitlist=waitlist, preview_link=preview_link)
 
 
+@app.route("/admin/backup")
+@admin_required
+def admin_backup():
+    """Download a full backup now (database plus uploaded tickets and posters)."""
+    data, name, _ = backup.make_zip()
+    resp = app.response_class(data, mimetype="application/zip")
+    resp.headers["Content-Disposition"] = 'attachment; filename="%s"' % name
+    return resp
+
+
 @app.route("/admin/launch", methods=["POST"])
 @admin_required
 def admin_launch():
@@ -2947,9 +2994,10 @@ def hourly_tasks():
     released, waiting = release_due_payouts()
     nudged, asked = send_reminders()
     resell = send_resell_reminders()
+    backed_up = nightly_backup()
     db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
-            "resell_reminders": resell}
+            "resell_reminders": resell, "backup": backed_up}
 
 
 @app.cli.command("init-db")

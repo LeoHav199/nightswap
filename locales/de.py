@@ -590,4 +590,9 @@ STRINGS = {
     "mail_resell_looking": "{n} Leute suchen noch ein Ticket. ",
     "push_resell_title": "Kannst du morgen doch nicht?",
     "push_resell_body": "Verkauf dein Ticket für {title} in einer Minute.",
+    "error_500_title": "Etwas ist schiefgelaufen",
+    "error_500_body": "Sorry, das hat bei uns nicht geklappt. Wir wissen Bescheid und kümmern uns darum. Versuch es gleich noch mal.",
+    "name_note_title": "Steht dein Name auf dem Ticket?",
+    "name_note_body": "Manche Locations prüfen am Eingang den Ausweis. Ändere nach dem Verkauf den Namen in der App oder auf der Website deines Ticketshops auf den Käufer, oder sag dem Käufer, wie das geht.",
+    "name_note_sold": "Wenn dein Ticketshop es erlaubt, ändere den Namen jetzt auf den Käufer, damit er ohne Probleme reinkommt. Unsicher wie? Frag im Chat.",
 }

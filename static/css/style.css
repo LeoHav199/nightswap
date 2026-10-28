@@ -976,3 +976,5 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .looking-empty { background: rgba(212, 255, 58, .1); border-color: rgba(212, 255, 58, .45); }
 .sell-looking { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; color: var(--accent); font-weight: 600; font-size: 15px; }
 .pick-looking { color: var(--accent); font-weight: 700; }
+.name-note { margin: 4px 0 0; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 14px; color: var(--muted); }
+.name-note strong { color: var(--text); }

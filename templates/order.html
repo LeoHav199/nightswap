@@ -69,6 +69,7 @@
       {% if order.status == 'paid' %}
         <h1>{{ t('order_seller_paid_title') }}</h1>
         <p class="lead">{{ t('order_seller_paid_body', amount=money(order.price_cents), date=fmt_date(payout_due.date(), 'long')) }}</p>
+        <p class="name-note"><strong>{{ t('name_note_title') }}</strong> {{ t('name_note_sold') }}</p>
       {% elif order.status == 'disputed' %}
         <h1>{{ t('order_seller_disputed_title') }}</h1>
         <p class="lead">{{ t('order_seller_disputed_body') }}</p>

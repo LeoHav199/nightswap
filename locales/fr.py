@@ -590,4 +590,9 @@ STRINGS = {
     "mail_resell_looking": "{n} personnes cherchent encore un billet. ",
     "push_resell_title": "Tu ne peux plus y aller demain ?",
     "push_resell_body": "Revends ton billet pour {title} en une minute.",
+    "error_500_title": "Un problème est survenu",
+    "error_500_body": "Désolé, ça n'a pas marché de notre côté. On est prévenus et on s'en occupe. Réessaie dans une minute.",
+    "name_note_title": "Ton nom est sur le billet ?",
+    "name_note_body": "Certains lieux vérifient la pièce d'identité à l'entrée. Après la vente, mets le nom de l'acheteur via l'appli ou le site de ta billetterie, ou explique-lui comment faire.",
+    "name_note_sold": "Si ta billetterie le permet, mets le nom de l'acheteur maintenant pour qu'il entre sans souci. Pas sûr de comment faire ? Demande-lui dans le chat.",
 }

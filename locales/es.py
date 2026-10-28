@@ -590,4 +590,9 @@ STRINGS = {
     "mail_resell_looking": "Aún hay {n} personas buscando entrada. ",
     "push_resell_title": "¿Al final no puedes ir mañana?",
     "push_resell_body": "Vende tu entrada para {title} en un minuto.",
+    "error_500_title": "Algo ha fallado",
+    "error_500_body": "Lo sentimos, algo ha fallado por nuestra parte. Ya lo sabemos y lo estamos arreglando. Inténtalo de nuevo en un minuto.",
+    "name_note_title": "¿Tu nombre está en la entrada?",
+    "name_note_body": "Algunos locales piden el DNI en la puerta. Tras la venta, cambia el nombre al del comprador en la app o web de tu ticketera, o explícale cómo hacerlo.",
+    "name_note_sold": "Si tu ticketera lo permite, cambia ahora el nombre al del comprador para que entre sin problemas. ¿No sabes cómo? Pregúntale en el chat.",
 }

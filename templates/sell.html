@@ -105,6 +105,7 @@
       <span class="hint">{{ t('ticket_file_hint_multi', n=max_tickets) }}</span>
       {{ m.field_error(errors, 'ticket') }}
     </label>
+    <p class="name-note"><strong>{{ t('name_note_title') }}</strong> {{ t('name_note_body') }}</p>
 
     <details class="extra" {{ 'open' if errors.get('poster') }}>
       <summary>{{ t('add_poster') }} <span class="optional">{{ t('optional') }}</span></summary>

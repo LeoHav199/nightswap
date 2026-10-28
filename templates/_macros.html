@@ -56,7 +56,8 @@
 {# Trust line for a seller: verified student, phone, track record. #}
 {% macro seller_badges(s, st) %}
   {% if s.student_verified_at %}<span class="badge badge-student" title="{{ s.student_school }}">{{ t('badge_student') }}</span>{% endif %}
-  {% if s.phone_verified_at %}<span class="badge">{{ t('badge_phone') }}</span>{% endif %}
+  {# Only a real check counts: while phone codes go by email (no SMS service yet), the badge would promise too much. #}
+  {% if s.phone_verified_at and sms_enabled %}<span class="badge">{{ t('badge_phone') }}</span>{% endif %}
   {% if st and st.sales >= 2 %}
     <span class="badge">{{ t('n_sales', n=st.sales) if st.sales != 1 else t('one_sale') }}{% if st.rated %} · {{ t('all_worked') if st.up == st.rated else t('pct_worked', pct=(100 * st.up // st.rated)) }}{% endif %}</span>
   {% endif %}

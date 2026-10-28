@@ -7,7 +7,7 @@
     <h1>Admin</h1>
     <p class="muted">{{ stats.n }} paid orders · {{ money(stats.volume) }} volume · {{ money(stats.fees) }} fees</p>
   </div>
-  <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_sources') }}">Links &amp; QR codes</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
+  <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_sources') }}">Links &amp; QR codes</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_backup') }}">Download backup</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
 </div>
 <div class="wrap account">
   <section class="account-section" id="launch">

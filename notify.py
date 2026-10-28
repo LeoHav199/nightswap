@@ -71,7 +71,8 @@ def _logo_img():
             'style="vertical-align:-6px;margin-right:4px;border:0">' % html.escape(config.BASE_URL.rstrip("/"), quote=True))
 
 
-def send_email(to, subject, body):
+def send_email(to, subject, body, attachments=()):
+    """attachments: (filename, bytes) pairs, e.g. the nightly backup."""
     if not config.SMTP_HOST:
         current_app.logger.warning("EMAIL (not sent, no SMTP configured) to=%s subject=%s\n%s", to, subject, body)
         return False
@@ -81,6 +82,8 @@ def send_email(to, subject, body):
     msg["Subject"] = subject
     msg.set_content(body)
     msg.add_alternative(email_html(subject, body), subtype="html")
+    for filename, data in attachments:
+        msg.add_attachment(data, maintype="application", subtype="octet-stream", filename=filename)
     try:
         with smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT, timeout=15) as smtp:
             smtp.starttls()

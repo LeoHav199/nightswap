@@ -27,6 +27,8 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Personal touches: cartoon-character profile pictures (`avatars.py` draws them from parts; no photo uploads, nothing to moderate) that are earned by selling (`avatars.UNLOCK_AT`: 1, 3, 5 and 10 paid sales, refunds don't count), picked at /settings and shown next to names, so a character means "has sold here before"; icons from the very first version map to a character. Opt-in tap sounds for the bottom menu made with Web Audio (off by default, saved per device in localStorage, plus optional vibration on Android), and a small "Tonight" pop-up after 12:00 at most once a day, never on selling, listing, checkout or chat pages. The server runs on Amsterdam time (`TZ` in render.yaml).
 - "People looking": the number of people with "Notify me" on for a night (`looking_count`) shows as a banner on the event page (with a Sell button when nobody sells yet), in the sell form's event picker and on cards ("3 looking"), to pull in sellers.
 - Day-before resell reminder: from 12:00 (`RESELL_HOUR`) the day before an event, buyers holding a ticket bought on Spare get one email + push "Can't make it? Sell it" (`send_resell_reminders`, part of /tasks/hourly; `orders.resell_reminded_at`). The duplicate-ticket check (`already_listed`) lets only the most recent buyer of a ticket list it again, and never while it's on sale.
+- Safety nets: a nightly backup (`backup.py`, run by /tasks/hourly around 03:00) emails the admins a zip of the database plus uploads (uploads left out above 15 MB) and keeps 7 copies in DATA_DIR/backups; /admin has "Download backup". Crashes email the admins with the traceback (at most 5 an hour). The "phone verified" badge only shows when real SMS is on (`SMS_ENABLED`). Fonts are self-hosted in static/fonts (no Google requests, for privacy).
+- Open question before real money: Stripe Connect fees. With `fees_collector: application` Spare pays a monthly fee per seller who gets a payout (about €2) plus a per-payout fee, so a one-off €20 sale costs more than the €1.60 fee earns. Check exact euro prices in the Stripe dashboard and decide (accept the loss early on, a small seller fee, a higher minimum fee, or Stripe-managed pricing).
 - Code in static/js/app.js that should run on every page must go above the sell-form section: that part ends with `if (!sell) return;`.
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
 
@@ -42,7 +44,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 284 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 299 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 
