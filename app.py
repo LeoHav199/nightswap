@@ -1456,6 +1456,8 @@ def stripe_webhook():
     except Exception:
         abort(400)
     obj = event["data"]["object"]
+    if hasattr(obj, "to_dict"):
+        obj = obj.to_dict()  # stripe-python 8+ objects aren't dicts any more: .get() raises AttributeError
     if event["type"] in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
         order = db.one("SELECT * FROM orders WHERE payment_ref=?", obj["id"])
         if order and obj.get("payment_status") == "paid":

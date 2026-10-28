@@ -103,4 +103,18 @@ with app.app_context(): l2 = A.db.one("SELECT * FROM listings WHERE id=?", int(r
 ok(l2["delivery"] == "file" and "transfer_email" not in html(buyer.get("/t/%d" % l2["id"])), "ordinary file tickets work as before")
 ok("ticket that lives in an app" in html(buyer.get("/privacy")), "the privacy page explains the transfer details")
 
+# --- Stripe's webhook with real Stripe objects (stripe-python 8+ objects have no .get())
+import stripe, payments
+r = buyer.post("/t/%d/buy" % lid, data={"qty": "1", "transfer_name": "Bo", "transfer_email": "bo@example.com", "_csrf": csrf(buyer)})
+pub2 = r.location.split("/")[2]
+with app.app_context(): A.db.run("UPDATE orders SET payment_ref='cs_test_webhook' WHERE public_id=?", pub2)
+event = stripe.Event.construct_from({"id": "evt_1", "type": "checkout.session.completed", "data": {"object": {
+    "id": "cs_test_webhook", "object": "checkout.session", "payment_status": "paid", "payment_intent": "pi_test_1"}}}, "sk_test_x")
+real_key, real_parse = config.STRIPE_SECRET_KEY, payments.parse_webhook
+config.STRIPE_SECRET_KEY = "sk_test_x"; payments.parse_webhook = lambda payload, sig: event
+r = app.test_client().post("/webhooks/stripe", data=b"{}", headers={"Stripe-Signature": "t=1,v1=x"})
+config.STRIPE_SECRET_KEY, payments.parse_webhook = real_key, real_parse
+ok(r.status_code == 200 and order(pub2)["status"] == "paid" and order(pub2)["payment_intent"] == "pi_test_1",
+   "Stripe's 'checkout completed' webhook marks the order paid (real Stripe objects, no crash)")
+
 print("FAILED:", fails or "none")
