@@ -21,6 +21,7 @@
         <span class="sg-main"><strong>{{ preset.name }}</strong><span>{{ preset.venue }}{% if preset.city != 'Rotterdam' %}, {{ preset.city }}{% endif %} · {{ fmt_date(preset.event_date, 'long') }}</span></span>
         <a class="small" href="{{ url_for('sell') }}">{{ t('change') }}</a>
       </div>
+      {% if preset_looking %}<p class="sell-looking"><span class="live-dot" aria-hidden="true"></span>{{ t('sell_looking_one') if preset_looking == 1 else t('sell_looking', n=preset_looking) }}</p>{% endif %}
     {% else %}
       <fieldset class="field picker" data-picker data-api="{{ url_for('events_on_date') }}" data-selected="{{ picked_event }}">
         <legend class="label">{{ t('which_event') }}</legend>

@@ -655,7 +655,8 @@
         list.innerHTML = data.events.map(function (e) {
           return '<label class="pick"><input type="radio" name="event_id" value="' + e.id + '"' + (String(e.id) === selected ? " checked" : "") + '>' +
             '<span><strong>' + esc(e.name) + '</strong><small>' + esc(e.venue) + (e.city !== "Rotterdam" ? ", " + esc(e.city) : "") +
-            ' · ' + esc(e.category) + (e.time ? " · " + esc(e.time) : "") + '</small></span></label>';
+            ' · ' + esc(e.category) + (e.time ? " · " + esc(e.time) : "") +
+            (e.looking ? ' · <b class="pick-looking">' + esc(data.looking_label.replace("{n}", e.looking)) + '</b>' : "") + '</small></span></label>';
         }).join("");
         addNew.hidden = false;
         var newRadio = addNew.querySelector("input");

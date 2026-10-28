@@ -712,6 +712,12 @@ def group_events(rows, events=()):
                                                e["min_price"] or 0))
 
 
+def looking_count(event_date, venue, name):
+    """How many people asked to be told when a ticket for this night appears ("Notify me")."""
+    return db.one("""SELECT COUNT(*) AS n FROM alerts WHERE event_date=? AND lower(venue)=lower(?) AND lower(event_name)=lower(?)""",
+                  event_date, venue, name or "")["n"]
+
+
 def annotate_activity(events):
     """'Going fast' (people waiting or recent sales) and 'Just listed' signals for event cards."""
     if not events:
@@ -909,7 +915,7 @@ def event_page():
     )
     venue_row = get_venue(ev["venue"], ev["city"])
     return render_template("event.html", ev=ev, rows=rows, stats=seller_stats(r["seller_id"] for r in rows),
-                           alert=alert, past=ev["date"] < today().isoformat(), venue=venue_row, e=ev.get("event"), cancelled=cancelled,
+                           alert=alert, looking=looking_count(ev["date"], ev["venue"], ev["name"]), past=ev["date"] < today().isoformat(), venue=venue_row, e=ev.get("event"), cancelled=cancelled,
                            directions=directions_url(venue_row) if venue_row else None, starts_at=starts_at(ev))
 
 
@@ -1700,6 +1706,7 @@ def sell():
                         request.values.get("event"), today().isoformat())
     return render_template("sell.html", form=form, errors=errors, venues=config.VENUES, categories=config.CATEGORIES,
                            city_suggestions=config.CITY_SUGGESTIONS, preset=preset,
+                           preset_looking=looking_count(preset["event_date"], preset["venue"], preset["name"]) if preset else 0,
                            today=today().isoformat(), max_date=(today() + timedelta(days=365)).isoformat(),
                            max_tickets=config.MAX_TICKETS_PER_LISTING)
 
@@ -1712,8 +1719,10 @@ def events_on_date():
         return {"events": []}
     rows = db.all("""SELECT * FROM events WHERE event_date=? AND status IN ('published', 'review') AND cancelled_at IS NULL
                      ORDER BY city != ?, venue, name""", day, config.DEFAULT_CITY)
-    return {"events": [{"id": e["id"], "name": e["name"], "venue": e["venue"], "city": e["city"],
-                        "category": t("cat_" + e["category"]), "time": e["door_time"] or ""} for e in rows]}
+    return {"looking_label": t("picker_looking"),
+            "events": [{"id": e["id"], "name": e["name"], "venue": e["venue"], "city": e["city"],
+                        "category": t("cat_" + e["category"]), "time": e["door_time"] or "",
+                        "looking": looking_count(day, e["venue"], e["name"])} for e in rows]}
 
 
 @app.route("/t/<int:listing_id>/price", methods=["POST"])

@@ -25,6 +25,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Coming-soon mode (before the real launch): switched on and off at /admin → Launch, stored in the `settings` table, so no redeploy. Visitors see a sign-up page (`coming_soon.html`); admins and friends with the preview link (`/preview/<code>`, renewable) see the full site. Sign-ups go into the `waitlist` table; /admin/waitlist lists them, exports CSV and sends the launch email in batches of 20, each with a remove-me link.
 - Marketing links: /admin/sources makes a `?from=<code>` link with a print-ready QR (SVG) per flyer batch, post, association or ambassador. Visits are counted once per session in `source_visits`; the first link a visitor came from is saved on their waitlist entry and account (`source`).
 - Personal touches: cartoon-character profile pictures (`avatars.py` draws them from parts; no photo uploads, nothing to moderate) that are earned by selling (`avatars.UNLOCK_AT`: 1, 3, 5 and 10 paid sales, refunds don't count), picked at /settings and shown next to names, so a character means "has sold here before"; icons from the very first version map to a character. Opt-in tap sounds for the bottom menu made with Web Audio (off by default, saved per device in localStorage, plus optional vibration on Android), and a small "Tonight" pop-up after 12:00 at most once a day, never on selling, listing, checkout or chat pages. The server runs on Amsterdam time (`TZ` in render.yaml).
+- "People looking": the number of people with "Notify me" on for a night (`looking_count`) shows as a banner on the event page (with a Sell button when nobody sells yet), in the sell form's event picker and on cards ("3 looking"), to pull in sellers.
 - Code in static/js/app.js that should run on every page must go above the sell-form section: that part ends with `if (!sell) return;`.
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
 
@@ -40,7 +41,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 265 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 272 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 

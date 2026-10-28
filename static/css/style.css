@@ -968,3 +968,11 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .avatar-choice.is-locked .avatar { opacity: .28; filter: grayscale(1); }
 .lock-tag { position: absolute; right: 2px; bottom: -2px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
   display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; font-weight: 700; }
+
+/* People looking for a ticket -------------------------------------------------- */
+.looking { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; padding: 14px 16px;
+  border-radius: var(--radius-sm); background: rgba(212, 255, 58, .07); border: 1px solid rgba(212, 255, 58, .25); }
+.looking p { margin: 0; flex: 1; min-width: 200px; font-weight: 600; }
+.looking-empty { background: rgba(212, 255, 58, .1); border-color: rgba(212, 255, 58, .45); }
+.sell-looking { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; color: var(--accent); font-weight: 600; font-size: 15px; }
+.pick-looking { color: var(--accent); font-weight: 700; }

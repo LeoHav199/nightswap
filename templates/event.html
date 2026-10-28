@@ -64,6 +64,13 @@
       {{ m.share_button(ev.name or ev.venue, ev.venue, ev.date, (t('from') ~ ' ' ~ money(with_fee(ev.min_price))) if ev.min_price else t('on_nightswap'), url, ev.colour, ev.poster, category=ev.category) }}
       {% if directions %}<a class="btn btn-ghost btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
     </div>
+    {% if looking and not past and not cancelled %}
+      <div class="looking {{ 'looking-empty' if not rows }}">
+        <span class="live-dot" aria-hidden="true"></span>
+        <p>{% if rows %}{{ t('looking_some_one') if looking == 1 else t('looking_some', n=looking) }}{% else %}{{ t('looking_none_one') if looking == 1 else t('looking_none', n=looking) }}{% endif %}</p>
+        {% if not rows %}<a class="btn btn-accent btn-sm" href="{{ url_for('sell', event=e.id) if e else url_for('sell') }}">{{ t('looking_sell_cta') }}</a>{% endif %}
+      </div>
+    {% endif %}
 
     {% if rows %}
       <h2 class="list-head">{{ t('n_tickets', n=ev.count) if ev.count != 1 else t('one_ticket') }}</h2>

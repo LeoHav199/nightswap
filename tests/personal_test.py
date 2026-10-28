@@ -90,4 +90,30 @@ A.datetime = Morning
 ok("data-tonight-pop" not in html(buyer.get("/")), "morning: no pop-up yet")
 A.datetime = real
 
+# --- "People looking" count
+from datetime import timedelta
+day = (date.today() + timedelta(days=5)).isoformat()
+admin.post("/admin/events/save", data={"name": "Demand Night", "venue": "Perron", "category": "club", "event_date": day, "_csrf": csrf(admin)})
+with app.app_context(): dn = A.db.one("SELECT * FROM events WHERE name='Demand Night'")
+url = "/event?venue=Perron&date=%s&name=Demand+Night" % day
+ok("looking for a ticket" not in html(visitor.get(url)), "nobody looking: no banner")
+fans = [app.test_client() for _ in range(3)]
+for i, f in enumerate(fans):
+    login(f, "fan%d@test.nl" % i, "Fan")
+    f.post("/alerts", data={"venue": "Perron", "date": day, "name": "Demand Night", "_csrf": csrf(f)})
+page = html(visitor.get(url))
+ok("3 people are looking for a ticket, and nobody is selling yet" in page and "/sell?event=%d" % dn["id"] in page,
+   "event page: '3 people are looking', nobody selling, with a sell button for this event")
+api = visitor.get("/api/events?date=" + day).get_json()
+ok([e["looking"] for e in api["events"] if e["name"] == "Demand Night"] == [3] and api["looking_label"] == "{n} looking", "sell picker gets the looking count")
+ok("3 people are looking for a ticket for this night. Yours will likely sell fast" in html(seller.get("/sell?event=%d" % dn["id"])),
+   "sell form with this event chosen says people are looking")
+ok("3 looking" in html(visitor.get("/")), "event cards say '3 looking'")
+seller.post("/sell", data={"event_id": str(dn["id"]), "face_value": "20", "price": "20", "adult": "yes",
+    "ticket": (io.BytesIO(b"%PDF-1.4 demand"), "d.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
+page = html(visitor.get(url))
+ok("3 people are looking for a ticket for this night." in page and "nobody is selling" not in page, "once a ticket is listed, the banner just shows demand")
+fans[0].post("/alerts", data={"venue": "Perron", "date": day, "name": "Demand Night", "action": "remove", "_csrf": csrf(fans[0])})
+ok("2 people are looking" in html(visitor.get(url)), "turning off 'Notify me' lowers the count")
+
 print("FAILED:", fails or "none")
