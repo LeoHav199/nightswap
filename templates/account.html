@@ -86,7 +86,7 @@
           <a href="{{ url_for('order_page', public_id=o.public_id) }}">
             <span class="tl-main"><strong>{{ o.event_name or o.venue }}</strong><span class="muted small">{{ o.venue }} · {{ fmt_date(o.event_date) }}</span></span>
             {{ m.status_tag(o.status) }}
-            <span class="tl-amount">{{ money(o.price_cents) }}</span>
+            <span class="tl-amount">{{ money(payout_for(o)) }}</span>
           </a>
         </li>
         {% endfor %}

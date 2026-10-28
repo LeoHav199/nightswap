@@ -3,7 +3,8 @@ from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
 config.ADMIN_SECOND_FACTOR = False
-config.FEE_PERCENT = 0  # these tests were written for a flat €1 fee
+config.FEE_PERCENT = 0; config.FEE_MIN_CENTS = 100  # these tests were written for a flat €1 fee
+config.SELLER_FEE_PERCENT = 0; config.SELLER_FEE_MIN_CENTS = 0  # ...and no seller fee
 config.STRIPE_SECRET_KEY = ""
 tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up")

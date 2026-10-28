@@ -68,14 +68,14 @@
     {% else %}
       {% if order.status == 'paid' %}
         <h1>{{ t('order_seller_paid_title') }}</h1>
-        <p class="lead">{{ t('order_seller_paid_body', amount=money(order.price_cents), date=fmt_date(payout_due.date(), 'long')) }}</p>
+        <p class="lead">{{ t('order_seller_paid_body', amount=money(payout_for(order)), date=fmt_date(payout_due.date(), 'long')) }}</p>
         <p class="name-note"><strong>{{ t('name_note_title') }}</strong> {{ t('name_note_sold') }}</p>
       {% elif order.status == 'disputed' %}
         <h1>{{ t('order_seller_disputed_title') }}</h1>
         <p class="lead">{{ t('order_seller_disputed_body') }}</p>
       {% elif order.status == 'released' %}
         <h1>{{ t('order_seller_released_title') }}</h1>
-        <p class="lead">{{ t('order_seller_released_body', amount=money(order.price_cents)) }}</p>
+        <p class="lead">{{ t('order_seller_released_body', amount=money(payout_for(order))) }}</p>
       {% elif order.status == 'refunded' %}
         <h1>{{ t('order_refunded_title') }}</h1>
         <p class="lead">{{ t('order_seller_refunded_body') }}</p>

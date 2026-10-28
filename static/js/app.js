@@ -602,6 +602,8 @@
   var feePct = parseFloat(sell.dataset.feePct) || 0, feeMin = parseInt(sell.dataset.feeMin, 10) || 0;
   var feeMax = parseInt(sell.dataset.feeMax, 10) || 0;
   function feeFor(p) { var f = Math.max(feeMin, Math.round(p * feePct / 100)); return feeMax ? Math.min(f, feeMax) : f; }
+  var sellerPct = parseFloat(sell.dataset.sellerPct) || 0, sellerMin = parseInt(sell.dataset.sellerMin, 10) || 0;
+  function sellerFeeFor(p) { return (sellerPct || sellerMin) ? Math.min(p, Math.max(sellerMin, Math.round(p * sellerPct / 100))) : 0; }
   var cap = parseInt(sell.dataset.cap, 10) || 100;
   var sellLang = sell.dataset.lang;
   var venue = sell.querySelector("[data-venue]");
@@ -610,6 +612,7 @@
   var price = sell.querySelector("[data-price]");
   var receive = document.querySelector("[data-receive]");
   var buyerPays = document.querySelector("[data-buyer-pays]");
+  var sellerFeeBox = document.querySelector("[data-seller-fee]");
 
   function cents(value) {
     var v = (value || "").replace(/[€\s]/g, "").replace(",", ".");
@@ -619,7 +622,8 @@
   function money(c) { return formatMoney(c, sellLang); }
   function update() {
     var p = cents(price.value), f = cents(face.value);
-    receive.textContent = p ? money(p) : "–";
+    receive.textContent = p ? money(p - sellerFeeFor(p)) : "–";
+    if (sellerFeeBox) sellerFeeBox.textContent = p ? money(sellerFeeFor(p)) : sellerFeeBox.dataset.label;
     buyerPays.textContent = p ? money(p + feeFor(p)) : "–";
     var over = p && f && p > Math.floor(f * cap / 100);
     price.setAttribute("aria-invalid", over ? "true" : "false");

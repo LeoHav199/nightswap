@@ -41,8 +41,11 @@ LOAD_STARTER_DATA = env("LOAD_STARTER_DATA", "1") == "1"  # a brand-new database
 # Business rules -------------------------------------------------------------
 # Buyer service fee per ticket: a percentage of the ticket price, with a minimum (and an optional maximum).
 FEE_PERCENT = float(env("NIGHTSWAP_FEE_PERCENT", "8"))
-FEE_MIN_CENTS = int(env("NIGHTSWAP_FEE_MIN_CENTS", "100"))
+FEE_MIN_CENTS = int(env("NIGHTSWAP_FEE_MIN_CENTS", "150"))
 FEE_MAX_CENTS = int(env("NIGHTSWAP_FEE_MAX_CENTS", "0"))   # 0 = no maximum
+# Seller fee per ticket, taken from the payout: covers Stripe's per-seller and per-payout costs.
+SELLER_FEE_PERCENT = float(env("NIGHTSWAP_SELLER_FEE_PERCENT", "5"))
+SELLER_FEE_MIN_CENTS = int(env("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "100"))
 PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price as % of face value: 120 = up to 20% above
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes

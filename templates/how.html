@@ -23,17 +23,17 @@
     <ol class="steps">
       <li><strong>Bevestig eenmalig je telefoonnummer.</strong> Kopers zien het nooit; wij gebruiken het alleen als er iets misgaat.</li>
       <li><strong>Plaats je ticket.</strong> Club, datum, prijs en het ticketbestand. Klaar in een minuut.</li>
-      <li><strong>Ontvang je geld.</strong> {{ payout_hours }} uur na de avond staat het volledige bedrag op je rekening.</li>
+      <li><strong>Ontvang je geld.</strong> {{ payout_hours }} uur na de avond staat je geld op je rekening: jouw prijs min de verkoperskosten.</li>
     </ol>
   </section>
   <section class="panel" id="fees">
     <h2>Kosten</h2>
     <dl class="breakdown">
       <div><dt>Kopers</dt><dd>{{ fee }} per ticket</dd></div>
-      <div><dt>Verkopers</dt><dd>Gratis</dd></div>
+      <div><dt>Verkopers</dt><dd>{{ seller_fee_label }} per ticket, van de uitbetaling af</dd></div>
       <div><dt>Maximale prijs</dt><dd>{{ 'Nominale waarde' if price_cap == 100 else 'Nominale waarde + ' ~ price_markup ~ '%' }}</dd></div>
     </dl>
-    <p class="muted">Geen percentages en geen verborgen kosten. De prijs die je in de lijst ziet is wat je betaalt.</p>
+    <p class="muted">Geen verborgen kosten. Kopers zien in de lijst de totaalprijs inclusief servicekosten, verkopers zien vooraf precies wat ze ontvangen.</p>
   </section>
   <section class="panel">
     <h2>Veiligheid</h2>
@@ -59,17 +59,17 @@
     <ol class="steps">
       <li><strong>Verify your phone number once.</strong> Buyers never see it; we only use it if something goes wrong.</li>
       <li><strong>Post your ticket.</strong> Venue, date, price and the ticket file. It takes about a minute.</li>
-      <li><strong>Get paid.</strong> The full amount reaches your bank account {{ payout_hours }} hours after the night.</li>
+      <li><strong>Get paid.</strong> Your money reaches your bank account {{ payout_hours }} hours after the night: your price minus the seller fee.</li>
     </ol>
   </section>
   <section class="panel" id="fees">
     <h2>Fees</h2>
     <dl class="breakdown">
       <div><dt>Buyers</dt><dd>{{ fee }} per ticket</dd></div>
-      <div><dt>Sellers</dt><dd>Free</dd></div>
+      <div><dt>Sellers</dt><dd>{{ seller_fee_label }} per ticket, taken from the payout</dd></div>
       <div><dt>Maximum price</dt><dd>{{ 'Face value' if price_cap == 100 else 'Face value + ' ~ price_markup ~ '%' }}</dd></div>
     </dl>
-    <p class="muted">No percentages and no hidden costs. The price you see in the list is what you pay.</p>
+    <p class="muted">No hidden costs. Buyers see the total price including the service fee in the list, and sellers see exactly what they'll receive before they post.</p>
   </section>
   <section class="panel">
     <h2>Safety</h2>

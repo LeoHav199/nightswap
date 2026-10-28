@@ -12,7 +12,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 
 ## Product decisions (already made, don't reopen without asking)
 - Launch city is **Rotterdam only** (`ENABLED_CITIES`, `SHOW_ALL_NETHERLANDS=0`). The code supports more cities for later.
-- Prices are capped at **face value + 20%** (`PRICE_CAP_PERCENT=120`; changed from a face-value cap on 27 Oct 2026 so sellers can earn a little, like TicketSwap). Texts switch automatically between "never above face value" and "never more than X% above". Check the law before expanding: Belgium is believed to ban resale above the original price. The buyer pays an **8% fee, minimum €1**, set with `FEE_PERCENT`/`FEE_MIN_CENTS`. A flat €1 fee was tried and dropped because it didn't earn enough.
+- Prices are capped at **face value + 20%** (`PRICE_CAP_PERCENT=120`; changed from a face-value cap on 27 Oct 2026 so sellers can earn a little, like TicketSwap). Texts switch automatically between "never above face value" and "never more than X% above". Check the law before expanding: Belgium is believed to ban resale above the original price. Fees (since 28 Oct 2026, chosen so every sale makes money): buyers pay **8%, minimum €1.50** (`FEE_PERCENT`/`FEE_MIN_CENTS`); sellers pay **5%, minimum €1**, taken from the payout (`SELLER_FEE_PERCENT`/`SELLER_FEE_MIN_CENTS`, stored per order in `seller_fee_cents`; older orders pay out in full). Why: Stripe NL charges €0.29 per iDEAL payment, 1.5% + €0.25 per EEA card, and for Connect €2 per seller per month they're paid plus 0.25% + €0.10 per payout, so the old buyer-only fee lost about €0.84 on a one-off €20 sale. A flat €1 fee was tried earlier and dropped too.
 - Contact details are required for safety: an email code at sign-in, a phone code before selling, and sellers must be 18+.
 - Sellers are paid out 48h after the event (`PAYOUT_DELAY_HOURS`). Buyers get refunds if an event is cancelled or a ticket is disputed.
 - Most sellers sell once, so the track-record badge only appears after 2+ sales.
@@ -28,7 +28,6 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - "People looking": the number of people with "Notify me" on for a night (`looking_count`) shows as a banner on the event page (with a Sell button when nobody sells yet), in the sell form's event picker and on cards ("3 looking"), to pull in sellers.
 - Day-before resell reminder: from 12:00 (`RESELL_HOUR`) the day before an event, buyers holding a ticket bought on Spare get one email + push "Can't make it? Sell it" (`send_resell_reminders`, part of /tasks/hourly; `orders.resell_reminded_at`). The duplicate-ticket check (`already_listed`) lets only the most recent buyer of a ticket list it again, and never while it's on sale.
 - Safety nets: a nightly backup (`backup.py`, run by /tasks/hourly around 03:00) emails the admins a zip of the database plus uploads (uploads left out above 15 MB) and keeps 7 copies in DATA_DIR/backups; /admin has "Download backup". Crashes email the admins with the traceback (at most 5 an hour). The "phone verified" badge only shows when real SMS is on (`SMS_ENABLED`). Fonts are self-hosted in static/fonts (no Google requests, for privacy).
-- Open question before real money: Stripe Connect fees. With `fees_collector: application` Spare pays a monthly fee per seller who gets a payout (about €2) plus a per-payout fee, so a one-off €20 sale costs more than the €1.60 fee earns. Check exact euro prices in the Stripe dashboard and decide (accept the loss early on, a small seller fee, a higher minimum fee, or Stripe-managed pricing).
 - Code in static/js/app.js that should run on every page must go above the sell-form section: that part ends with `if (!sell) return;`.
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
 
@@ -44,7 +43,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 299 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 320 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 

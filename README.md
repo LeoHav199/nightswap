@@ -19,7 +19,7 @@ Add your email to `ADMIN_EMAILS` in `.env` to see `/admin`.
 1. The buyer pays ticket price + service fee (default 8%, at least €1) through Stripe Checkout (iDEAL or card).
 2. The money stays on Spare's Stripe balance. The buyer can download the ticket right away.
 3. Until `PAYOUT_DELAY_HOURS` (default 48) after the event night, the buyer can report a problem, which puts the payout on hold for review in `/admin`.
-4. `flask --app app release-payouts` (run it hourly via cron) transfers the ticket price to the seller's Stripe Express account. Spare keeps the fee.
+4. `flask --app app release-payouts` (run it hourly via cron) transfers the ticket price minus the seller fee to the seller's Stripe Express account. Spare keeps both fees.
 
 Sellers set up payouts (IBAN + ID check, hosted by Stripe) only after their first sale, so posting a ticket stays quick.
 
@@ -54,7 +54,9 @@ Events are real records (`events` table): name, venue, city, category, date, doo
 | Setting | Default | Meaning |
 |---|---|---|
 | `NIGHTSWAP_FEE_PERCENT` | `8` | Buyer fee per ticket, % of the price |
-| `NIGHTSWAP_FEE_MIN_CENTS` | `100` | Minimum fee per ticket (EUR 1.00) |
+| `NIGHTSWAP_FEE_MIN_CENTS` | `150` | Minimum buyer fee per ticket (EUR 1.50) |
+| `NIGHTSWAP_SELLER_FEE_PERCENT` | `5` | Seller fee per ticket, % of the price, taken from the payout |
+| `NIGHTSWAP_SELLER_FEE_MIN_CENTS` | `100` | Minimum seller fee per ticket (EUR 1.00) |
 | `NIGHTSWAP_FEE_MAX_CENTS` | `0` | Optional maximum fee per ticket (0 = none) |
 | `NIGHTSWAP_PRICE_CAP_PERCENT` | `120` | Max price as % of face value (120 = up to 20% above) |
 | `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `48` | Hold after the event night |

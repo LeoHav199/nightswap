@@ -9,7 +9,7 @@
 
 <div class="wrap sell">
   <form class="panel form" method="post" enctype="multipart/form-data" data-sell-form data-once
-        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" novalidate>
+        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-seller-pct="{{ seller_fee_pct }}" data-seller-min="{{ seller_fee_min }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" novalidate>
     {{ m.csrf() }}
     {% set picked = form.get('venue', '') %}
     {% set picked_event = (preset.id|string) if preset else form.get('event_id', '') %}
@@ -133,7 +133,7 @@
     <dl class="breakdown">
       <div><dt>{{ t('you_receive') }}</dt><dd data-receive>–</dd></div>
       <div><dt>{{ t('buyer_pays') }}</dt><dd data-buyer-pays>–</dd></div>
-      <div><dt>{{ t('your_fee') }}</dt><dd>{{ money(0) }}</dd></div>
+      <div><dt>{{ t('your_fee') }}</dt><dd data-seller-fee data-label="{{ seller_fee_label }}">{{ seller_fee_label }}</dd></div>
     </dl>
     <ol class="steps-mini">
       <li>{{ t('sell_step_1') }}</li>

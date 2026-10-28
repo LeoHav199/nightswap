@@ -98,6 +98,23 @@ def with_fee(price_cents):
     return price_cents + fee_for(price_cents)
 
 
+def seller_fee_for(price_cents):
+    """Seller fee for one ticket at this price (never more than the price itself)."""
+    if not config.SELLER_FEE_PERCENT and not config.SELLER_FEE_MIN_CENTS:
+        return 0
+    return min(price_cents, max(config.SELLER_FEE_MIN_CENTS, int(price_cents * config.SELLER_FEE_PERCENT / 100 + 0.5)))
+
+
+def payout_for(order):
+    """What the seller receives for an order: the price minus the seller fee fixed when it was bought."""
+    return order["price_cents"] - (order["seller_fee_cents"] or 0)
+
+
+def seller_fee_label():
+    pct = ("%g" % config.SELLER_FEE_PERCENT).replace(".", "," if g.get("lang") == "nl" else ".")
+    return t("fee_label", pct=pct, min=money(config.SELLER_FEE_MIN_CENTS))
+
+
 def fee_label():
     pct = ("%g" % config.FEE_PERCENT).replace(".", "," if g.get("lang") == "nl" else ".")
     return t("fee_label", pct=pct, min=money(config.FEE_MIN_CENTS))
@@ -395,9 +412,9 @@ def mark_paid(order, payment_intent=None):
                       t("mail_bought_body", name=buyer["first_name"], title=title, url=order_url))
     notify.send_email(seller["email"], t("mail_sold_subject", title=title),
                       t("mail_sold_body", name=seller["first_name"], title=title, url=order_url,
-                        amount=money(order["price_cents"]), date=fmt_date(due.date(), "long")))
+                        amount=money(payout_for(order)), date=fmt_date(due.date(), "long")))
     order_path = url_for("order_page", public_id=order["public_id"])
-    push.send(seller["id"], t("push_sold_title"), t("push_sold_body", title=title, amount=money(order["price_cents"])),
+    push.send(seller["id"], t("push_sold_title"), t("push_sold_body", title=title, amount=money(payout_for(order))),
               order_path, tag="sold-" + order["public_id"])
     push.send(buyer["id"], t("push_bought_title"), t("push_bought_body", title=title), order_path,
               tag="bought-" + order["public_id"])
@@ -632,6 +649,8 @@ def template_globals():
         "fee_label": fee_label(),
         "fee_percent": config.FEE_PERCENT,
         "fee_min": config.FEE_MIN_CENTS,
+        "seller_fee_for": seller_fee_for, "payout_for": payout_for, "seller_fee_label": seller_fee_label(),
+        "seller_fee_pct": config.SELLER_FEE_PERCENT, "seller_fee_min": config.SELLER_FEE_MIN_CENTS,
         "fee_max": config.FEE_MAX_CENTS,
         "price_cap": config.PRICE_CAP_PERCENT,
         "price_markup": config.PRICE_CAP_PERCENT - 100,  # e.g. 20 for "up to 20% above face value"
@@ -1115,9 +1134,9 @@ def buy(listing_id):
     fee = fee_for(unit_price) * qty
     order_id = db.run(
         """INSERT INTO orders (public_id, listing_id, buyer_id, seller_id, quantity, price_cents, fee_cents,
-                               total_cents, offer_id, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               total_cents, offer_id, expires_at, seller_fee_cents) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         public_id, listing_id, g.user["id"], l["seller_id"], qty, price, fee, price + fee, offer["id"] if offer else None,
-        sqltime(utcnow() + timedelta(minutes=config.RESERVATION_MINUTES + 2)),
+        sqltime(utcnow() + timedelta(minutes=config.RESERVATION_MINUTES + 2)), seller_fee_for(unit_price) * qty,
     )
     held = 0
     for row in db.all("SELECT id FROM tickets WHERE listing_id=? AND status='available' ORDER BY id LIMIT ?",
@@ -2268,7 +2287,7 @@ def admin():
     disputed = db.all(q + "WHERE o.status='disputed' ORDER BY o.id")
     recent = db.all(q + "WHERE o.status IN ('paid','released','refunded') ORDER BY o.id DESC LIMIT 50")
     stats = db.one(
-        """SELECT COUNT(*) AS n, COALESCE(SUM(fee_cents),0) AS fees, COALESCE(SUM(total_cents),0) AS volume
+        """SELECT COUNT(*) AS n, COALESCE(SUM(fee_cents + seller_fee_cents),0) AS fees, COALESCE(SUM(total_cents),0) AS volume
            FROM orders WHERE status IN ('paid','released')"""
     )
     flagged = db.all(

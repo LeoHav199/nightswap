@@ -64,7 +64,7 @@
           </label>
           <button class="btn btn-ghost btn-block" type="submit">{{ t('save_price') }}</button>
         </form>
-        <p class="muted small">{{ t('your_listing_body', amount=money(l.price_cents)) }}</p>
+        <p class="muted small">{{ t('your_listing_body', amount=money(l.price_cents - seller_fee_for(l.price_cents)), fee=seller_fee_label) }}</p>
         {% if not just_listed %}<div class="share-row">{{ m.share_button(l.event_name or l.venue, l.venue, l.event_date, money(with_fee(l.price_cents)), url, colour, l.poster_file, category=l.category) }}</div>{% endif %}
         {% if not l.held %}
           <form method="post" action="{{ url_for('remove_listing', listing_id=l.id) }}" data-confirm="{{ t('confirm_remove') }}">

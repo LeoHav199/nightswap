@@ -10,7 +10,7 @@
   <h2>2. Verkopen</h2>
   <p>Je verkoopt alleen tickets die van jou zijn, die geldig zijn en die je niet ook ergens anders aanbiedt. Je prijs is maximaal {{ 'de nominale waarde' if price_cap == 100 else price_markup ~ '% boven de nominale waarde' }}. Je bent zelf verantwoordelijk voor het naleven van de voorwaarden van de organisator.</p>
   <h2>3. Kopen en kosten</h2>
-  <p>Kopers betalen de prijs van de verkoper plus servicekosten van {{ fee_label }} per ticket. Verkopers betalen geen kosten.</p>
+  <p>Kopers betalen de prijs van de verkoper plus servicekosten van {{ fee_label }} per ticket. Verkopers betalen verkoperskosten van {{ seller_fee_label }} per ticket, die van de uitbetaling af gaan. Het formulier toont vooraf wat je ontvangt.</p>
   <h2>4. Betaling en uitbetaling</h2>
   <p>Betalingen worden verwerkt door Stripe. Het bedrag wordt vastgehouden en {{ payout_hours }} uur na de avond van het evenement aan de verkoper uitbetaald, tenzij de koper vóór dat moment een probleem meldt.</p>
   <h2>5. Problemen en terugbetaling</h2>
@@ -25,7 +25,7 @@
   <h2>2. Selling</h2>
   <p>Only sell tickets that are yours, that are valid, and that you are not offering anywhere else. Your price can be at most {{ 'the face value' if price_cap == 100 else price_markup ~ '% above the face value' }}. You are responsible for following the organiser's terms.</p>
   <h2>3. Buying and fees</h2>
-  <p>Buyers pay the seller's price plus a service fee of {{ fee_label }} per ticket. Sellers pay no fees.</p>
+  <p>Buyers pay the seller's price plus a service fee of {{ fee_label }} per ticket. Sellers pay a seller fee of {{ seller_fee_label }} per ticket, deducted from the payout. The sell form shows what you'll receive before you post.</p>
   <h2>4. Payment and payouts</h2>
   <p>Payments are processed by Stripe. The amount is held and paid out to the seller {{ payout_hours }} hours after the night of the event, unless the buyer reports a problem before then.</p>
   <h2>5. Problems and refunds</h2>

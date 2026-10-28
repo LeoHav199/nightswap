@@ -79,7 +79,7 @@ def transfer_to_seller(order, seller):
     stripe = _stripe()
     intent = stripe.PaymentIntent.retrieve(order["payment_intent"])
     transfer = stripe.Transfer.create(
-        amount=order["price_cents"],
+        amount=order["price_cents"] - (order["seller_fee_cents"] or 0),  # the seller fee stays with Spare
         currency="eur",
         destination=seller["stripe_account_id"],
         transfer_group=order["public_id"],
