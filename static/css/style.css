@@ -965,3 +965,8 @@ a.credit:hover { color: #fff; text-decoration: underline; }
   .tonight-pop { left: 12px; right: 12px; width: auto; bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) { .tonight-pop { transition: opacity .2s; transform: none; } }
+.avatar-progress { color: var(--accent); font-weight: 600; margin: -6px 0 16px; }
+.avatar-choice.is-locked { cursor: default; }
+.avatar-choice.is-locked .avatar { opacity: .28; filter: grayscale(1); }
+.lock-tag { position: absolute; right: 2px; bottom: -2px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; font-weight: 700; }

@@ -1,8 +1,9 @@
-"""Profile icons people can pick instead of the first letter of their name.
+"""Profile icons people earn by selling, shown instead of the first letter of their name.
 
 Each icon is drawn on a 24-unit grid as stroked lines (no fill), so it takes the colour of its
 surroundings: lime on the dark circle. Icons instead of photo uploads: nothing to moderate, and
-every seller still gets a recognisable face.
+every seller still gets a recognisable face. Because icons are earned, an icon also says
+"this person has sold tickets here before".
 """
 
 ICONS = {
@@ -19,3 +20,22 @@ ICONS = {
     "heart": '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z"/>',
     "sparkle": '<path d="M12 3c.7 4.8 2.2 6.3 7 7-4.8.7-6.3 2.2-7 7-.7-4.8-2.2-6.3-7-7 4.8-.7 6.3-2.2 7-7Z"/><path d="M18.5 15.5c.3 1.8.8 2.3 2.5 2.5-1.7.2-2.2.7-2.5 2.5-.3-1.8-.8-2.3-2.5-2.5 1.7-.2 2.2-.7 2.5-2.5Z"/>',
 }
+
+# Sales needed to unlock each icon. Everyone starts with their initial.
+UNLOCK_AT = {
+    "star": 1, "heart": 1, "moon": 1, "note": 1,
+    "headphones": 3, "cocktail": 3, "ghost": 3, "bolt": 3,
+    "flame": 5, "disco": 5, "sparkle": 5,
+    "crown": 10,
+}
+
+
+def unlocked(sales):
+    return {key for key, need in UNLOCK_AT.items() if sales >= need}
+
+
+def next_unlock(sales):
+    """Sales needed for the next new icon, or None when everything is unlocked."""
+    later = [need for need in UNLOCK_AT.values() if need > sales]
+    return min(later) if later else None
+

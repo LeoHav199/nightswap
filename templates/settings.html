@@ -10,17 +10,23 @@
     <h2>{{ t('avatar_title') }}</h2>
     {% if user %}
       <p class="muted">{{ t('avatar_hint') }}</p>
+      <p class="avatar-progress">{% if next_at is none %}{{ t('avatar_all') }}{% elif sales == 0 %}{{ t('avatar_progress_zero') }}{% else %}{{ t('avatar_progress', n=sales, next=next_at) }}{% endif %}</p>
       <form method="post" class="avatar-form">
         {{ m.csrf() }}
         <div class="avatar-grid">
-          <label class="avatar-choice"><input type="radio" name="avatar" value="" {{ 'checked' if not user.avatar or user.avatar not in avatar_icons }}>
+          <label class="avatar-choice"><input type="radio" name="avatar" value="" {{ 'checked' if user.avatar not in unlocked }}>
             <span class="avatar">{{ (user.first_name or '?')[:1] }}</span><span class="sr-only">{{ t('avatar_letter') }}</span></label>
-          {% for key in avatar_icons %}
-            <label class="avatar-choice"><input type="radio" name="avatar" value="{{ key }}" {{ 'checked' if user.avatar == key }}>
-              {{ m.avatar(key, user.first_name) }}<span class="sr-only">{{ t('avatar_option', n=loop.index) }}</span></label>
+          {% for key, need in unlock_at.items() %}
+            {% if key in unlocked %}
+              <label class="avatar-choice"><input type="radio" name="avatar" value="{{ key }}" {{ 'checked' if user.avatar == key }}>
+                {{ m.avatar(key, user.first_name) }}<span class="sr-only">{{ t('avatar_option', n=loop.index) }}</span></label>
+            {% else %}
+              <span class="avatar-choice is-locked" title="{{ t('avatar_locked', n=need) }}">
+                {{ m.avatar(key, user.first_name) }}<span class="lock-tag">{{ need }}</span><span class="sr-only">{{ t('avatar_locked', n=need) }}</span></span>
+            {% endif %}
           {% endfor %}
         </div>
-        <button class="btn btn-accent" type="submit">{{ t('save') }}</button>
+        {% if unlocked %}<button class="btn btn-accent" type="submit">{{ t('save') }}</button>{% endif %}
       </form>
     {% else %}
       <p class="muted">{{ t('avatar_login') }}</p>

@@ -1928,15 +1928,22 @@ def student_verify():
 
 @app.route("/settings", methods=["GET", "POST"])
 def settings():
-    """Profile icon (saved on the account) and tap sounds (saved on this device by the page's script)."""
+    """Profile icon (earned by selling, saved on the account) and tap sounds (saved on this device by the page's script)."""
+    sales = sales_count(g.user["id"]) if g.user else 0
     if request.method == "POST":
         if not g.user:
             return redirect(url_for("login", next=url_for("settings")))
         key = request.form.get("avatar", "")
-        db.run("UPDATE users SET avatar=? WHERE id=?", key if key in avatars.ICONS else None, g.user["id"])
+        db.run("UPDATE users SET avatar=? WHERE id=?", key if key in avatars.unlocked(sales) else None, g.user["id"])
         flash(t("avatar_saved"), "ok")
         return redirect(url_for("settings"))
-    return render_template("settings.html")
+    return render_template("settings.html", sales=sales, unlocked=avatars.unlocked(sales), next_at=avatars.next_unlock(sales),
+                           unlock_at=avatars.UNLOCK_AT)
+
+
+def sales_count(user_id):
+    """Tickets someone has sold (paid or paid out; refunds don't count). Unlocks profile icons."""
+    return db.one("SELECT COALESCE(SUM(quantity), 0) AS n FROM orders WHERE seller_id=? AND status IN ('paid', 'released')", user_id)["n"]
 
 
 @app.route("/account")
