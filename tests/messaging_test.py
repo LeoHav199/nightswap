@@ -44,7 +44,10 @@ r = buyer.post("/threads/%d/send" % tid, data={"body": "hey can we talk", "_csrf
 ok("Free chat opens after payment" in html(r), "buyer can't free-chat before paying")
 seller.post("/threads/%d/send" % tid, data={"body": "No name on it! App me 0612345678 for a better deal", "_csrf": csrf(seller)})
 bpage = html(buyer.get("/threads/%d" % tid))
-ok("0612345678" not in bpage and "•••" in bpage, "seller's phone number is hidden from the buyer")
+ok("0612345678" not in bpage and "better deal" not in bpage, "'app me … for a better deal' isn't delivered at all")
+seller.post("/threads/%d/send" % tid, data={"body": "No name on it. My number is 0687654321 if the door is a problem", "_csrf": csrf(seller)})
+bpage = html(buyer.get("/threads/%d" % tid))
+ok("0687654321" not in bpage and "•••" in bpage and "if the door is a problem" in bpage, "a plain phone number is delivered, but hidden")
 ok("Never pay by Tikkie" in bpage, "both sides see the stay-protected warning after a flagged message")
 ok(stranger.get("/threads/%d" % tid).status_code == 404, "outsiders can't open the conversation")
 
@@ -74,7 +77,22 @@ buyer.post("/threads/%d/send" % tid, data={"body": "Got it, thanks! See you ther
 ok("Got it, thanks!" in html(seller.get("/threads/%d" % tid)), "normal message delivered")
 ok("Sara" in html(buyer.get("/messages")) and "Chat Night" in html(buyer.get("/messages")), "inbox lists the conversation")
 
-for i in range(4):
+# --- Deals outside Spare aren't delivered
+def unread(c):
+    return int(re.search(r'tab-badge">(\d+)', html(c.get("/"))).group(1)) if 'tab-badge">' in html(c.get("/")) else 0
+before = unread(seller)
+r = buyer.post("/threads/%d/send" % tid, data={"body": "meet me at the van der goot building and then ill send you money in person", "_csrf": csrf(buyer)}, follow_redirects=True)
+ok("Not sent" in html(r) and "Not delivered" in html(r), "the sender is told the message wasn't delivered, and why")
+ok("van der goot" not in html(seller.get("/threads/%d" % tid)), "the other person never sees it")
+ok(unread(seller) == before, "and doesn't get an unread badge for it")
+ok("van der goot" not in html(seller.get("/messages")), "nor a preview in their inbox")
+buyer.post("/threads/%d/send" % tid, data={"body": "can i pay you on another platofmr like whatsapp instead", "_csrf": csrf(buyer)})
+ok("platofmr" not in html(seller.get("/threads/%d" % tid)), "typos like 'another platofmr like whatsapp' are caught too")
+ok("van der goot" in html(admin.get("/admin")), "the admin page still shows the attempt")
+buyer.post("/threads/%d/send" % tid, data={"body": "Can you change the name on the ticket to Bo?", "_csrf": csrf(buyer)})
+ok("change the name on the ticket" in html(seller.get("/threads/%d" % tid)), "ordinary questions still go through")
+
+for i in range(2):
     buyer.post("/threads/%d/send" % tid, data={"body": "insta: bo.party%d" % i, "_csrf": csrf(buyer)})
 r = buyer.post("/threads/%d/send" % tid, data={"body": "hello?", "_csrf": csrf(buyer)}, follow_redirects=True)
 ok("paused for 24 hours" in html(r), "messaging paused after repeated contact-detail attempts")

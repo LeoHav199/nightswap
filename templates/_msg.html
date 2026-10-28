@@ -34,12 +34,16 @@
             {% endif %}
           </div>
         </li>
+      {% elif msg.flags and 'blocked' in msg.flags and not mine %}
+        {# Not delivered: an attempt to pay or deal outside Spare. Only the sender (and the admin) see it. #}
       {% else %}
-        <li class="msg {{ 'mine' if mine }}">
+        {% set blocked = msg.flags and 'blocked' in msg.flags %}
+        <li class="msg {{ 'mine' if mine }} {{ 'msg-blocked' if blocked }}">
           <div class="bubble">
             <span class="msg-who">{{ t('you') if mine else names[msg.sender_id] }}</span>
             {{ t(msg.body) if msg.kind == 'question' else msg.body }}
-            {% if msg.flags and mine %}<span class="msg-flag">{{ t('msg_hidden_note') }}</span>{% endif %}
+            {% if blocked %}<span class="msg-flag">{{ t('msg_blocked_note') }}</span>
+            {% elif msg.flags and mine %}<span class="msg-flag">{{ t('msg_hidden_note') }}</span>{% endif %}
           </div>
           <time class="msg-time">{{ msg.created_at[11:16] }}</time>
         </li>

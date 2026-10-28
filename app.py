@@ -1412,8 +1412,12 @@ def thread_url(th):
 
 
 def add_message(th, sender_id, kind, body, raw=None, flags=None, offer_id=None, notify_other=True):
-    db.run("""INSERT INTO messages (thread_id, sender_id, kind, body, raw_body, flags, offer_id)
-              VALUES (?, ?, ?, ?, ?, ?, ?)""", th["id"], sender_id, kind, body, raw, flags, offer_id)
+    blocked = bool(flags and "blocked" in flags)  # kept for the admin page, never shown to the other person
+    db.run("""INSERT INTO messages (thread_id, sender_id, kind, body, raw_body, flags, offer_id, read_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", th["id"], sender_id, kind, body, raw, flags, offer_id,
+           sqltime(utcnow()) if blocked else None)
+    if blocked:
+        return
     db.run("UPDATE threads SET updated_at=? WHERE id=?", sqltime(utcnow()), th["id"])
     if not notify_other or sender_id is None:
         return
@@ -1462,10 +1466,11 @@ def inbox():
                   b.first_name AS buyer_name, s.first_name AS seller_name, b.avatar AS buyer_avatar, s.avatar AS seller_avatar,
                   (SELECT COUNT(*) FROM messages m WHERE m.thread_id = th.id AND m.read_at IS NULL
                      AND m.sender_id IS NOT NULL AND m.sender_id != ?) AS unread,
-                  (SELECT m.id FROM messages m WHERE m.thread_id = th.id ORDER BY m.id DESC LIMIT 1) AS last_id
+                  (SELECT m.id FROM messages m WHERE m.thread_id = th.id
+                     AND (m.flags IS NULL OR m.flags NOT LIKE '%blocked%' OR m.sender_id = ?) ORDER BY m.id DESC LIMIT 1) AS last_id
            FROM threads th JOIN listings l ON l.id = th.listing_id
            JOIN users b ON b.id = th.buyer_id JOIN users s ON s.id = th.seller_id
-           WHERE th.buyer_id = ? OR th.seller_id = ? ORDER BY th.updated_at DESC""", uid, uid, uid)
+           WHERE th.buyer_id = ? OR th.seller_id = ? ORDER BY th.updated_at DESC""", uid, uid, uid, uid)
     previews = {}
     for th in threads:
         last = db.one("SELECT * FROM messages WHERE id=?", th["last_id"]) if th["last_id"] else None
@@ -1552,8 +1557,10 @@ def send_message(thread_id):
     if rate_limited("msg", 60, 60, uid):
         return chat_error(th, t("err_too_many_tries"))
     clean, flags = moderation.check(text)
+    if "off_platform" in flags:
+        flags.append("blocked")  # deals and payments outside Spare aren't delivered
     add_message(th, uid, "text", clean, raw=text if flags else None, flags=",".join(flags) or None)
-    warning = (t("msg_masked") if set(flags) - {"off_platform"} else t("msg_off_platform")) if flags else None
+    warning = (t("msg_blocked") if "blocked" in flags else t("msg_masked")) if flags else None
     if wants_json():
         try:
             after = int(request.form.get("after", "0"))

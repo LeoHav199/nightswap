@@ -595,4 +595,6 @@ STRINGS = {
     "name_note_title": "¿Tu nombre está en la entrada?",
     "name_note_body": "Algunos locales piden el DNI en la puerta. Tras la venta, cambia el nombre al del comprador en la app o web de tu ticketera, o explícale cómo hacerlo.",
     "name_note_sold": "Si tu ticketera lo permite, cambia ahora el nombre al del comprador para que entre sin problemas. ¿No sabes cómo? Pregúntale en el chat.",
+    "msg_blocked": "No enviado. Los pagos y acuerdos solo pasan por Spare para que estéis protegidos: si una entrada no funciona, el comprador recupera su dinero. Los mensajes para pagar de otra forma, quedar para pagar o pasar a otra app no se entregan.",
+    "msg_blocked_note": "No entregado",
 }

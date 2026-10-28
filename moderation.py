@@ -1,10 +1,11 @@
 """Keeps deals on Spare: hides contact and payment details in messages.
 
 Contact data (phone numbers, emails, links, social handles, IBANs) is masked.
-Mentions of other channels or off-platform payment ("whatsapp me", "tikkie",
-"cash") are left readable but flagged, so both people see a warning and
-repeat attempts show up in the admin page. Ordinary words such as "contact"
-are never blocked: that only annoys honest users.
+Attempts to move the deal or the payment elsewhere ("whatsapp me", "tikkie",
+"meet me and I'll pay cash", "pay you directly") are flagged "off_platform":
+the app doesn't deliver those, tells the sender why, and shows them in the
+admin page. Ordinary words such as "contact" or "pay" on their own are left
+alone: blocking them would only annoy honest users.
 """
 import re
 
@@ -33,11 +34,23 @@ PATTERNS = [
 
 # Readable, but flagged: talking about moving the deal elsewhere.
 OFF_PLATFORM = re.compile(
-    r"\b(whats\s?app|whatsap|wa\.me|app\s+me|appen|dm\s*me|text\s*me|call\s*me|bel\s*me|sms|"
-    r"instagram|insta|snapchat|telegram|signal|messenger|"
-    r"tikkie|betaalverzoek|paypal|revolut|bunq|iban|overmaken|bank\s*transfer|cash|contant|"
+    # other apps, including common typos
+    r"\b(w?h?ats?\s?ap+|watsap+|wa\.me|app\s+me|appen|dm\s*me|text\s*me|call\s*me|bel\s*me|sms|"
+    r"insta\w*|snap\w*|telegram|signal|messenger|facebook|discord|"
+    # other ways to pay
+    r"tikkie|betaalverzoek|paypal|revolut|bunq|venmo|wero|mobilepay|crypto|bitcoin|btc|usdt|"
+    r"iban|overmaken|overmaak|maak\s+(\w+\s+){0,5}over|rechtstreeks|onderling|bank\s*transfer|cash|contant|"
+    # "on another platform / via een andere app"
+    r"(another|other|different|separate|ander\w*)\s+(pl\w*|app\w*|site|website|platform)|"
     r"outside\s+(the\s+)?(app|site|spare|nightswap)|buiten\s+(de\s+)?(app|site|spare|nightswap)|"
-    r"without\s+(the\s+)?fee|zonder\s+(de\s+)?kosten)\b",
+    r"without\s+(the\s+)?fees?|zonder\s+(de\s+)?(kosten|fee)|"
+    # meeting up to hand over or pay
+    r"meet\s*(me|up)|meet\s+(at|in|outside|near|by)|in\s+person|face\s*to\s*face|irl|"
+    r"afspreken|ontmoeten|kom\s+langs|langskomen|"
+    # paying the other person directly
+    r"(send|give|pay|transfer|wire|sturen|stuur|geven|geef|betaal|betalen)\s+(\w+\s+){0,3}(money|cash|geld|euros?|the\s+rest|het\s+geld)|"
+    r"pay\s+(you\s+|u\s+)?(directly|direct|privately|myself|personally)|directly\s+to\s+(you|me)|"
+    r"(rechtstreeks|direct|zelf)\s+(aan\s+)?(je|jou|u)\s+(betalen|overmaken|geven))\b",
     re.I,
 )
 

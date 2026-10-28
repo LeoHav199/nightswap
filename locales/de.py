@@ -595,4 +595,6 @@ STRINGS = {
     "name_note_title": "Steht dein Name auf dem Ticket?",
     "name_note_body": "Manche Locations prüfen am Eingang den Ausweis. Ändere nach dem Verkauf den Namen in der App oder auf der Website deines Ticketshops auf den Käufer, oder sag dem Käufer, wie das geht.",
     "name_note_sold": "Wenn dein Ticketshop es erlaubt, ändere den Namen jetzt auf den Käufer, damit er ohne Probleme reinkommt. Unsicher wie? Frag im Chat.",
+    "msg_blocked": "Nicht gesendet. Zahlungen und Deals laufen nur über Spare, damit ihr beide geschützt seid: Funktioniert ein Ticket nicht, bekommt der Käufer sein Geld zurück. Nachrichten über andere Zahlungswege, Treffen zum Bezahlen oder den Wechsel in eine andere App werden nicht zugestellt.",
+    "msg_blocked_note": "Nicht zugestellt",
 }

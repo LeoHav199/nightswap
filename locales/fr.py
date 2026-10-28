@@ -595,4 +595,6 @@ STRINGS = {
     "name_note_title": "Ton nom est sur le billet ?",
     "name_note_body": "Certains lieux vérifient la pièce d'identité à l'entrée. Après la vente, mets le nom de l'acheteur via l'appli ou le site de ta billetterie, ou explique-lui comment faire.",
     "name_note_sold": "Si ta billetterie le permet, mets le nom de l'acheteur maintenant pour qu'il entre sans souci. Pas sûr de comment faire ? Demande-lui dans le chat.",
+    "msg_blocked": "Non envoyé. Les paiements et les échanges passent uniquement par Spare pour vous protéger tous les deux : si un billet ne marche pas, l'acheteur est remboursé. Les messages pour payer autrement, se retrouver pour payer ou passer sur une autre appli ne sont pas transmis.",
+    "msg_blocked_note": "Non transmis",
 }

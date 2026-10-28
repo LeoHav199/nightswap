@@ -16,7 +16,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Contact details are required for safety: an email code at sign-in, a phone code before selling, and sellers must be 18+.
 - Sellers are paid as soon as the buyer taps "👍 it worked" (`rate_order` → `release_payout`), and at the latest 48h after the event (`PAYOUT_DELAY_HOURS`); chosen on 28 Oct 2026 because a fixed 48h wait worried Leo. The seller's Stripe payout account gets a prefilled product description, so sellers aren't asked for a website. Buyers get refunds if an event is cancelled or a ticket is disputed.
 - Most sellers sell once, so the track-record badge only appears after 2+ sales.
-- Messages hide phone numbers, handles and links, and flag attempts to deal off the platform (`moderation.py`).
+- Messages hide phone numbers, handles and links. Attempts to pay or deal outside Spare (other apps incl. typos, Tikkie/cash/crypto, meeting up to pay, "pay you directly", in Dutch too) are **not delivered** since 28 Oct 2026: the sender sees why, the admin page keeps the original (`moderation.py`, flag `blocked`).
 - Venue photos come from Wikimedia Commons, credited on `/credits` and not on the images. When no photo exists, a generated poster is shown (`art.py`).
 - The homepage shows events with tickets first, then a compact "Coming up" list, so it never looks empty.
 - Name: **Spare** (renamed from Nightswap on 27 Oct 2026; Leo and his partner chose it). Domain sparetickets.eu (chosen over sparetickets.nl so it can serve other countries later; spare.nl and sparetickets.com are taken).
@@ -43,7 +43,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 324 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 332 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 
