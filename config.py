@@ -46,6 +46,11 @@ FEE_MAX_CENTS = int(env("NIGHTSWAP_FEE_MAX_CENTS", "0"))   # 0 = no maximum
 # Seller fee per ticket, taken from the payout: covers Stripe's per-seller and per-payout costs.
 SELLER_FEE_PERCENT = float(env("NIGHTSWAP_SELLER_FEE_PERCENT", "5"))
 SELLER_FEE_MIN_CENTS = int(env("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "100"))
+
+# Ticket apps with changing QR codes, where tickets move with the app's own "transfer" button.
+TRANSFER_APPS = {"ticketmaster": "Ticketmaster", "weeztix": "Weeztix / Eventix", "paylogic": "Paylogic",
+                 "seetickets": "See Tickets", "other": None}  # None: shown as "another app" in the visitor's language
+TRANSFER_REMIND_HOURS = 3  # remind sellers who haven't marked the transfer as done after this long
 PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price as % of face value: 120 = up to 20% above
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes

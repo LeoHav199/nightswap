@@ -28,6 +28,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - "People looking": the number of people with "Notify me" on for a night (`looking_count`) shows as a banner on the event page (with a Sell button when nobody sells yet), in the sell form's event picker and on cards ("3 looking"), to pull in sellers.
 - Day-before resell reminder: from 12:00 (`RESELL_HOUR`) the day before an event, buyers holding a ticket bought on Spare get one email + push "Can't make it? Sell it" (`send_resell_reminders`, part of /tasks/hourly; `orders.resell_reminded_at`). The duplicate-ticket check (`already_listed`) lets only the most recent buyer of a ticket list it again, and never while it's on sale.
 - Safety nets: a nightly backup (`backup.py`, run by /tasks/hourly around 03:00) emails the admins a zip of the database plus uploads (uploads left out above 15 MB) and keeps 7 copies in DATA_DIR/backups; /admin has "Download backup". Crashes email the admins with the traceback (at most 5 an hour). The "phone verified" badge only shows when real SMS is on (`SMS_ENABLED`). Fonts are self-hosted in static/fonts (no Google requests, for privacy).
+- Two kinds of tickets (since 28 Oct 2026): a **file** (PDF/screenshot, duplicate-QR check) or **in an app** with a changing QR code (`listings.delivery='transfer'`, app in `config.TRANSFER_APPS`). App tickets: the buyer gives the name and email of their ticket-app account at purchase (shown only to the seller), the seller transfers with the app's own button and taps "I've transferred it", the buyer taps "I've got it". No payout until it's marked transferred (or the buyer confirms); sellers get one reminder after `TRANSFER_REMIND_HOURS`.
 - Code in static/js/app.js that should run on every page must go above the sell-form section: that part ends with `if (!sell) return;`.
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
 
@@ -43,7 +44,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 332 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 357 checks against a throwaway database. Run it after every change.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 

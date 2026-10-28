@@ -98,6 +98,19 @@ def with_fee(price_cents):
     return price_cents + fee_for(price_cents)
 
 
+def with_extra(body, extra):
+    """Adds a paragraph to an email just above the "Spare" sign-off."""
+    if not extra:
+        return body
+    head, sep, sign = body.rpartition("\n\n")
+    return head + "\n\n" + extra + sep + sign if sep else body + "\n\n" + extra
+
+
+def app_name(key):
+    """Display name of a ticket app, e.g. 'Ticketmaster', or 'another app' in the visitor's language."""
+    return config.TRANSFER_APPS.get(key) or t("app_other")
+
+
 def seller_fee_for(price_cents):
     """Seller fee for one ticket at this price (never more than the price itself)."""
     if not config.SELLER_FEE_PERCENT and not config.SELLER_FEE_MIN_CENTS:
@@ -408,11 +421,16 @@ def mark_paid(order, payment_intent=None):
     title = listing_title(listing)
     if order["quantity"] > 1:
         title = "%d× %s" % (order["quantity"], title)
+    transfer = listing["delivery"] == "transfer"
+    app_label = app_name(listing["transfer_app"]) if transfer else ""
     notify.send_email(buyer["email"], t("mail_bought_subject", title=title),
-                      t("mail_bought_body", name=buyer["first_name"], title=title, url=order_url))
+                      with_extra(t("mail_bought_body", name=buyer["first_name"], title=title, url=order_url),
+                                 t("mail_bought_transfer", email=order["transfer_email"], app=app_label) if transfer else ""))
     notify.send_email(seller["email"], t("mail_sold_subject", title=title),
-                      t("mail_sold_body", name=seller["first_name"], title=title, url=order_url,
-                        amount=money(payout_for(order)), date=fmt_date(due.date(), "long")))
+                      with_extra(t("mail_sold_body", name=seller["first_name"], title=title, url=order_url,
+                                   amount=money(payout_for(order)), date=fmt_date(due.date(), "long")),
+                                 t("mail_sold_transfer", tname=order["transfer_name"], temail=order["transfer_email"], app=app_label)
+                                 if transfer else ""))
     order_path = url_for("order_page", public_id=order["public_id"])
     push.send(seller["id"], t("push_sold_title"), t("push_sold_body", title=title, amount=money(payout_for(order))),
               order_path, tag="sold-" + order["public_id"])
@@ -438,6 +456,9 @@ def release_payout(order):
     seller = db.one("SELECT * FROM users WHERE id=?", order["seller_id"])
     if seller["blocked_at"]:
         return False  # held until an admin refunds the buyer or unblocks the seller
+    listing = db.one("SELECT delivery FROM listings WHERE id=?", order["listing_id"])
+    if listing["delivery"] == "transfer" and not (order["transferred_at"] or order["received_at"] or order["rating"] == "up"):
+        return False  # an app ticket that was never sent: no money until it is (the buyer can report it and get a refund)
     ready = seller["payouts_ready"] and (seller["stripe_account_id"] or not payments.live())
     if payments.live() and seller["stripe_account_id"] and not ready:
         ready = payments.payouts_ready(seller["stripe_account_id"])
@@ -503,6 +524,25 @@ def send_reminders():
         db.run("UPDATE orders SET rating_asked_at=? WHERE id=?", sqltime(utcnow()), o["id"])
         asked += 1
     return nudged, asked
+
+
+def send_transfer_reminders():
+    """App tickets sold a while ago but not marked as transferred: one reminder email to the seller."""
+    cutoff = sqltime(utcnow() - timedelta(hours=config.TRANSFER_REMIND_HOURS))
+    sent = 0
+    for o in db.all("""SELECT o.*, l.venue, l.event_name, l.event_date, l.transfer_app FROM orders o JOIN listings l ON l.id = o.listing_id
+                       WHERE l.delivery = 'transfer' AND o.status = 'paid' AND o.transferred_at IS NULL AND o.received_at IS NULL
+                         AND o.transfer_reminded_at IS NULL AND o.paid_at < ?""", cutoff):
+        db.run("UPDATE orders SET transfer_reminded_at=? WHERE id=?", sqltime(utcnow()), o["id"])
+        seller = db.one("SELECT * FROM users WHERE id=?", o["seller_id"])
+        path = url_for("order_page", public_id=o["public_id"])
+        notify.send_email(seller["email"], t("mail_transfer_reminder_subject", title=listing_title(o)),
+                          t("mail_transfer_reminder_body", name=seller["first_name"], title=listing_title(o), app=app_name(o["transfer_app"]),
+                            tname=o["transfer_name"], temail=o["transfer_email"], url=base_url() + path))
+        push.send(seller["id"], t("mail_transfer_reminder_subject", title=listing_title(o)), t("seller_transfer_title"), path,
+                  tag="transfer-remind-" + o["public_id"])
+        sent += 1
+    return sent
 
 
 def nightly_backup(force=False):
@@ -664,6 +704,7 @@ def template_globals():
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"),
+        "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
         "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
     }
@@ -1134,15 +1175,25 @@ def buy(listing_id):
     if l["sold_together"]:
         qty = l["available"]
     qty = max(1, min(qty, l["available"]))
+    transfer_name = transfer_email = None
+    if l["delivery"] == "transfer":
+        # Where the seller sends the ticket in the organiser's app. Only the seller sees this.
+        transfer_name = " ".join(request.form.get("transfer_name", "").split())[:80]
+        transfer_email = request.form.get("transfer_email", "").strip().lower()[:254]
+        if len(transfer_name) < 2 or not EMAIL_RE.match(transfer_email):
+            flash(t("err_transfer_details"), "error")
+            return redirect(back)
 
     public_id = secrets.token_urlsafe(9)
     price = unit_price * qty
     fee = fee_for(unit_price) * qty
     order_id = db.run(
         """INSERT INTO orders (public_id, listing_id, buyer_id, seller_id, quantity, price_cents, fee_cents,
-                               total_cents, offer_id, expires_at, seller_fee_cents) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                               total_cents, offer_id, expires_at, seller_fee_cents, transfer_name, transfer_email)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         public_id, listing_id, g.user["id"], l["seller_id"], qty, price, fee, price + fee, offer["id"] if offer else None,
         sqltime(utcnow() + timedelta(minutes=config.RESERVATION_MINUTES + 2)), seller_fee_for(unit_price) * qty,
+        transfer_name, transfer_email,
     )
     held = 0
     for row in db.all("SELECT id FROM tickets WHERE listing_id=? AND status='available' ORDER BY id LIMIT ?",
@@ -1229,7 +1280,7 @@ def order_page(public_id):
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
     buyer = db.one("SELECT * FROM users WHERE id=?", order["buyer_id"])
     seller = db.one("SELECT * FROM users WHERE id=?", order["seller_id"])
-    files = db.all("SELECT MIN(id) AS id, file FROM tickets WHERE order_id=? GROUP BY file ORDER BY MIN(id)", order["id"])
+    files = db.all("SELECT MIN(id) AS id, file FROM tickets WHERE order_id=? AND file != '' GROUP BY file ORDER BY MIN(id)", order["id"])
     wallet_tickets = [tk for tk in db.all("SELECT * FROM tickets WHERE order_id=? ORDER BY id", order["id"])
                       if wallet.enabled() and wallet.supports(tk)]
     due = parse_sqltime(order["payout_due_at"])
@@ -1353,6 +1404,46 @@ def rate_order(public_id):
         flash(t("rated_down"), "error")
         return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
     flash(t("rated_up") if value == "up" else t("rated_down_late"), "ok")
+    return redirect(url_for("order_page", public_id=public_id))
+
+
+@app.route("/orders/<public_id>/transferred", methods=["POST"])
+@login_required
+def mark_transferred(public_id):
+    """The seller has sent the ticket with the organiser's app."""
+    order = get_order_for_user(public_id)
+    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    if order["seller_id"] != g.user["id"] or listing["delivery"] != "transfer" or order["status"] not in PAID_STATES:
+        abort(400)
+    if not order["transferred_at"]:
+        db.run("UPDATE orders SET transferred_at=? WHERE id=?", sqltime(utcnow()), order["id"])
+        th = get_thread(listing, order["buyer_id"])
+        add_message(th, None, "system", "sys_transferred")
+        buyer = db.one("SELECT * FROM users WHERE id=?", order["buyer_id"])
+        app_label = app_name(listing["transfer_app"])
+        path = url_for("order_page", public_id=public_id)
+        notify.send_email(buyer["email"], t("mail_transfer_sent_subject", title=listing_title(listing)),
+                          t("mail_transfer_sent_body", name=buyer["first_name"], title=listing_title(listing),
+                            email=order["transfer_email"], app=app_label, url=base_url() + path))
+        push.send(buyer["id"], t("mail_transfer_sent_subject", title=listing_title(listing)),
+                  t("buyer_transfer_sent", email=order["transfer_email"], app=app_label), path, tag="transfer-" + public_id)
+    flash(t("seller_transfer_done", app=app_name(listing["transfer_app"])), "ok")
+    return redirect(url_for("order_page", public_id=public_id))
+
+
+@app.route("/orders/<public_id>/received", methods=["POST"])
+@login_required
+def mark_received(public_id):
+    """The buyer confirms the transferred ticket is in their app."""
+    order = get_order_for_user(public_id)
+    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    if order["buyer_id"] != g.user["id"] or listing["delivery"] != "transfer" or order["status"] not in PAID_STATES:
+        abort(400)
+    if not order["received_at"]:
+        db.run("UPDATE orders SET received_at=?, transferred_at=COALESCE(transferred_at, ?) WHERE id=?",
+               sqltime(utcnow()), sqltime(utcnow()), order["id"])
+        add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_received")
+    flash(t("buyer_received_done"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
 
 
@@ -1751,7 +1842,22 @@ def sell():
         elif face is not None and price > max_price(face):
             errors["price"] = t("err_price_cap", max=money(max_price(face)))
 
-        files = read_ticket_files(request.files.getlist("ticket"), errors)
+        delivery = "transfer" if form.get("delivery") == "transfer" else "file"
+        transfer_app = transfer_qty = None
+        if delivery == "transfer":
+            # The ticket lives in an app with a changing QR code: nothing to upload, it's sent with the app's transfer button.
+            files = []
+            transfer_app = form.get("transfer_app")
+            if transfer_app not in config.TRANSFER_APPS:
+                errors["transfer_app"] = t("err_transfer_app")
+            try:
+                transfer_qty = int(form.get("transfer_qty", "1"))
+            except ValueError:
+                transfer_qty = 0
+            if not 1 <= transfer_qty <= config.MAX_TICKETS_PER_LISTING:
+                errors["transfer_qty"] = t("err_too_many", n=config.MAX_TICKETS_PER_LISTING)
+        else:
+            files = read_ticket_files(request.files.getlist("ticket"), errors)
 
         poster_upload = request.files.get("poster")
         poster_data = poster_ext = None
@@ -1798,13 +1904,16 @@ def sell():
                     chosen = find_event(event_date.isoformat(), venue, event_name)
             listing_id = db.run(
                 """INSERT INTO listings (seller_id, venue, event_name, event_date, face_value_cents, price_cents,
-                   poster_file, sold_together, category, city, start_time, event_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   poster_file, sold_together, category, city, start_time, event_id, delivery, transfer_app)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 g.user["id"], venue, event_name, event_date.isoformat(), face, price, poster_file, sold_together,
-                category, city, start_time or None, chosen["id"] if chosen else None,
+                category, city, start_time or None, chosen["id"] if chosen else None, delivery, transfer_app,
             )
+            for _ in range(transfer_qty or 0):  # app tickets: one row per ticket, no file
+                db.run("INSERT INTO tickets (listing_id, file, file_hash) VALUES (?, '', ?)",
+                       listing_id, "transfer:" + secrets.token_hex(12))
             os.makedirs(config.UPLOAD_DIR, exist_ok=True)
-            for (data, ext, codes), digest in zip(files, file_hashes):
+            for (data, ext, codes), digest in zip(files, file_hashes if files else []):
                 filename = "%s.%s" % (secrets.token_hex(16), ext)
                 with open(os.path.join(config.UPLOAD_DIR, filename), "wb") as fh:
                     fh.write(data)
@@ -3033,10 +3142,11 @@ def hourly_tasks():
     released, waiting = release_due_payouts()
     nudged, asked = send_reminders()
     resell = send_resell_reminders()
+    transfer_reminders = send_transfer_reminders()
     backed_up = nightly_backup()
     db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
-            "resell_reminders": resell, "backup": backed_up}
+            "resell_reminders": resell, "transfer_reminders": transfer_reminders, "backup": backed_up}
 
 
 @app.cli.command("init-db")

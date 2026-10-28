@@ -980,3 +980,15 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .name-note strong { color: var(--text); }
 .msg-blocked .bubble { opacity: .6; border: 1px dashed var(--bad); background: transparent; }
 .msg-blocked .msg-flag { color: var(--bad); }
+
+/* Tickets transferred in the organiser's app ---------------------------------- */
+.delivery-choice { border: 0; margin: 0; padding: 0; }
+.delivery-choice .cat-options { grid-template-columns: 1fr 1fr; }
+.transfer-box { display: grid; gap: 8px; padding: 16px; border-radius: var(--radius-sm); background: var(--surface); border-left: 3px solid var(--accent); }
+.transfer-box .hint { margin: 0; }
+.badge-transfer { background: rgba(212, 255, 58, .1); color: var(--accent); }
+.transfer-task { margin: 18px 0; padding: 18px; border-radius: var(--radius); background: rgba(212, 255, 58, .08); border: 1px solid rgba(212, 255, 58, .35); display: grid; gap: 12px; }
+.transfer-task h2 { font: 800 24px/1 var(--display); text-transform: uppercase; }
+.transfer-task p { margin: 0; }
+.transfer-task .who { font-size: 17px; font-weight: 600; color: var(--text); word-break: break-word; }
+.transfer-task.is-done { background: var(--surface); border-color: var(--line-strong); }

@@ -614,6 +614,20 @@
   var buyerPays = document.querySelector("[data-buyer-pays]");
   var sellerFeeBox = document.querySelector("[data-seller-fee]");
 
+  // "How do you have the ticket?": a file to upload, or a ticket in an app that the seller transfers after the sale.
+  var deliveryBox = sell.querySelector("[data-delivery]");
+  if (deliveryBox) {
+    var fileField = sell.querySelector("[data-delivery-file]"), transferField = sell.querySelector("[data-delivery-transfer]");
+    var syncDelivery = function () {
+      var transfer = sell.querySelector('input[name="delivery"]:checked').value === "transfer";
+      fileField.hidden = transfer;
+      transferField.hidden = !transfer;
+      fileField.querySelector("input").required = !transfer;
+    };
+    deliveryBox.addEventListener("change", syncDelivery);
+    syncDelivery();
+  }
+
   function cents(value) {
     var v = (value || "").replace(/[€\s]/g, "").replace(",", ".");
     if (!/^\d{1,4}(\.\d{1,2})?$/.test(v)) return null;

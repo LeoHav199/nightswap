@@ -24,7 +24,7 @@
       {{ m.avatar(l.seller_avatar, l.seller_name) }}
       <div>
         <div class="seller-name">{{ t('sold_by', name=l.seller_name) }}</div>
-        <div class="badges">{{ m.seller_badges(l, stats) }}</div>
+        <div class="badges">{{ m.seller_badges(l, stats) }}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>
         <div class="muted small">{{ t('member_since', date=fmt_date(l.seller_since, 'month')) }}{% if not own %} · <a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report_listing') }}</a>{% endif %}</div>
       </div>
     </div>
@@ -88,6 +88,16 @@
             <span class="label">{{ t('quantity') }}</span>
             <select name="qty" data-qty>{% for n in range(1, l.available + 1) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select>
           </label>
+        {% endif %}
+        {% if l.delivery == 'transfer' %}
+          <div class="transfer-box">
+            <strong>{{ t('buy_transfer_title') }}</strong>
+            <p class="hint">{{ t('buy_transfer_hint', app=app_name(l.transfer_app)) }}</p>
+            <label class="field"><span class="label">{{ t('transfer_name') }}</span>
+              <input type="text" name="transfer_name" autocomplete="name" required maxlength="80" value="{{ user.first_name if user else '' }}"></label>
+            <label class="field"><span class="label">{{ t('transfer_email', app=app_name(l.transfer_app)) }}</span>
+              <input type="email" name="transfer_email" autocomplete="email" required value="{{ user.email if user else '' }}"></label>
+          </div>
         {% endif %}
         {% set n = l.available if l.sold_together else 1 %}
         <dl class="breakdown">

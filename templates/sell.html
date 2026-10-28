@@ -96,7 +96,16 @@
       </label>
     </div>
 
-    <label class="field">
+    {% set delivery = form.get('delivery', 'file') %}
+    <fieldset class="field delivery-choice" data-delivery>
+      <legend class="label">{{ t('delivery_label') }}</legend>
+      <div class="cat-options">
+        <label class="cat-option"><input type="radio" name="delivery" value="file" {{ 'checked' if delivery != 'transfer' }}><span>{{ t('delivery_file') }}</span></label>
+        <label class="cat-option"><input type="radio" name="delivery" value="transfer" {{ 'checked' if delivery == 'transfer' }}><span>{{ t('delivery_transfer') }}</span></label>
+      </div>
+    </fieldset>
+
+    <label class="field" data-delivery-file>
       <span class="label">{{ t('ticket_file') }}</span>
       <span class="file-drop">
         <input type="file" name="ticket" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required multiple data-file data-many="{{ t('n_files') }}">
@@ -105,6 +114,24 @@
       <span class="hint">{{ t('ticket_file_hint_multi', n=max_tickets) }}</span>
       {{ m.field_error(errors, 'ticket') }}
     </label>
+
+    <div class="transfer-box" data-delivery-transfer {{ 'hidden' if delivery != 'transfer' }}>
+      <div class="grid-2">
+        <label class="field">
+          <span class="label">{{ t('transfer_app_label') }}</span>
+          <select name="transfer_app">
+            {% for key, name in transfer_apps.items() %}<option value="{{ key }}" {{ 'selected' if form.get('transfer_app') == key }}>{{ name or t('app_other') }}</option>{% endfor %}
+          </select>
+          {{ m.field_error(errors, 'transfer_app') }}
+        </label>
+        <label class="field">
+          <span class="label">{{ t('transfer_qty') }}</span>
+          <select name="transfer_qty">{% for n in range(1, max_tickets + 1) %}<option value="{{ n }}" {{ 'selected' if form.get('transfer_qty') == n|string }}>{{ n }}</option>{% endfor %}</select>
+          {{ m.field_error(errors, 'transfer_qty') }}
+        </label>
+      </div>
+      <p class="hint">{{ t('transfer_sell_hint') }}</p>
+    </div>
     <p class="name-note"><strong>{{ t('name_note_title') }}</strong> {{ t('name_note_body') }}</p>
 
     <details class="extra" {{ 'open' if errors.get('poster') }}>

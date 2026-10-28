@@ -83,7 +83,7 @@
               <div class="tr-name">{{ l.seller_name }}
                 <span class="tr-qty">{{ t('sold_as_set', n=l.available) if l.sold_together else (t('n_available', n=l.available) if l.available > 1 else '') }}</span>
               </div>
-              <div class="badges">{{ m.seller_badges(l, stats[l.seller_id]) }}</div>
+              <div class="badges">{{ m.seller_badges(l, stats[l.seller_id]) }}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>
               <div class="muted small"><a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report') }}</a> · {{ t('face_value') }} {{ money(l.face_value_cents) }}{% if l.price_cents < l.face_value_cents %} · <span class="good">{{ t('below_face', amount=money(l.face_value_cents - l.price_cents)) }}</span>{% endif %}</div>
             </div>
           </div>

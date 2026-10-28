@@ -32,7 +32,15 @@ ADDED_COLUMNS = [
     ("users", "source", "TEXT"),
     ("users", "avatar", "TEXT"),
     ("orders", "resell_reminded_at", "TEXT"),
-    ("orders", "seller_fee_cents", "INTEGER NOT NULL DEFAULT 0"),  # fixed at purchase; older orders pay out in full  # the day-before "can't go? sell it" message          # profile icon key from avatars.ICONS, or NULL for the first letter
+    ("orders", "seller_fee_cents", "INTEGER NOT NULL DEFAULT 0"),
+    # Tickets that live in an organiser's app (changing QR codes): sent with the app's own "transfer" button.
+    ("listings", "delivery", "TEXT NOT NULL DEFAULT 'file'"),   # file | transfer
+    ("listings", "transfer_app", "TEXT"),                       # key from config.TRANSFER_APPS
+    ("orders", "transfer_name", "TEXT"),                        # who the buyer is in that app
+    ("orders", "transfer_email", "TEXT"),
+    ("orders", "transferred_at", "TEXT"),                       # seller says it's sent
+    ("orders", "received_at", "TEXT"),                          # buyer says it arrived
+    ("orders", "transfer_reminded_at", "TEXT"),  # fixed at purchase; older orders pay out in full  # the day-before "can't go? sell it" message          # profile icon key from avatars.ICONS, or NULL for the first letter
     ("users", "student_email", "TEXT"),
     ("users", "student_school", "TEXT"),
     ("users", "student_verified_at", "TEXT"),

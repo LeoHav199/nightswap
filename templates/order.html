@@ -30,6 +30,22 @@
             </div>
             <p class="muted small center">{{ t('qr_hint') }}</p>
           {% endif %}
+          {% if l.delivery == 'transfer' %}
+            {% set app = app_name(l.transfer_app) %}
+            <div class="transfer-task {{ 'is-done' if order.received_at }}">
+              {% if order.received_at %}
+                <p>✓ {{ t('buyer_received_done') }}</p>
+              {% elif order.transferred_at %}
+                <p>{{ t('buyer_transfer_sent', email=order.transfer_email, app=app) }}</p>
+                <form method="post" action="{{ url_for('mark_received', public_id=order.public_id) }}">{{ m.csrf() }}
+                  <button class="btn btn-accent btn-block" type="submit">{{ t('buyer_received_btn') }}</button></form>
+                <p class="muted small">{{ t('buyer_transfer_missing') }}</p>
+              {% else %}
+                <p>{{ t('buyer_transfer_wait', email=order.transfer_email, app=app) }}</p>
+                <p class="muted small">{{ t('buyer_transfer_missing') }}</p>
+              {% endif %}
+            </div>
+          {% endif %}
           <div class="downloads">
             {% for f in files %}
               <a class="btn btn-accent {{ 'btn-lg' if files|length == 1 }}" href="{{ url_for('download_ticket', public_id=order.public_id, ticket_id=f.id) }}">{{ t('download_ticket') if files|length == 1 else t('download_ticket_n', n=loop.index) }}</a>
@@ -69,7 +85,23 @@
       {% if order.status == 'paid' %}
         <h1>{{ t('order_seller_paid_title') }}</h1>
         <p class="lead">{{ t('order_seller_paid_body', amount=money(payout_for(order)), date=fmt_date(payout_due.date(), 'long')) }}</p>
+        {% if l.delivery == 'transfer' %}
+          {% set app = app_name(l.transfer_app) %}
+          <div class="transfer-task {{ 'is-done' if order.transferred_at }}">
+            {% if order.transferred_at %}
+              <p>✓ {{ t('seller_transfer_done', app=app) }}{% if order.received_at %} {{ t('sys_received') }}{% endif %}</p>
+            {% else %}
+              <h2>{{ t('seller_transfer_title') }}</h2>
+              <p>{{ t('seller_transfer_body', app=app, n=order.quantity) }}</p>
+              <p class="who">{{ order.transfer_name }}<br>{{ order.transfer_email }}</p>
+              <form method="post" action="{{ url_for('mark_transferred', public_id=order.public_id) }}">{{ m.csrf() }}
+                <button class="btn btn-accent btn-block" type="submit">{{ t('seller_transfer_done_btn') }}</button></form>
+              <p class="muted small">{{ t('seller_transfer_pay_note') }}</p>
+            {% endif %}
+          </div>
+        {% else %}
         <p class="name-note"><strong>{{ t('name_note_title') }}</strong> {{ t('name_note_sold') }}</p>
+        {% endif %}
       {% elif order.status == 'disputed' %}
         <h1>{{ t('order_seller_disputed_title') }}</h1>
         <p class="lead">{{ t('order_seller_disputed_body') }}</p>
