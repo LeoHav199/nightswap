@@ -596,7 +596,7 @@ def template_globals():
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"),
-        "avatar_icons": avatars.ICONS,
+        "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
     }
 

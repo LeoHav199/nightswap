@@ -33,11 +33,15 @@ ok(visitor.get("/settings").status_code == 200 and "Tap sounds" in html(visitor.
 ok("Log in to pick a profile icon" in html(visitor.get("/settings")), "visitors are asked to log in for a profile icon")
 page = html(seller.get("/settings"))
 ok('value="off" checked' in page, "tap sounds are off by default")
-ok(page.count('name="avatar"') == 1 and page.count("is-locked") == len(A.avatars.ICONS) and "Sell your first ticket" in page,
-   "no sales yet: every icon is locked, with a nudge to sell")
-seller.post("/settings", data={"avatar": "star", "_csrf": csrf(seller)})
-with app.app_context(): ok(A.db.one("SELECT avatar FROM users WHERE email='s@test.nl'")["avatar"] is None, "a locked icon can't be saved")
-ok(visitor.post("/settings", data={"avatar": "star", "_csrf": csrf(visitor)}).status_code == 302, "saving an icon needs an account")
+ok(len(A.avatars.CHOICES) >= 12 and len(set(A.avatars.CHARACTERS.values())) == len(A.avatars.CHARACTERS), "at least 12 characters, all different")
+ok(page.count('name="avatar"') == 1 and page.count("is-locked") == len(A.avatars.CHOICES) and "Sell your first ticket" in page,
+   "no sales yet: every character is locked, with a nudge to sell")
+seller.post("/settings", data={"avatar": "sunny", "_csrf": csrf(seller)})
+with app.app_context(): ok(A.db.one("SELECT avatar FROM users WHERE email='s@test.nl'")["avatar"] is None, "a locked character can't be saved")
+with app.app_context(): A.db.run("UPDATE users SET avatar='crown' WHERE email='s@test.nl'")
+ok('nav-avatar has-icon' in html(seller.get("/")), "someone who picked an icon from the first version still shows a character")
+with app.app_context(): A.db.run("UPDATE users SET avatar=NULL WHERE email='s@test.nl'")
+ok(visitor.post("/settings", data={"avatar": "sunny", "_csrf": csrf(visitor)}).status_code == 302, "saving a character needs an account")
 
 # --- A ticket for tonight
 today = date.today().isoformat()
@@ -56,19 +60,19 @@ def sold(n):
                         VALUES (?, ?, ?, ?, 1, 2000, 160, 2160, 'released', '2026-01-01 00:00:00')""", A.secrets.token_urlsafe(6), lid, b_id, s_id)
 sold(1)
 page = html(seller.get("/settings"))
-ok(page.count('name="avatar"') == 5 and "Next icon at 3" in page, "1st sale unlocks the first 4 icons and shows the next goal")
-seller.post("/settings", data={"avatar": "crown", "_csrf": csrf(seller)})
-with app.app_context(): ok(A.db.one("SELECT avatar FROM users WHERE email='s@test.nl'")["avatar"] is None, "the crown stays locked after 1 sale")
-seller.post("/settings", data={"avatar": "star", "_csrf": csrf(seller)})
-with app.app_context(): ok(A.db.one("SELECT avatar FROM users WHERE email='s@test.nl'")["avatar"] == "star", "an unlocked icon saves")
+ok(page.count('name="avatar"') == 6 and "Next icon at 3" in page, "1st sale unlocks the first 5 characters and shows the next goal")
+seller.post("/settings", data={"avatar": "dj", "_csrf": csrf(seller)})
+with app.app_context(): ok(A.db.one("SELECT avatar FROM users WHERE email='s@test.nl'")["avatar"] is None, "the DJ stays locked after 1 sale")
+seller.post("/settings", data={"avatar": "sunny", "_csrf": csrf(seller)})
+with app.app_context(): ok(A.db.one("SELECT avatar FROM users WHERE email='s@test.nl'")["avatar"] == "sunny", "an unlocked character saves")
 ok('nav-avatar has-icon' in html(seller.get("/")), "the header shows the earned icon")
 with app.app_context():
     A.db.run("INSERT INTO orders (public_id, listing_id, buyer_id, seller_id, quantity, price_cents, fee_cents, total_cents, status, expires_at) "
              "SELECT 'refunded1', listing_id, buyer_id, seller_id, 9, 2000, 160, 2160, 'refunded', expires_at FROM orders LIMIT 1")
 ok("Next icon at 3" in html(seller.get("/settings")), "refunded sales don't count")
 sold(9)
-ok("Every icon unlocked" in html(seller.get("/settings")), "10 sales unlock everything, including the crown")
-seller.post("/settings", data={"avatar": "crown", "_csrf": csrf(seller)})
+ok("Every icon unlocked" in html(seller.get("/settings")), "10 sales unlock everything, including the DJ")
+seller.post("/settings", data={"avatar": "dj", "_csrf": csrf(seller)})
 listing = html(buyer.get("/t/%d" % lid))
 ok('avatar has-icon' in listing and "<svg" in listing.split("avatar has-icon")[1][:80], "the seller's icon shows on their listing")
 
