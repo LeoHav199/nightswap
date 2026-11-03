@@ -1,0 +1,65 @@
+<h1>Privacidad</h1>
+<p class="muted">Última actualización: noviembre de 2026 · Traducción: en caso de duda, prevalece la versión neerlandesa.</p>
+<p>Aquí explicamos qué datos personales recoge Spare, por qué, cuánto tiempo los guardamos, quién más los trata y cuáles son tus derechos. Lo hacemos breve y solo recogemos lo necesario para un mercado de entradas seguro.</p>
+
+<h2>Quién es responsable</h2>
+<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, gestiona Spare y es responsable del tratamiento de tus datos. Preguntas o solicitudes: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+
+<h2>Qué recogemos, por qué y con qué base</h2>
+<dl class="policy">
+  <dt>Tu cuenta</dt>
+  <dd>Email, nombre, el personaje que elegiste, tu idioma y por qué enlace nuestro llegaste (si es el caso). Para que entres con un código y gestionar tu cuenta. <em>Base: nuestro contrato contigo (RGPD art. 6.1.b).</em></dd>
+  <dt>Teléfono (vendedores)</dt>
+  <dd>Para contactarte si algo va mal con una entrada que vendiste. Los compradores nunca lo ven. {% if sms_enabled %}Lo confirmamos con un código por SMS.{% else %}De momento enviamos el código de confirmación a tu email, así que no comprobamos que el número sea realmente tuyo.{% endif %} <em>Base: nuestro contrato contigo y nuestro interés legítimo en evitar el fraude (art. 6.1.f).</em></dd>
+  <dt>Email universitario (opcional)</dt>
+  <dd>Si añades un email de tu universidad, lo guardamos junto con el nombre de tu centro para mostrar la insignia de «estudiante verificado». <em>Base: tu consentimiento (art. 6.1.a); puedes pedir que se borre cuando quieras.</em></dd>
+  <dt>Anuncios y archivos de entradas</dt>
+  <dd>El evento, el precio, el precio original y el archivo de la entrada. En los archivos suele aparecer el nombre del comprador original. Leemos el código QR o de barras y guardamos una huella (hash) del archivo y del código, para que la misma entrada no se venda dos veces. <em>Base: nuestro contrato contigo y nuestro interés legítimo en evitar el fraude.</em></dd>
+  <dt>Pedidos y pagos</dt>
+  <dd>Qué se compró, cuándo, quién, los importes y comisiones, valoraciones y problemas avisados. Los datos de pago (tarjeta, IBAN) y la verificación de identidad de los vendedores los gestiona Stripe y nunca nos llegan. <em>Base: nuestro contrato contigo y nuestra obligación legal de llevar la contabilidad (art. 6.1.c).</em></dd>
+  <dt>Entradas en una app</dt>
+  <dd>Si compras una entrada que está en una app, el nombre y el email que das para la transferencia se comparten con el vendedor, solo para que pueda enviártela. <em>Base: nuestro contrato contigo.</em></dd>
+  <dt>Mensajes</dt>
+  <dd>Los mensajes entre compradores y vendedores pasan por Spare. Para protegerte de estafas, ocultamos automáticamente teléfonos, emails, enlaces y datos de pago, y los mensajes que intentan organizar un pago fuera de Spare no se entregan. En esos casos guardamos el texto original para que nuestro equipo pueda revisarlo si hay fraude o un problema avisado. <em>Base: nuestro contrato contigo y nuestro interés legítimo en evitar el fraude.</em></dd>
+  <dt>Notificaciones</dt>
+  <dd>Si activas las notificaciones push o «Avísame» para una noche, guardamos la dirección que da tu navegador para las notificaciones y qué noches sigues. <em>Base: tu consentimiento; puedes desactivarlas cuando quieras.</em></dd>
+  <dt>Lista de espera</dt>
+  <dd>Tu email, qué quieres hacer (comprar, vender u organizar) y tu idioma, solo para enviarte un email cuando abra Spare. Ese email lleva un enlace para darte de baja. <em>Base: tu consentimiento.</em></dd>
+  <dt>Denuncias</dt>
+  <dd>Si denuncias un anuncio sin haber iniciado sesión, el email que indiques, para poder responderte. Nunca le decimos al vendedor quién le denunció. <em>Base: nuestras obligaciones según el Reglamento europeo de Servicios Digitales (DSA) y nuestro interés legítimo en mantener Spare seguro.</em></dd>
+  <dt>Seguridad</dt>
+  <dd>Tu dirección IP y tu email se cuentan durante poco tiempo para limitar intentos de acceso y spam. Nuestro proveedor de alojamiento guarda registros normales del servidor (IP, página, hora) durante un periodo corto. <em>Base: nuestro interés legítimo en mantener Spare seguro.</em></dd>
+</dl>
+
+<h2>Cookies y almacenamiento en tu dispositivo</h2>
+<p>Solo usamos lo que la web necesita: una cookie de sesión que mantiene tu sesión iniciada, una cookie para tu idioma y otra para tu ciudad. Algunos ajustes (sonidos, si ya viste el aviso «Esta noche») se guardan solo en tu dispositivo. Si compraste una entrada, tu móvil puede guardar una copia de la página del pedido para que el código QR se abra sin cobertura; se borra 3 días después del evento y al cerrar sesión. No usamos cookies de publicidad, analítica ni seguimiento, y no cargamos nada de otras webs.</p>
+
+<h2>Cuánto tiempo lo guardamos</h2>
+<ul>
+  <li><strong>Tu cuenta:</strong> hasta que la borres. Al borrarla se eliminan al momento tu email, nombre, teléfono, email universitario, los mensajes que escribiste, los datos de transferencia que diste, tu inscripción en la lista de espera y tus archivos de entradas.</li>
+  <li><strong>Pedidos:</strong> 7 años, porque la ley neerlandesa obliga a las empresas a guardar su contabilidad ese tiempo. Tras borrar la cuenta solo quedan importes, fechas y números de pedido, sin relación contigo.</li>
+  <li><strong>Archivos de entradas:</strong> se borran 14 días después del evento cuando el pedido está pagado o reembolsado, o si la entrada no se vendió. Las huellas (hashes) se quedan, para que la misma entrada no se pueda volver a publicar.</li>
+  <li><strong>Códigos de acceso:</strong> válidos 10 minutos y luego se borran. <strong>Contadores de intentos:</strong> 1 día.</li>
+  <li><strong>Lista de espera:</strong> hasta que te des de baja o ya no la necesitemos después del lanzamiento.</li>
+  <li><strong>Copias de seguridad:</strong> cada noche hacemos una copia cifrada de la base de datos. El servidor guarda las 3 últimas; una copia va al buzón de administración de Spare, donde las borramos a los 30 días.</li>
+</ul>
+
+<h2>Quién más trata tus datos</h2>
+<p>Usamos estas empresas para que Spare funcione. Solo tratan tus datos por encargo nuestro, con un contrato de encargo de tratamiento, salvo Stripe, que también es responsable de sus propias obligaciones legales (como verificar la identidad de los vendedores).</p>
+<ul>
+  <li><strong>Stripe</strong> (Irlanda, con empresas del grupo en EE. UU.): pagos, reembolsos y pagos a vendedores.</li>
+  <li><strong>Render</strong> (empresa estadounidense, servidores en Fráncfort, Alemania): aloja la web, la base de datos y los archivos.</li>
+  <li><strong>Brevo</strong> (Francia): envía nuestros emails.</li>
+  <li><strong>Apple iCloud</strong> (Irlanda): recibe los emails a hello@sparetickets.eu y las copias de seguridad.</li>
+  {% if sms_enabled %}<li><strong>Twilio</strong> (EE. UU.): envía SMS con códigos de confirmación.</li>{% endif %}
+  <li><strong>Servicios push de los navegadores</strong> (Apple, Google o Mozilla, según tu navegador): entregan las notificaciones que activaste.</li>
+  <li><strong>cron-job.org</strong> (Alemania): lanza nuestras tareas cada hora. No recibe datos personales.</li>
+</ul>
+<p>Cuando los datos van a EE. UU., están protegidos por el Marco de Privacidad de Datos UE-EE. UU. o las cláusulas contractuales tipo de la UE. Nunca vendemos tus datos.</p>
+
+<h2>Comprobaciones automáticas</h2>
+<p>Algunas comprobaciones son automáticas: se rechazan los archivos que coinciden con una entrada que ya está en Spare, y no se entregan los mensajes que intentan organizar un pago fuera de Spare. No deciden nada más sobre ti; si crees que se equivocaron, escríbenos y una persona lo revisará. Bloquear una cuenta o retirar un anuncio siempre lo decide una persona, y recibes los motivos por email.</p>
+
+<h2>Tus derechos</h2>
+<p>Puedes pedir ver, corregir o borrar tus datos, pedirnos que limitemos o dejemos de usarlos y obtener una copia para llevártela. Puedes descargar tus datos y borrar tu cuenta tú mismo en Cuenta → Tus datos. Cuando nos basamos en tu consentimiento, puedes retirarlo cuando quieras. Escribe a <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>; respondemos en un mes.</p>
+<p>¿No estás conforme con cómo tratamos tus datos? Puedes reclamar ante la autoridad neerlandesa de protección de datos, la <a href="https://autoriteitpersoonsgegevens.nl" rel="noopener">Autoriteit Persoonsgegevens</a>, o ante la de tu país.</p>

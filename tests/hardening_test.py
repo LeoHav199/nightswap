@@ -377,4 +377,12 @@ with app.app_context(): ok("KvK 12345678" in real_notify.email_html("Hi", "Body"
 config.COMPANY_NAME = config.COMPANY_ADDRESS = config.KVK_NUMBER = ""
 ok(os.path.exists("docs/legal-review.md"), "#20 the points for a lawyer are listed in docs/legal-review.md")
 
+# --- #5 (rest): terms and privacy in French, German and Spanish
+for lang, terms_word, priv_word in (("fr", "Pas de droit de rétractation", "Autoriteit Persoonsgegevens"),
+                                     ("de", "Kein Widerrufsrecht", "Datenschutzbehörde"), ("es", "Sin derecho de desistimiento", "Copias de seguridad")):
+    c = app.test_client(); c.set_cookie("lang", lang)
+    tp, pp = html(c.get("/terms")), html(c.get("/privacy"))
+    ok(terms_word in tp and "No right of withdrawal" not in tp and priv_word in pp and "What we collect" not in pp,
+       "#5 terms and privacy are translated into %s" % lang)
+
 print("FAILED:", fails or "none")

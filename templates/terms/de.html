@@ -1,0 +1,50 @@
+{% set cap = 'der Originalpreis' if price_cap == 100 else price_markup ~ ' % über dem Originalpreis' %}
+<h1>Bedingungen</h1>
+<p class="muted">Zuletzt aktualisiert: November 2026 · Übersetzung: Im Zweifel gilt die niederländische Fassung.</p>
+
+<h2>1. Wer wir sind</h2>
+<p>Spare (sparetickets.eu) wird betrieben von {{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, USt-IdNr. {{ company.vat }}. Kontakt: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. Diese Adresse ist auch unsere Kontaktstelle für Behörden und Nutzer nach dem EU-Gesetz über digitale Dienste (DSA); du kannst uns auf Englisch oder Niederländisch schreiben.</p>
+
+<h2>2. Was Spare macht</h2>
+<p>Spare ist eine Plattform, auf der Menschen sich gegenseitig Eventtickets weiterverkaufen. Spare verkauft selbst keine Tickets, veranstaltet keine Events und ist nicht mit den Locations oder Veranstaltern auf der Seite verbunden. Die Verkäufer sind Privatpersonen, keine Unternehmen. Deshalb gelten die Verbraucherrechte, die du beim Kauf von einem Unternehmen hast (etwa Widerrufsrecht oder gesetzliche Gewährleistung), gegenüber dem Verkäufer nicht. Die eigene Leistung von Spare dir gegenüber steht in diesen Bedingungen.</p>
+
+<h2>3. Dein Konto</h2>
+<p>Du meldest dich mit einem Code an, der an deine E-Mail-Adresse geschickt wird. Schütze den Zugang zu deinen E-Mails: Wer sie lesen kann, kann sich als du anmelden. Ein Konto pro Person. Du kannst dein Konto jederzeit unter Konto → Deine Daten löschen, außer du hast einen Verkauf, der noch nicht ausgezahlt ist.</p>
+
+<h2>4. Verkaufen</h2>
+<ul>
+  <li>Zum Verkaufen musst du mindestens 18 Jahre alt sein.</li>
+  <li>Verkaufe nur Tickets, die dir gehören, die gültig sind und die du nicht gleichzeitig woanders anbietest. Ist ein Ticket über Spare verkauft, gehört es dem Käufer: Nutze es nicht, verkaufe es nicht erneut und storniere es nicht.</li>
+  <li>Dein Preis ist höchstens {{ cap }}. Der Originalpreis ist, was das Ticket ursprünglich gekostet hat, inklusive der Gebühren des Veranstalters. Wir können einen Nachweis verlangen (etwa die ursprüngliche Bestellbestätigung) und ihn mit den Preisen des Veranstalters vergleichen; Angebote über dem Höchstpreis werden entfernt.</li>
+  <li>Du hältst dich an die Weiterverkaufsregeln des Veranstalters. Manche verbieten den Weiterverkauf, drucken Namen auf Tickets oder erlauben Übertragungen nur in ihrer eigenen App. Steht ein Name auf dem Ticket, sag das, und verkauf es nur, wenn der Name geändert werden kann.</li>
+  <li>Jedes hochgeladene Ticket wird mit allen Tickets auf Spare abgeglichen. Ein Ticket, das schon auf Spare ist, kann nicht erneut eingestellt werden.</li>
+</ul>
+
+<h2>5. Kaufen und Gebühren</h2>
+<p>Käufer zahlen den Preis des Verkäufers plus eine Servicegebühr von {{ fee_label }} pro Ticket. Verkäufer zahlen eine Verkäufergebühr von {{ seller_fee_label }} pro Ticket, die von der Auszahlung abgezogen wird. Das Formular zeigt vorher, was du bekommst. Die Servicegebühr ist der Preis für die Leistung von Spare: die sichere Zahlung, die Prüfung des Tickets und Hilfe, wenn etwas schiefgeht.</p>
+<p>Eine Ticketdatei ist direkt nach der Zahlung verfügbar. Ein Ticket, das in einer App liegt, überträgt der Verkäufer mit dem Übertragen-Knopf der App an den Namen und die E-Mail-Adresse, die der Käufer angibt.</p>
+<p><strong>Kein Widerrufsrecht.</strong> Tickets gelten für ein Event an einem bestimmten Datum, und du bekommst auf deinen Wunsch sofort Zugang zum Ticket. Deshalb gibt es für Käufe auf Spare kein 14-tägiges Widerrufsrecht.</p>
+
+<h2>6. Zahlung und Auszahlung</h2>
+<p>Zahlungen werden von Stripe abgewickelt. Der Betrag wird zurückgehalten und an den Verkäufer ausgezahlt, sobald der Käufer am Tag des Events bestätigt, dass das Ticket funktioniert hat, und sonst {{ payout_hours }} Stunden nach dem Abend des Events, außer der Käufer meldet vorher ein Problem. Bei einem Ticket in einer App wird nichts ausgezahlt, bevor der Verkäufer es übertragen hat. Verkäufer richten ihre Auszahlung einmal über Stripe ein; Stripe kann einen Identitätsnachweis verlangen.</p>
+
+<h2>7. Abgesagte oder verlegte Events</h2>
+<p>Wird ein Event abgesagt, bekommt jeder Käufer den vollen Betrag zurück (Ticket und Servicegebühr) und der Verkäufer wird nicht bezahlt. Ändern sich Datum oder Uhrzeit, informieren wir Käufer und Verkäufer; ein Käufer, der zum neuen Termin nicht kann, kann vor der Auszahlung den vollen Betrag zurückverlangen, und das Ticket kommt wieder in den Verkauf.</p>
+
+<h2>8. Probleme und Streitfälle</h2>
+<p>Funktioniert ein Ticket nicht, melde es über deine Bestellung, bevor der Verkäufer bezahlt ist. Die Auszahlung wird dann angehalten, und wir informieren den Verkäufer, der 24 Stunden hat, um im Chat zur Bestellung mit Nachweisen zu antworten (zum Beispiel einem Screenshot des Tickets in seinem Konto oder der Übertragung). Eine Person bei Spare prüft, was beide Seiten schicken, und entscheidet. War das Ticket ungültig, schon benutzt, doppelt verkauft oder nie angekommen, bekommt der Käufer den vollen Betrag zurück und der Verkäufer wird nicht bezahlt. Wurde der Verkäufer schon bezahlt, können wir das Geld von ihm zurückfordern.</p>
+
+<h2>9. Regeln für alle</h2>
+<p>Versuche nicht, außerhalb von Spare zu bezahlen oder zu handeln, teile keine Kontaktdaten in Nachrichten, belästige keine anderen Nutzer und stell keine gefälschten, gestohlenen oder kopierten Tickets ein. Nachrichten, die eine Zahlung außerhalb von Spare vereinbaren wollen, werden nicht zugestellt.</p>
+
+<h2>10. Angebote entfernen und Konten sperren</h2>
+<p>Wir können ein Angebot entfernen oder ein Konto sperren, das gegen diese Bedingungen oder das Gesetz verstößt, oder wenn ein ernstes Betrugsrisiko besteht. Das entscheidet immer eine Person, und wir schicken dir per E-Mail, was wir getan haben und warum. Nicht einverstanden? Antworte auf diese E-Mail oder schreib innerhalb von 6 Monaten an <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>; wir prüfen es erneut und antworten dir. Du kannst dich auch an ein Gericht oder eine zertifizierte außergerichtliche Streitbeilegungsstelle wenden. Jeder kann ein Angebot, das illegal scheint oder gegen diese Bedingungen verstößt, mit dem Link „Melden“ beim Angebot melden.</p>
+
+<h2>11. Haftung</h2>
+<p>Spare ist dafür verantwortlich, die Plattform und die Zahlungen sorgfältig zu betreiben. Wir sind nicht verantwortlich für das Event selbst (was am Eingang passiert, liegt beim Veranstalter) oder für das Verhalten von Verkäufern über das hinaus, was unsere Erstattungsregeln abdecken. Unsere Haftung ist auf den Betrag begrenzt, den du für die betreffende Bestellung gezahlt hast, außer wo das Gesetz keine Begrenzung erlaubt, etwa bei Vorsatz oder grober Fahrlässigkeit.</p>
+
+<h2>12. Beschwerden und Recht</h2>
+<p>Beschwerden über Spare: schreib an <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>; wir antworten innerhalb von 14 Tagen. Für diese Bedingungen gilt niederländisches Recht. Wohnst du in einem anderen EU-Land, behältst du den Schutz des zwingenden Verbraucherrechts deines Landes. Für Streitigkeiten ist das zuständige Gericht in den Niederlanden zuständig oder, wenn du Verbraucher bist, das Gericht an deinem Wohnort.</p>
+
+<h2>13. Änderungen</h2>
+<p>Wir können diese Bedingungen ändern. Wir informieren dich mindestens 15 Tage vorher per E-Mail, wenn eine Änderung für dich wichtig ist; bereits aufgegebene Bestellungen folgen den Bedingungen, die damals galten.</p>

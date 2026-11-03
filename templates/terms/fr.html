@@ -1,0 +1,50 @@
+{% set cap = "le prix d'origine" if price_cap == 100 else price_markup ~ " % au-dessus du prix d'origine" %}
+<h1>Conditions</h1>
+<p class="muted">Dernière mise à jour : novembre 2026 · Traduction : en cas de doute, la version néerlandaise fait foi.</p>
+
+<h2>1. Qui sommes-nous</h2>
+<p>Spare (sparetickets.eu) est exploité par {{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, TVA {{ company.vat }}. Contact : <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. Cette adresse est aussi notre point de contact pour les autorités et les utilisateurs au titre du règlement européen sur les services numériques (DSA) ; tu peux nous écrire en anglais ou en néerlandais.</p>
+
+<h2>2. Ce que fait Spare</h2>
+<p>Spare est une plateforme où des personnes se revendent des billets d'événements. Spare ne vend pas de billets elle-même, n'organise pas d'événements et n'est pas liée aux lieux ou organisateurs affichés sur le site. Les vendeurs sont des particuliers, pas des entreprises : les droits que tu as en achetant auprès d'une entreprise (comme le droit de rétractation ou la garantie légale) ne s'appliquent pas au vendeur. Le service de Spare envers toi est décrit dans ces conditions.</p>
+
+<h2>3. Ton compte</h2>
+<p>Tu te connectes avec un code envoyé à ton adresse e-mail. Protège l'accès à tes e-mails : toute personne qui peut les lire peut se connecter à ta place. Un compte par personne. Tu peux supprimer ton compte à tout moment dans Compte → Tes données, sauf si une de tes ventes n'a pas encore été versée.</p>
+
+<h2>4. Vendre</h2>
+<ul>
+  <li>Il faut avoir 18 ans ou plus pour vendre.</li>
+  <li>Ne vends que des billets qui t'appartiennent, qui sont valides et que tu ne proposes pas ailleurs en même temps. Une fois vendu sur Spare, le billet appartient à l'acheteur : ne l'utilise pas, ne le revends pas et ne l'annule pas.</li>
+  <li>Ton prix est au maximum {{ cap }}. Le prix d'origine est ce que le billet a coûté au départ, frais de l'organisateur compris. On peut demander une preuve (comme la confirmation de commande d'origine) et la comparer aux prix de l'organisateur ; les annonces au-dessus du maximum sont retirées.</li>
+  <li>Tu respectes les règles de revente de l'organisateur. Certains interdisent la revente, mettent des noms sur les billets ou n'autorisent les transferts que dans leur propre appli. Si le billet porte un nom, dis-le, et ne le vends que si le nom peut être changé.</li>
+  <li>Chaque billet envoyé est comparé à tous les billets sur Spare. Un billet déjà sur Spare ne peut pas être remis en vente.</li>
+</ul>
+
+<h2>5. Achat et frais</h2>
+<p>Les acheteurs paient le prix du vendeur plus des frais de service de {{ fee_label }} par billet. Les vendeurs paient des frais vendeur de {{ seller_fee_label }} par billet, déduits du versement. Le formulaire montre ce que tu recevras avant de publier. Les frais de service sont le prix du service de Spare : le paiement sécurisé, les contrôles du billet et l'aide en cas de problème.</p>
+<p>Un billet en fichier est disponible dès le paiement. Un billet qui se trouve dans une appli est transféré par le vendeur avec le bouton de transfert de l'appli, vers le nom et l'e-mail que l'acheteur indique.</p>
+<p><strong>Pas de droit de rétractation.</strong> Les billets sont pour un événement à une date précise, et tu as accès au billet tout de suite, à ta demande. C'est pourquoi il n'y a pas de délai de rétractation de 14 jours pour les achats sur Spare.</p>
+
+<h2>6. Paiement et versements</h2>
+<p>Les paiements sont traités par Stripe. Le montant est bloqué et versé au vendeur dès que l'acheteur confirme, le jour de l'événement, que le billet a marché, et sinon {{ payout_hours }} heures après la soirée, sauf si l'acheteur signale un problème avant. Pour un billet dans une appli, rien n'est versé tant que le vendeur ne l'a pas transféré. Les vendeurs configurent leurs versements une fois via Stripe ; Stripe peut demander une pièce d'identité.</p>
+
+<h2>7. Événements annulés ou déplacés</h2>
+<p>Si un événement est annulé, chaque acheteur est remboursé intégralement (billet et frais de service) et le vendeur n'est pas payé. Si la date ou l'heure change, on prévient acheteurs et vendeurs ; un acheteur qui ne peut pas venir à la nouvelle date peut demander un remboursement intégral avant le versement, et le billet est remis en vente.</p>
+
+<h2>8. Problèmes et litiges</h2>
+<p>Si un billet ne marche pas, signale-le depuis ta commande avant que le vendeur soit payé. Le versement est alors suspendu et on prévient le vendeur, qui a 24 heures pour répondre dans le chat de la commande avec une preuve (par exemple une capture du billet dans son compte ou du transfert). Une personne chez Spare examine ce que les deux côtés envoient et décide. Si le billet était invalide, déjà utilisé, vendu deux fois ou jamais arrivé, l'acheteur est remboursé intégralement et le vendeur n'est pas payé. Si le vendeur a déjà été payé, on peut lui réclamer l'argent.</p>
+
+<h2>9. Règles pour tous</h2>
+<p>N'essaie pas de payer ou de conclure en dehors de Spare, ne partage pas de coordonnées dans les messages, ne harcèle pas les autres utilisateurs et ne mets pas en vente de billets faux, volés ou copiés. Les messages qui tentent d'organiser un paiement hors de Spare ne sont pas délivrés.</p>
+
+<h2>10. Retrait d'annonces et blocage de comptes</h2>
+<p>On peut retirer une annonce ou bloquer un compte qui enfreint ces conditions ou la loi, ou en cas de risque sérieux de fraude. Une personne prend toujours cette décision, et on t'envoie par e-mail ce qu'on a fait et pourquoi. Pas d'accord ? Réponds à cet e-mail ou écris à <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a> dans les 6 mois ; on réexaminera et on te répondra. Tu peux aussi saisir un tribunal ou un organisme agréé de règlement extrajudiciaire des litiges. Tout le monde peut signaler une annonce qui semble illégale ou contraire à ces conditions avec le lien « Signaler » de l'annonce.</p>
+
+<h2>11. Responsabilité</h2>
+<p>Spare est responsable du bon fonctionnement de la plateforme et des paiements. On n'est pas responsable de l'événement lui-même (ce qui se passe à l'entrée dépend de l'organisateur), ni de ce que font les vendeurs au-delà de ce que couvrent nos règles de remboursement. Notre responsabilité est limitée au montant payé pour la commande concernée, sauf lorsque la loi ne permet pas de la limiter, comme en cas de faute intentionnelle ou grave.</p>
+
+<h2>12. Réclamations et droit applicable</h2>
+<p>Réclamations sur Spare : écris à <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a> ; on répond sous 14 jours. Ces conditions sont régies par le droit néerlandais. Si tu vis dans un autre pays de l'UE, tu gardes la protection du droit de la consommation impératif de ton pays. Les litiges relèvent du tribunal compétent aux Pays-Bas, ou du tribunal de ton domicile si tu es consommateur.</p>
+
+<h2>13. Modifications</h2>
+<p>On peut modifier ces conditions. On te prévient par e-mail au moins 15 jours avant toute modification importante pour toi ; les commandes déjà passées suivent les conditions en vigueur à ce moment-là.</p>

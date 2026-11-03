@@ -73,4 +73,4 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 
 ## Still open
 - Marketing plan: student associations, ambassadors, Instagram/TikTok, flyers at venues, organiser partnerships (Exchange Party, ESN), referral credit.
-- The terms and privacy pages fall back to English for fr/de/es (to be translated once they're rewritten for review items #19 and #20). How it works has one file per language in `templates/how/`; its payout and safety texts must match `rate_order`/`release_payout`.
+- How it works, terms and privacy have one file per language in `templates/how/`, `templates/terms/` and `templates/privacy/`; English and Dutch are the reference, fr/de/es are translations (a native speaker should check them). Their payout, dispute and retention texts must match the code (`rate_order`, `release_payout`, `report_problem`, `account_delete`, `cleanup_ticket_files`, `backup.py`). Points for a lawyer: `docs/legal-review.md`. Company details come from `COMPANY_NAME`/`COMPANY_ADDRESS`/`KVK_NUMBER`/`VAT_NUMBER` (placeholders until set).
