@@ -151,4 +151,36 @@ with app.app_context(): blocked_uid = A.db.one("SELECT id FROM users WHERE email
 with app.test_request_context(): A.block_user(blocked_uid, "test")
 ok(laptop.get("/account").status_code == 302, "#11 blocking someone signs them out everywhere")
 
+# --- #12: sellers hear about complaints; blocks and removals come with reasons
+MAIL_WORKS[0] = True; SENT.clear()
+# The Guard Night ticket is already sold: list another one to dispute
+r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+                               "ticket": (io.BytesIO(b"%PDF-1.4 guard two"), "g2.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
+lid2 = int(re.search(r"/t/(\d+)", r.location).group(1))
+r = buyer.post("/t/%d/buy" % lid2, data={"_csrf": csrf(buyer)}); pub2 = r.location.split("/")[2]
+buyer.post("/checkout/%s/test" % pub2, data={"_csrf": csrf(buyer)}); SENT.clear()
+buyer.post("/orders/%s/report" % pub2, data={"reason": "The QR code was already scanned at the door", "_csrf": csrf(buyer)})
+mail = [b for to, sub, b in SENT if to == "s@test.nl" and "Problem reported" in sub]
+ok(mail and "within 24 hours" in mail[0] and "/orders/%s" % pub2 in mail[0], "#12 the seller gets an email about the problem, with 24 hours to reply in the chat")
+with app.app_context(): ok(A.db.one("SELECT 1 FROM messages WHERE kind='system' AND body='sys_disputed'") is not None, "#12 the order chat notes the report")
+r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+                               "ticket": (io.BytesIO(b"%PDF-1.4 guard three"), "g3.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
+lid3 = int(re.search(r"/t/(\d+)", r.location).group(1))
+buyer.post("/t/%d/report" % lid3, data={"reason": "fake", "details": "looks fake", "_csrf": csrf(buyer)})
+with app.app_context(): rep_id = A.db.one("SELECT id FROM reports WHERE listing_id=?", lid3)["id"]
+admin.post("/admin/reports/%d/remove" % rep_id, data={"why": "", "_csrf": csrf(admin)})
+with app.app_context(): ok(A.db.one("SELECT status FROM listings WHERE id=?", lid3)["status"] == "active", "#12 removing a listing needs a reason")
+SENT.clear()
+admin.post("/admin/reports/%d/remove" % rep_id, data={"why": "The ticket file was edited.", "_csrf": csrf(admin)})
+mail = [b for to, sub, b in SENT if to == "s@test.nl"]
+ok(mail and "Why: The ticket file was edited." in mail[0] and "within 6 months" in mail[0] and "b@test.nl" not in mail[0] and "Bo" not in mail[0],
+   "#12 the seller gets a statement of reasons with how to object, never who reported them")
+with app.app_context(): uid = A.db.one("SELECT id FROM users WHERE email='fresh@test.nl'")["id"]
+admin.post("/admin/users/%d/block" % uid, data={"reason": "", "_csrf": csrf(admin)})
+with app.app_context(): ok(A.db.one("SELECT blocked_at FROM users WHERE id=?", uid)["blocked_at"] is None, "#12 blocking needs a reason")
+SENT.clear()
+admin.post("/admin/users/%d/block" % uid, data={"reason": "Tried to sell outside Spare.", "_csrf": csrf(admin)})
+ok(any(to == "fresh@test.nl" and "we blocked your account" in b and "Tried to sell outside Spare." in b for to, sub, b in SENT), "#12 a blocked user is told why and how to object")
+MAIL_WORKS[0] = False
+
 print("FAILED:", fails or "none")

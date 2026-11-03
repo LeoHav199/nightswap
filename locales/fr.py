@@ -636,4 +636,12 @@ STRINGS = {
     "sessions_btn": "Se déconnecter partout",
     "sessions_confirm": "Se déconnecter sur tous les appareils, y compris celui-ci ?",
     "signed_out_everywhere": "Tu es déconnecté sur tous tes appareils.",
+    "sys_disputed": "L'acheteur a signalé un problème. Le versement est suspendu pendant que Spare vérifie.",
+    "mail_dispute_seller_subject": "Problème signalé : {title}",
+    "mail_dispute_seller_body": "Salut {name},\n\nL'acheteur de ton billet pour {title} a signalé un problème. Ton versement est suspendu pendant qu'on vérifie.\n\nRéponds dans le chat de la commande dans les {hours} heures avec tout ce qui peut aider : par exemple une capture du billet dans ton compte, ou du transfert. On décide d'après ce que les deux côtés envoient.",
+    "mail_dsa_subject": "Une décision concernant ton compte Spare",
+    "mail_dsa_body": "Salut {name},\n\nCe qu'on a fait : {what}\nPourquoi : {why}\n\nCette décision a été prise par une personne chez Spare, sur la base de nos conditions ({terms}). Ce n'était pas une décision automatique.\n\nPas d'accord ? Réponds à cet e-mail ou écris à {email} dans les 6 mois en expliquant pourquoi. On réexaminera et on te répondra. Tu peux aussi saisir un tribunal ou un organisme agréé de règlement extrajudiciaire des litiges.\n\nSpare",
+    "dsa_what_account": "on a bloqué ton compte. Tes annonces ne sont plus en vente et les versements sont suspendus.",
+    "dsa_what_listing": "on a retiré ton annonce pour {title}.",
+    "dsa_what_account_listing": "on a retiré ton annonce pour {title} et bloqué ton compte. Tes autres annonces ne sont plus en vente et les versements sont suspendus.",
 }

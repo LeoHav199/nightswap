@@ -47,15 +47,16 @@
     {% else %}<p class="muted">Nothing reported.</p>{% endfor %}
   </section>
   <section class="account-section">
-    <h2>Reported listings{% if reports %} <span class="count">{{ reports|length }}</span>{% endif %}</h2>
+    <h2 id="reports">Reported listings{% if reports %} <span class="count">{{ reports|length }}</span>{% endif %}</h2>
     {% for r in reports %}
       <div class="panel admin-case">
         <p><strong>{{ r.event_name or r.venue }}</strong> · {{ r.venue }} · {{ fmt_date(r.event_date) }} · <a href="{{ url_for('listing_page', listing_id=r.listing_id) }}">listing</a> ({{ r.listing_status }})</p>
         <p class="muted small">Reason: <strong>{{ r.reason }}</strong> · seller {{ r.seller_email }} · reported by {{ r.reporter_email or r.email or '?' }} · {{ r.created_at[:16] }}</p>
         {% if r.details %}<blockquote>{{ r.details }}</blockquote>{% endif %}
+        <p class="muted small">Removing or blocking emails the seller your reason and how to object (EU rules). It never says who reported them.</p>
         <div class="admin-actions">
-          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='remove') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Remove listing</button></form>
-          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='block') }}" data-confirm="Block this seller?">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Block seller</button></form>
+          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='remove') }}">{{ m.csrf() }}<input type="text" name="why" placeholder="Reason (emailed to the seller)" required><button class="btn btn-ghost btn-sm">Remove listing</button></form>
+          <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='block') }}" data-confirm="Block this seller?">{{ m.csrf() }}<input type="text" name="why" placeholder="Reason (emailed to the seller)" required><button class="btn btn-accent btn-sm">Block seller</button></form>
           <form method="post" action="{{ url_for('admin_report_action', report_id=r.id, action='close') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Nothing wrong</button></form>
         </div>
       </div>

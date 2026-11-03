@@ -19,7 +19,7 @@
         <form method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='unblock') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Unblock</button></form>
       {% elif not u.deleted_at %}
         <form class="block-form" method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='block') }}" data-confirm="Block {{ u.email }}?">{{ m.csrf() }}
-          <input type="text" name="reason" placeholder="Reason (internal)" required><button class="btn btn-accent btn-sm">Block</button></form>
+          <input type="text" name="reason" placeholder="Reason (emailed to them)" required><button class="btn btn-accent btn-sm">Block</button></form>
       {% endif %}
     </li>
     {% else %}<li class="muted" style="padding:14px 4px">Nobody found.</li>{% endfor %}

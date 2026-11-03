@@ -636,4 +636,12 @@ STRINGS = {
     "sessions_btn": "Cerrar sesión en todas partes",
     "sessions_confirm": "¿Cerrar sesión en todos los dispositivos, incluido este?",
     "signed_out_everywhere": "Has cerrado sesión en todos tus dispositivos.",
+    "sys_disputed": "El comprador ha avisado de un problema. El pago está retenido mientras Spare lo revisa.",
+    "mail_dispute_seller_subject": "Problema avisado: {title}",
+    "mail_dispute_seller_body": "Hola, {name}:\n\nEl comprador de tu entrada para {title} ha avisado de un problema. Tu pago está retenido mientras lo revisamos.\n\nResponde en el chat del pedido en un plazo de {hours} horas con todo lo que ayude: por ejemplo, una captura de la entrada en tu cuenta o de la transferencia. Decidimos según lo que envíen ambas partes.",
+    "mail_dsa_subject": "Una decisión sobre tu cuenta de Spare",
+    "mail_dsa_body": "Hola, {name}:\n\nQué hemos hecho: {what}\nPor qué: {why}\n\nLo decidió una persona de Spare, según nuestras condiciones ({terms}). No fue una decisión automática.\n\n¿No estás de acuerdo? Responde a este email o escribe a {email} en un plazo de 6 meses explicando por qué. Lo revisaremos y te responderemos. También puedes acudir a un tribunal o a un organismo certificado de resolución extrajudicial de litigios.\n\nSpare",
+    "dsa_what_account": "hemos bloqueado tu cuenta. Tus anuncios ya no están a la venta y los pagos están retenidos.",
+    "dsa_what_listing": "hemos retirado tu anuncio para {title}.",
+    "dsa_what_account_listing": "hemos retirado tu anuncio para {title} y bloqueado tu cuenta. Tus otros anuncios ya no están a la venta y los pagos están retenidos.",
 }

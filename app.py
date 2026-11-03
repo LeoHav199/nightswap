@@ -1412,6 +1412,9 @@ def order_calendar(public_id):
     return resp
 
 
+DISPUTE_REPLY_HOURS = 24  # the seller's time to answer a problem report in the order chat
+
+
 @app.route("/orders/<public_id>/report", methods=["POST"])
 @login_required
 def report_problem(public_id):
@@ -1426,6 +1429,11 @@ def report_problem(public_id):
     db.run("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=?", reason, order["id"])
     notify.notify_admins("Spare: problem reported (%s)" % public_id,
                          "%s\n\n%s" % (reason, base_url() + url_for("admin")))
+    # #12: the seller hears about it too and can give their side in the order chat.
+    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_disputed")
+    tell(order["seller_id"], t("mail_dispute_seller_subject", title=listing_title(listing)),
+         t("mail_dispute_seller_body", title=listing_title(listing), hours=DISPUTE_REPLY_HOURS), url_for("order_page", public_id=public_id))
     flash(t("report_sent"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
 
@@ -2943,6 +2951,16 @@ def take_off_sale(listing_ids):
         db.run("UPDATE listings SET status='removed' WHERE id=? AND status='active'", lid)
 
 
+def send_statement_of_reasons(user, what, why):
+    """#12, EU Digital Services Act art. 17: tell someone what we removed or blocked, why, and how to object.
+    Never names who reported them."""
+    if not user or user["deleted_at"]:
+        return
+    notify.send_email(user["email"], t("mail_dsa_subject"),
+                      t("mail_dsa_body", name=user["first_name"] or "", what=what, why=why, email=config.SUPPORT_EMAIL,
+                        terms=base_url() + url_for("terms")))
+
+
 def block_user(user_id, reason):
     db.run("UPDATE users SET blocked_at=?, blocked_reason=? WHERE id=?", sqltime(utcnow()), reason[:300] or None, user_id)
     end_all_sessions(user_id)
@@ -3096,7 +3114,12 @@ def admin_user_action(user_id, action):
     if not u or u["email"] in config.ADMIN_EMAILS:
         abort(404)
     if action == "block":
-        block_user(user_id, request.form.get("reason", ""))
+        reason = request.form.get("reason", "").strip()
+        if not reason:
+            flash("Write the reason: the user gets it by email (EU rules).", "error")
+            return redirect(request.referrer or url_for("admin_users"))
+        block_user(user_id, reason)
+        send_statement_of_reasons(u, t("dsa_what_account"), reason)
         flash("Blocked %s. Their listings are off sale and their payouts are on hold." % u["email"], "ok")
     elif action == "unblock":
         db.run("UPDATE users SET blocked_at=NULL, blocked_reason=NULL WHERE id=?", user_id)
@@ -3112,10 +3135,18 @@ def admin_report_action(report_id, action):
     r = db.one("SELECT r.*, l.seller_id FROM reports r JOIN listings l ON l.id = r.listing_id WHERE r.id=?", report_id)
     if not r:
         abort(404)
+    why = request.form.get("why", "").strip()[:500]
+    if action in ("remove", "block") and not why:
+        flash("Write the reason: the seller gets it by email (EU rules).", "error")
+        return redirect(url_for("admin") + "#reports")
+    seller = db.one("SELECT * FROM users WHERE id=?", r["seller_id"])
+    listing = db.one("SELECT * FROM listings WHERE id=?", r["listing_id"])
     if action == "remove":
         take_off_sale([r["listing_id"]])
+        send_statement_of_reasons(seller, t("dsa_what_listing", title=listing_title(listing)), why)
     elif action == "block":
-        block_user(r["seller_id"], "Reported listing: %s" % r["reason"])
+        block_user(r["seller_id"], "Reported listing: %s. %s" % (r["reason"], why))
+        send_statement_of_reasons(seller, t("dsa_what_account_listing", title=listing_title(listing)), why)
     elif action != "close":
         abort(400)
     db.run("UPDATE reports SET status='closed' WHERE id=? OR (listing_id=? AND ? != 'close')", report_id, r["listing_id"], action)

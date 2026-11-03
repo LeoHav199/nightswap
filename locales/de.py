@@ -636,4 +636,12 @@ STRINGS = {
     "sessions_btn": "Überall abmelden",
     "sessions_confirm": "Auf allen Geräten abmelden, auch auf diesem?",
     "signed_out_everywhere": "Du bist auf allen Geräten abgemeldet.",
+    "sys_disputed": "Der Käufer hat ein Problem gemeldet. Die Auszahlung ist angehalten, während Spare es prüft.",
+    "mail_dispute_seller_subject": "Problem gemeldet: {title}",
+    "mail_dispute_seller_body": "Hi {name},\n\nder Käufer deines Tickets für {title} hat ein Problem gemeldet. Deine Auszahlung ist angehalten, während wir es prüfen.\n\nAntworte bitte innerhalb von {hours} Stunden im Chat zur Bestellung mit allem, was hilft: zum Beispiel einem Screenshot des Tickets in deinem Konto oder der Übertragung. Wir entscheiden anhand dessen, was beide Seiten schicken.",
+    "mail_dsa_subject": "Eine Entscheidung zu deinem Spare-Konto",
+    "mail_dsa_body": "Hi {name},\n\nWas wir getan haben: {what}\nWarum: {why}\n\nDiese Entscheidung hat eine Person bei Spare getroffen, auf Grundlage unserer Bedingungen ({terms}). Sie war nicht automatisch.\n\nNicht einverstanden? Antworte auf diese E-Mail oder schreib innerhalb von 6 Monaten an {email} und erklär warum. Wir prüfen es erneut und antworten dir. Du kannst dich auch an ein Gericht oder eine zertifizierte außergerichtliche Streitbeilegungsstelle wenden.\n\nSpare",
+    "dsa_what_account": "wir haben dein Konto gesperrt. Deine Angebote sind offline und Auszahlungen angehalten.",
+    "dsa_what_listing": "wir haben dein Angebot für {title} entfernt.",
+    "dsa_what_account_listing": "wir haben dein Angebot für {title} entfernt und dein Konto gesperrt. Deine anderen Angebote sind offline und Auszahlungen angehalten.",
 }
