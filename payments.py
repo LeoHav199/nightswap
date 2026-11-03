@@ -70,7 +70,8 @@ def expire_checkout(session_id):
 def refund(order):
     if not live() or not order["payment_intent"]:
         return "test-refund"
-    return _stripe().Refund.create(payment_intent=order["payment_intent"]).id
+    # #26: the same key twice gives the same refund back instead of refunding again
+    return _stripe().Refund.create(payment_intent=order["payment_intent"], idempotency_key="refund-" + order["public_id"]).id
 
 
 def transfer_to_seller(order, seller):
@@ -84,8 +85,17 @@ def transfer_to_seller(order, seller):
         destination=seller["stripe_account_id"],
         transfer_group=order["public_id"],
         source_transaction=intent.latest_charge,
+        idempotency_key="payout-" + order["public_id"],  # #26: a retry can never pay the seller twice
     )
     return transfer.id
+
+
+def find_transfer(order):
+    """#26: the transfer already sent for this order (by its transfer group), or None."""
+    if not live():
+        return None
+    found = _stripe().Transfer.list(transfer_group=order["public_id"], limit=1)
+    return found.data[0].id if found.data else None
 
 
 def _v2(method, path, **params):

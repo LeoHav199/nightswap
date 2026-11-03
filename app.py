@@ -59,7 +59,7 @@ FILE_TYPES = {  # extension -> (magic bytes, mimetype)
     "jpeg": (b"\xff\xd8\xff", "image/jpeg"),
 }
 POSTER_TYPES = {"jpg": b"\xff\xd8\xff", "jpeg": b"\xff\xd8\xff", "png": b"\x89PNG", "webp": b"RIFF"}
-PAID_STATES = ("paid", "disputed", "released")
+PAID_STATES = ("paid", "disputed", "released", "releasing")  # releasing: payout being sent (#26)
 
 
 # --------------------------------------------------------------------------
@@ -507,10 +507,31 @@ def release_payout(order):
         return False
     if bank_matches_blocked(seller):
         return False  # #24: same bank account as a blocked user; the admins were told
-    ref = payments.transfer_to_seller(order, seller)
+    # #26: claim the order before calling Stripe, so two runs at once (👍, the hourly task, the admin button) can't both
+    # pay. If Stripe fails, it goes back to 'paid'; if we crash in between, release_stuck_payouts() sorts it out.
+    if not db.count("UPDATE orders SET status='releasing', releasing_at=? WHERE id=? AND status='paid'", sqltime(utcnow()), order["id"]):
+        return False
+    try:
+        ref = payments.transfer_to_seller(order, seller)
+    except Exception:
+        db.run("UPDATE orders SET status='paid', releasing_at=NULL WHERE id=? AND status='releasing'", order["id"])
+        raise
     db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?",
            sqltime(utcnow()), ref, order["id"])
     return True
+
+
+def release_stuck_payouts():
+    """#26: payouts claimed more than 15 minutes ago that never finished: finished if Stripe has the transfer, else retried later."""
+    fixed = 0
+    for order in db.all("SELECT * FROM orders WHERE status='releasing' AND releasing_at < ?", sqltime(utcnow() - timedelta(minutes=15))):
+        ref = payments.find_transfer(order)
+        if ref:
+            db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?", sqltime(utcnow()), ref, order["id"])
+        else:
+            db.run("UPDATE orders SET status='paid', releasing_at=NULL WHERE id=?", order["id"])
+        fixed += 1
+    return fixed
 
 
 def notify_alerts(listing):
@@ -3196,10 +3217,26 @@ def block_user(user_id, reason):
     db.run("DELETE FROM push_subs WHERE user_id=?", user_id)
 
 
-def refund_order(order, reason_key, ticket_status="void"):
-    """Refunds an order in full (ticket + fee) and tells both sides."""
-    payments.refund(order)
+def claim_refund(order):
+    """#26: marks the order as being refunded; False if another request got there first (or it's not refundable)."""
+    return bool(db.count("UPDATE orders SET status='refunding' WHERE id=? AND status IN ('paid', 'disputed')", order["id"]))
+
+
+def refund_payment(order):
+    """Refunds through Stripe after claim_refund(); puts the order back as it was if Stripe fails."""
+    try:
+        payments.refund(order)
+    except Exception:
+        db.run("UPDATE orders SET status=? WHERE id=? AND status='refunding'", order["status"], order["id"])
+        raise
     db.run("UPDATE orders SET status='refunded' WHERE id=?", order["id"])
+
+
+def refund_order(order, reason_key, ticket_status="void"):
+    """Refunds an order in full (ticket + fee) and tells both sides. False if it was already being refunded or paid out."""
+    if not claim_refund(order):
+        return False
+    refund_payment(order)
     db.run("UPDATE tickets SET status=?, order_id=CASE WHEN ?='available' THEN NULL ELSE order_id END WHERE order_id=?",
            ticket_status, ticket_status, order["id"])
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
@@ -3208,6 +3245,7 @@ def refund_order(order, reason_key, ticket_status="void"):
     tell(order["buyer_id"], t("mail_refund_subject", title=title),
          t(reason_key + "_buyer", title=title, amount=money(order["total_cents"])), path)
     tell(order["seller_id"], t("mail_refund_subject_seller", title=title), t(reason_key + "_seller", title=title), path)
+    return True
 
 
 def cancel_event(event_id):
@@ -3216,8 +3254,8 @@ def cancel_event(event_id):
     refunded = 0
     for lid in listing_ids:
         for o in db.all("SELECT * FROM orders WHERE listing_id=? AND status IN ('paid', 'disputed')", lid):
-            refund_order(o, "refund_cancelled")
-            refunded += 1
+            if refund_order(o, "refund_cancelled"):
+                refunded += 1
         for o in db.all("SELECT * FROM orders WHERE listing_id=? AND status='pending'", lid):
             db.run("UPDATE orders SET status='cancelled' WHERE id=?", o["id"])
             if o["payment_ref"]:
@@ -3251,7 +3289,8 @@ def change_refund(public_id):
             or not order["paid_at"] or e["changed_at"] < order["paid_at"] or e["event_date"] < today().isoformat()):
         abort(400)
     # The ticket is still valid for the new date, so it goes back on sale for the seller.
-    refund_order(order, "refund_changed", ticket_status="available")
+    if not refund_order(order, "refund_changed", ticket_status="available"):
+        abort(400)  # already being refunded or paid out
     db.run("UPDATE listings SET status='active' WHERE id=? AND status='sold'", listing["id"])
     flash(t("change_refund_done", amount=money(order["total_cents"])), "ok")
     return redirect(url_for("order_page", public_id=public_id))
@@ -3522,7 +3561,7 @@ def account_delete():
     if request.form.get("confirm", "").strip().lower() != g.user["email"]:
         flash(t("err_delete_confirm"), "error")
         return redirect(url_for("account_data"))
-    if db.one("SELECT 1 FROM orders WHERE seller_id=? AND status IN ('paid', 'disputed')", uid):
+    if db.one("SELECT 1 FROM orders WHERE seller_id=? AND status IN ('paid', 'disputed', 'releasing', 'refunding')", uid):
         flash(t("err_delete_open_sales"), "error")
         return redirect(url_for("account_data"))
     take_off_sale([r["id"] for r in db.all("SELECT id FROM listings WHERE seller_id=? AND status='active'", uid)])
@@ -3576,9 +3615,8 @@ def admin_order(public_id, action):
     order = db.one("SELECT * FROM orders WHERE public_id=?", public_id)
     if not order:
         abort(404)
-    if action == "refund" and order["status"] in ("paid", "disputed"):
-        payments.refund(order)
-        db.run("UPDATE orders SET status='refunded' WHERE id=?", order["id"])
+    if action == "refund" and claim_refund(order):
+        refund_payment(order)
         # Treat the seller's other tickets for this listing as suspect too.
         db.run("UPDATE tickets SET status='void' WHERE order_id=? OR (listing_id=? AND status='available')",
                order["id"], order["listing_id"])
@@ -3600,6 +3638,7 @@ def hourly_tasks():
     sent = request.headers.get("X-Task-Secret", "")
     if not config.TASK_SECRET or not hmac.compare_digest(sent, config.TASK_SECRET):
         abort(404)
+    release_stuck_payouts()
     released, waiting = release_due_payouts()
     nudged, asked = send_reminders()
     resell = send_resell_reminders()

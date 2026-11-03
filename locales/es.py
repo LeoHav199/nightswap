@@ -680,4 +680,6 @@ STRINGS = {
     "mail_listing_live_body": "Hola, {name}:\n\nHemos comprobado tu entrada para {title} y ya está a la venta.",
     "dsa_what_listing_refused": "no hemos puesto a la venta tu entrada para {title}.",
     "face_checked": "Precio original comprobado",
+    "status_releasing": "Pagando",
+    "status_refunding": "Reembolsando",
 }

@@ -43,6 +43,7 @@ ADDED_COLUMNS = [
     ("listings", "delivery", "TEXT NOT NULL DEFAULT 'file'"),   # file | transfer
     ("listings", "transfer_app", "TEXT"),                       # key from config.TRANSFER_APPS
     ("listings", "name_on_ticket", "TEXT"),
+    ("orders", "releasing_at", "TEXT"),         # #26: when a payout was claimed (status 'releasing'), to find stuck ones
     ("listings", "review_reason", "TEXT"),          # why a listing waits for an admin (status 'review'): face, code, app
     ("listings", "face_checked", "INTEGER NOT NULL DEFAULT 0"),  # #25: face value matched the official price or proof
     ("events", "face_value_max_cents", "INTEGER"),  # #25: the official ticket price; face values above it are refused                     # #21: no | changeable | unsure (NULL on older listings)

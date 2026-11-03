@@ -547,4 +547,51 @@ page_html = '<script type="application/ld+json">{"@type": "Event", "name": "Impo
 found = importer.extract(page_html, "https://example.com/e")
 ok(found and found[0]["face_value_max"] == "24.00", "#25 the importer reads the official (highest) price")
 
+# --- #26: a payout or refund can't go out twice
+import payments
+def paid_order():
+    r = sell3(priced, "25"); l_id = int(re.search(r"/t/(\d+)", r.location).group(1))
+    r = buyer.post("/t/%d/buy" % l_id, data={"_csrf": csrf(buyer)}); pid = r.location.split("/")[2]
+    buyer.post("/checkout/%s/test" % pid, data={"_csrf": csrf(buyer)})
+    with app.app_context(): return A.db.one("SELECT * FROM orders WHERE public_id=?", pid)
+def order_now(o):
+    with app.app_context(): return A.db.one("SELECT * FROM orders WHERE id=?", o["id"])
+calls = []
+real_transfer, real_find, real_refund = payments.transfer_to_seller, payments.find_transfer, payments.refund
+payments.transfer_to_seller = lambda order, seller: calls.append(order["public_id"]) or "tr_%d" % len(calls)
+with app.app_context(): A.db.run("UPDATE users SET payouts_ready=1, bank_flagged_at=NULL WHERE email='s3@test.nl'")
+o1 = paid_order()
+with app.test_request_context():
+    first, second = A.release_payout(o1), A.release_payout(o1)   # e.g. the 👍 and the hourly task at the same moment
+ok(first and not second and len(calls) == 1 and order_now(o1)["status"] == "released", "#26 calling release_payout twice for one order makes only one transfer")
+def boom(order, seller): raise RuntimeError("Stripe is down")
+payments.transfer_to_seller = boom
+o2 = paid_order()
+try:
+    with app.test_request_context(): A.release_payout(o2)
+except RuntimeError:
+    pass
+ok(order_now(o2)["status"] == "paid", "#26 if Stripe fails, the order goes back to 'paid' to be tried again")
+o3 = paid_order()
+with app.app_context(): A.db.run("UPDATE orders SET status='releasing', releasing_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(minutes=30)), o3["id"])
+o4 = paid_order()
+with app.app_context(): A.db.run("UPDATE orders SET status='releasing', releasing_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(minutes=30)), o4["id"])
+payments.find_transfer = lambda order: "tr_found" if order["id"] == o3["id"] else None
+with app.test_request_context(): A.release_stuck_payouts()
+ok(order_now(o3)["status"] == "released" and order_now(o3)["transfer_ref"] == "tr_found" and order_now(o4)["status"] == "paid",
+   "#26 stuck payouts are finished when Stripe has the transfer, otherwise put back to be retried")
+refunds = []
+payments.refund = lambda order: refunds.append(order["public_id"]) or "re_x"
+o5 = paid_order()
+with app.test_request_context():
+    a, b = A.refund_order(o5, "refund_cancelled"), A.refund_order(o5, "refund_cancelled")
+ok(a and not b and len(refunds) == 1 and order_now(o5)["status"] == "refunded", "#26 refunding the same order twice refunds once")
+o6 = paid_order()
+admin.post("/admin/orders/%s/refund" % o6["public_id"], data={"_csrf": csrf(admin)})
+admin.post("/admin/orders/%s/refund" % o6["public_id"], data={"_csrf": csrf(admin)})
+ok(refunds.count(o6["public_id"]) == 1, "#26 the admin refund button can't refund twice either")
+payments.transfer_to_seller, payments.find_transfer, payments.refund = real_transfer, real_find, real_refund
+pay_src = open("payments.py", encoding="utf-8").read()
+ok('idempotency_key="payout-"' in pay_src and 'idempotency_key="refund-"' in pay_src, "#26 Stripe transfers and refunds carry an idempotency key per order")
+
 print("FAILED:", fails or "none")

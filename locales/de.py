@@ -680,4 +680,6 @@ STRINGS = {
     "mail_listing_live_body": "Hi {name},\n\nwir haben dein Ticket für {title} geprüft, es ist jetzt im Verkauf.",
     "dsa_what_listing_refused": "wir haben dein Ticket für {title} nicht in den Verkauf genommen.",
     "face_checked": "Originalpreis geprüft",
+    "status_releasing": "Wird ausgezahlt",
+    "status_refunding": "Wird erstattet",
 }
