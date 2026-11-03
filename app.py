@@ -1833,6 +1833,10 @@ def read_ticket_files(uploads, errors):
         if len(data) > config.MAX_UPLOAD_BYTES:
             errors["ticket"] = t("err_ticket_size")
             return None
+        problem = ticketcodes.check(data, "jpg" if ext == "jpeg" else ext)
+        if problem:  # #14: refuse files that would take more memory to read than the server has
+            errors["ticket"] = t("err_ticket_" + problem, pages=ticketcodes.MAX_PDF_PAGES)
+            return None
         codes = [(ticketcodes.code_hash(text), text, kind) for text, kind in ticketcodes.codes(data, ext)]
         result.append((data, "jpg" if ext == "jpeg" else ext, codes))
     return result

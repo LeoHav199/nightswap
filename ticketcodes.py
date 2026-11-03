@@ -5,23 +5,76 @@ screenshot), so comparing file hashes alone doesn't catch a ticket being
 sold twice. Comparing the code inside the ticket does.
 """
 import hashlib
+import math
+import struct
 
 # OpenCV and NumPy are imported inside the functions: they're heavy, and loading them before the
 # web server starts its worker processes can crash those workers.
 
-MAX_PDF_PAGES = 6
+MAX_PDF_PAGES = 10
+# #14: a small file can claim to be a gigantic picture ("decompression bomb"); decoding it would use more memory
+# than the server has (512 MB on Render's Starter plan). Phone screenshots are around 3-4 million pixels.
+MAX_PIXELS = 25_000_000
+MAX_SIDE = 10_000
+PDF_SCALE = 2.5  # render PDF pages at 2.5x (180 dpi) to read small codes
+
+
+def image_size(data, ext):
+    """(width, height) from a PNG or JPEG header without decoding the picture, or None if it can't be read."""
+    if ext == "png":
+        if len(data) >= 24 and data[12:16] == b"IHDR":
+            return struct.unpack(">II", data[16:24])
+        return None
+    i = 2  # JPEG: walk the markers up to the frame header (SOFn), which holds the size
+    while i + 9 < len(data):
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker == 0xFF or marker == 0x01 or 0xD0 <= marker <= 0xD9:
+            i += 1 if marker == 0xFF else 2
+            continue
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            height, width = struct.unpack(">HH", data[i + 5:i + 9])
+            return width, height
+        i += 2 + struct.unpack(">H", data[i + 2:i + 4])[0]
+    return None
+
+
+def check(data, ext):
+    """None when the file is safe to decode, otherwise why not: 'too_big' or 'too_many_pages'."""
+    if ext == "pdf":
+        import pypdfium2 as pdfium
+        try:
+            pdf = pdfium.PdfDocument(data)
+        except Exception:
+            return None  # unreadable: codes() finds nothing and the upload is judged on the file alone
+        try:
+            return "too_many_pages" if len(pdf) > MAX_PDF_PAGES else None
+        finally:
+            pdf.close()
+    size = image_size(data, ext)
+    if not size or not all(size):
+        return "too_big"  # no readable size: don't hand it to the decoder
+    width, height = size
+    return "too_big" if width > MAX_SIDE or height > MAX_SIDE or width * height > MAX_PIXELS else None
 
 
 def _images(data, ext):
     import cv2
     import numpy as np
+    if check(data, ext):
+        return
     if ext == "pdf":
         import pypdfium2 as pdfium
 
         pdf = pdfium.PdfDocument(data)
         try:
             for i in range(min(len(pdf), MAX_PDF_PAGES)):
-                bitmap = pdf[i].render(scale=2.5, grayscale=True)
+                page = pdf[i]
+                w, h = page.get_size()  # in points (1/72 inch); scale 1 = 1 pixel per point
+                scale = min(PDF_SCALE, math.sqrt(MAX_PIXELS / max(w * h, 1)))
+                bitmap = page.render(scale=scale, grayscale=True)
                 yield np.ascontiguousarray(bitmap.to_numpy())
         finally:
             pdf.close()

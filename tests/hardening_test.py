@@ -194,4 +194,31 @@ sw = open("static/js/sw.js", encoding="utf-8").read()
 ok("spare-orders" in sw and '"/logout"' in sw and "X-Spare-Offline" in sw, "#13 the service worker stores marked order pages and forgets them on sign-out")
 ok("never push" in open("CLAUDE.md", encoding="utf-8").read().lower(), "#13 CLAUDE.md has the no-deploys-on-event-nights rule")
 
+# --- #14: no decompression bombs
+import struct, zlib, ticketcodes, cv2, numpy as np
+def png_claiming(w, h):
+    ihdr = struct.pack(">IIBBBBB", w, h, 8, 0, 0, 0, 0)
+    chunk = lambda kind, body: struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(b"\0" * 64)) + chunk(b"IEND", b"")
+bomb = png_claiming(50000, 50000)
+ok(len(bomb) < 200 and ticketcodes.check(bomb, "png") == "too_big", "#14 a tiny PNG claiming 50,000 x 50,000 pixels is refused before decoding")
+ok(ticketcodes.codes(bomb, "png") == [], "#14 ...and codes() never decodes it")
+small = cv2.imencode(".png", np.full((800, 400), 255, np.uint8))[1].tobytes()
+ok(ticketcodes.image_size(small, "png") == (400, 800) and ticketcodes.check(small, "png") is None, "#14 a normal screenshot passes")
+jpg = cv2.imencode(".jpg", np.full((300, 200), 255, np.uint8))[1].tobytes()
+ok(ticketcodes.image_size(jpg, "jpg") == (200, 300), "#14 JPEG sizes are read from the header")
+huge_jpg = bytearray(jpg); i = huge_jpg.find(b"\xff\xc0"); huge_jpg[i + 5:i + 9] = struct.pack(">HH", 60000, 60000)
+ok(ticketcodes.check(bytes(huge_jpg), "jpg") == "too_big", "#14 a JPEG claiming 60,000 x 60,000 is refused")
+import pypdfium2 as pdfium
+def pdf_with(pages, w=595, h=842):
+    doc = pdfium.PdfDocument.new()
+    for _ in range(pages): doc.new_page(w, h)
+    buf = io.BytesIO(); doc.save(buf); doc.close(); return buf.getvalue()
+ok(ticketcodes.check(pdf_with(11), "pdf") == "too_many_pages" and ticketcodes.check(pdf_with(2), "pdf") is None, "#14 PDFs with more than 10 pages are refused")
+sizes = [img.shape for img in ticketcodes._images(pdf_with(1, 14400, 14400), "pdf")]
+ok(sizes and sizes[0][0] * sizes[0][1] <= ticketcodes.MAX_PIXELS, "#14 a giant PDF page is rendered at a lower scale, never above 25 million pixels")
+r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+                               "ticket": (io.BytesIO(bomb), "bomb.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
+ok(r.status_code == 200 and "too large to check" in html(r), "#14 the seller sees a clear error")
+
 print("FAILED:", fails or "none")

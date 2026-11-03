@@ -645,4 +645,6 @@ STRINGS = {
     "dsa_what_listing": "wir haben dein Angebot für {title} entfernt.",
     "dsa_what_account_listing": "wir haben dein Angebot für {title} entfernt und dein Konto gesperrt. Deine anderen Angebote sind offline und Auszahlungen angehalten.",
     "offline_saved": "Auf diesem Handy gespeichert: Diese Seite und der QR-Code öffnen sich auch ohne Empfang.",
+    "err_ticket_too_big": "Dieses Bild ist zu groß zum Prüfen. Lade einen normalen Screenshot oder das Original-PDF hoch.",
+    "err_ticket_too_many_pages": "Dieses PDF hat mehr als {pages} Seiten. Lade nur die Seite(n) mit deinem Ticket hoch.",
 }

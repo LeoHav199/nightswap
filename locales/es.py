@@ -645,4 +645,6 @@ STRINGS = {
     "dsa_what_listing": "hemos retirado tu anuncio para {title}.",
     "dsa_what_account_listing": "hemos retirado tu anuncio para {title} y bloqueado tu cuenta. Tus otros anuncios ya no están a la venta y los pagos están retenidos.",
     "offline_saved": "Guardado en este móvil: esta página y el código QR también se abren sin cobertura.",
+    "err_ticket_too_big": "Esta imagen es demasiado grande para comprobarla. Sube una captura de pantalla normal o el PDF original.",
+    "err_ticket_too_many_pages": "Este PDF tiene más de {pages} páginas. Sube solo la(s) página(s) con tu entrada.",
 }
