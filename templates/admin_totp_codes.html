@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Recovery codes · Admin · Spare{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <div class="panel form">
+    <h1>Your recovery codes</h1>
+    <p>Your authenticator app is linked. If you ever lose your phone, each of these codes opens the admin area once.</p>
+    <p class="muted"><strong>Save them now</strong> in your password manager. They're shown only this once.</p>
+    <ul class="recovery-codes">{% for c in codes %}<li><code>{{ c }}</code></li>{% endfor %}</ul>
+    <a class="btn btn-accent btn-block btn-lg" href="{{ next }}">I've saved them</a>
+  </div>
+</div>
+{% endblock %}

@@ -32,6 +32,9 @@ ADDED_COLUMNS = [
     ("users", "source", "TEXT"),
     ("users", "avatar", "TEXT"),
     ("users", "session_version", "INTEGER NOT NULL DEFAULT 0"),  # #11: raising it signs the user out everywhere
+    ("users", "totp_secret", "TEXT"),           # #23: admins' authenticator-app secret, encrypted (totp.seal)
+    ("users", "totp_last_step", "INTEGER"),     # the last code used, so it can't be used twice
+    ("users", "totp_recovery", "TEXT"),         # JSON list of hashes of unused recovery codes
     ("orders", "resell_reminded_at", "TEXT"),
     ("orders", "seller_fee_cents", "INTEGER NOT NULL DEFAULT 0"),
     # Tickets that live in an organiser's app (changing QR codes): sent with the app's own "transfer" button.

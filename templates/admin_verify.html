@@ -1,17 +1,16 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
-{% block title %}{{ t('verify_title') }} · Admin · Spare{% endblock %}
+{% block title %}Admin check · Spare{% endblock %}
 {% block content %}
 <div class="wrap auth">
   <form class="panel form" method="post" data-once>
     {{ m.csrf() }}<input type="hidden" name="next" value="{{ next }}">
-    <h1>{{ t('admin_check_title') }}</h1>
-    <p class="muted">{% if sms_enabled %}{{ t('admin_check_sub', phone=phone) }}{% else %}{{ t('admin_check_sub_email', phone=phone, email=g.user.email) }}{% endif %}</p>
-    <label class="field"><span class="label">{{ t('code') }}</span>
-      <input class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus>
+    <h1>Admin check</h1>
+    <p class="muted">Open your authenticator app and enter the 6-digit code for Spare. Lost your phone? Enter one of your recovery codes instead.</p>
+    <label class="field"><span class="label">Code</span>
+      <input class="code-input" type="text" name="code" autocomplete="one-time-code" maxlength="12" required autofocus>
       {% if error %}<p class="field-error">{{ error }}</p>{% endif %}</label>
-    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('verify') }}</button>
-    <p class="small center"><a href="{{ url_for('admin_verify', next=next) }}">{{ t('send_new_code') }}</a></p>
+    <button class="btn btn-accent btn-block btn-lg" type="submit">Open admin</button>
   </form>
 </div>
 {% endblock %}

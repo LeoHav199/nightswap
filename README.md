@@ -36,7 +36,7 @@ Events are real records (`events` table): name, venue, city, category, date, doo
 
 ## Safety and admin tools
 
-- **Admin second check:** admins confirm a text code every 12 hours (needs a verified phone). `ADMIN_SECOND_FACTOR=0` turns it off for local testing only.
+- **Admin second check:** admins confirm a code from an authenticator app every 12 hours (`totp.py`, set up at `/admin/authenticator`, with 8 one-time recovery codes). Lost both? `flask --app app reset-admin-2fa <email>`. `ADMIN_SECOND_FACTOR=0` turns it off for local testing only.
 - **Users** (`/admin/users`): search by email/name/phone; blocking takes listings off sale, cancels checkouts, holds payouts and signs the user out.
 - **Reported listings:** anyone can report a listing (EU Digital Services Act); reports appear on `/admin` with remove / block / dismiss.
 - **Cancel & refund all:** on Admin → Events, refunds every buyer in full and takes all tickets off sale.

@@ -29,6 +29,7 @@ import moderation
 import notify
 import payments
 import push
+import totp
 import ticketcodes
 import wallet
 
@@ -3160,33 +3161,80 @@ def report_listing(listing_id):
     return render_template("report_listing.html", l=l, reasons=reasons, error=error)
 
 
+ADMIN_OK_HOURS = 12  # how long the authenticator check lasts
+
+
+def admin_ok():
+    session["admin_ok_until"] = (utcnow() + timedelta(hours=ADMIN_OK_HOURS)).timestamp()
+
+
 @app.route("/admin/verify", methods=["GET", "POST"])
 @login_required
 def admin_verify():
+    """#23: admins confirm a code from their authenticator app every 12 hours (or use a one-time recovery code)."""
     if not g.is_admin:
         abort(404)
     nxt = safe_next(request.values.get("next"), url_for("admin"))
-    if not g.user["phone_verified_at"]:
-        flash(t("admin_needs_phone"), "error")
-        return redirect(url_for("phone", next=url_for("admin_verify", next=nxt)))
+    if not g.user["totp_secret"]:
+        return redirect(url_for("admin_totp_setup", next=nxt))
     error = None
     if request.method == "POST":
-        code = re.sub(r"\D", "", request.form.get("code", ""))
+        entered = request.form.get("code", "").strip()
         if rate_limited("admin-verify", 10, 60, g.user["id"]):
             error = t("err_too_many_tries")
-        elif check_code("admin", g.user["phone"], code):
-            session["admin_ok_until"] = (utcnow() + timedelta(hours=12)).timestamp()
-            return redirect(nxt)
-        else:
+        elif "-" in entered or re.search(r"[a-z]", entered.lower()):
+            hashes = json.loads(g.user["totp_recovery"] or "[]")
+            h = totp.hash_recovery(entered)
+            if h in hashes:  # a recovery code works once
+                hashes.remove(h)
+                db.run("UPDATE users SET totp_recovery=? WHERE id=?", json.dumps(hashes), g.user["id"])
+                notify.notify_admins("Spare: an admin recovery code was used",
+                                     "%s used a recovery code to open /admin. %d left. If this wasn't you, block the account "
+                                     "and reset its authenticator: flask --app app reset-admin-2fa <email>" % (g.user["email"], len(hashes)))
+                admin_ok()
+                flash("Recovery code used. %d left: set up your authenticator again if you lost your phone." % len(hashes), "ok")
+                return redirect(nxt)
             error = t("err_code")
-    elif not request.args.get("sent"):
-        code = issue_code("admin", g.user["phone"])
-        if code:
-            sent = send_phone_code(g.user["phone"], t("sms_admin_code", code=code))
-            if not sent and config.DEV:
-                flash(t("dev_code", code=code), "dev")
-        return redirect(url_for("admin_verify", next=nxt, sent=1))
-    return render_template("admin_verify.html", phone=g.user["phone"], next=nxt, error=error)
+        else:
+            step = totp.verify(totp.unseal(g.user["totp_secret"], app.config["SECRET_KEY"]), entered, g.user["totp_last_step"])
+            if step is not None:
+                db.run("UPDATE users SET totp_last_step=? WHERE id=?", step, g.user["id"])
+                admin_ok()
+                return redirect(nxt)
+            error = t("err_code")
+    return render_template("admin_verify.html", next=nxt, error=error)
+
+
+@app.route("/admin/authenticator", methods=["GET", "POST"])
+@login_required
+def admin_totp_setup():
+    """#23: link an authenticator app. Replacing an existing one needs a verified admin session."""
+    if not g.is_admin:
+        abort(404)
+    nxt = safe_next(request.values.get("next"), url_for("admin"))
+    if g.user["totp_secret"] and session.get("admin_ok_until", 0) < utcnow().timestamp():
+        return redirect(url_for("admin_verify", next=url_for("admin_totp_setup")))
+    if request.method == "GET" or "totp_pending" not in session:
+        session["totp_pending"] = totp.seal(totp.new_secret(), app.config["SECRET_KEY"])
+    secret = totp.unseal(session["totp_pending"], app.config["SECRET_KEY"])
+    error = None
+    if request.method == "POST":
+        step = totp.verify(secret, request.form.get("code", ""))
+        if rate_limited("admin-verify", 10, 60, g.user["id"]):
+            error = t("err_too_many_tries")
+        elif step is None:
+            error = t("err_code")
+        else:
+            codes = totp.recovery_codes()
+            db.run("UPDATE users SET totp_secret=?, totp_last_step=?, totp_recovery=? WHERE id=?",
+                   session.pop("totp_pending"), step, json.dumps([totp.hash_recovery(c) for c in codes]), g.user["id"])
+            notify.notify_admins("Spare: authenticator set up for %s" % g.user["email"],
+                                 "An authenticator app was just linked to %s for the admin area. If this wasn't you, "
+                                 "reset it straight away: flask --app app reset-admin-2fa <email>" % g.user["email"])
+            admin_ok()
+            return render_template("admin_totp_codes.html", codes=codes, next=nxt)
+    return render_template("admin_totp_setup.html", secret=secret, qr=qr_svg(totp.uri(secret, g.user["email"])),
+                           next=nxt, error=error, replacing=bool(g.user["totp_secret"]))
 
 
 @app.route("/admin/users")
@@ -3451,6 +3499,15 @@ def decrypt_backup_command(path, key):
     with open(out, "wb") as fh:
         fh.write(data)
     click.echo("Saved " + out)
+
+
+@app.cli.command("reset-admin-2fa")
+@click.argument("email")
+def reset_admin_2fa_command(email):
+    """Unlink an admin's authenticator app (lost phone and recovery codes). They set it up again at the next sign-in."""
+    n = db.count("UPDATE users SET totp_secret=NULL, totp_last_step=NULL, totp_recovery=NULL, "
+                 "session_version=session_version+1 WHERE email=?", email.strip().lower())
+    click.echo("Reset." if n else "No account with that email.")
 
 
 @app.cli.command("seed")

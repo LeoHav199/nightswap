@@ -999,3 +999,8 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .transfer-task.is-done { background: var(--surface); border-color: var(--line-strong); }
 .lockbar { background: #3a1015; color: #ffb3b3; font-weight: 600; }
 .warn-text { color: #ffb3b3; }
+.totp-qr { background: #fff; border-radius: 12px; padding: 12px; width: 200px; margin: 8px auto; }
+.totp-qr svg { display: block; width: 100%; height: auto; }
+.totp-secret { word-break: break-all; }
+.recovery-codes { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 20px; }
+.recovery-codes code { font-size: 17px; letter-spacing: 1px; }

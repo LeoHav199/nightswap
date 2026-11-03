@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Authenticator · Admin · Spare{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" data-once>
+    {{ m.csrf() }}<input type="hidden" name="next" value="{{ next }}">
+    <h1>{{ 'Replace your authenticator' if replacing else 'Set up your authenticator' }}</h1>
+    <p class="muted">The admin area is protected with a code from an authenticator app (1Password, Google Authenticator or Aegis), not by email. Someone who gets into your inbox still can't open it.</p>
+    <ol class="steps small">
+      <li>In your authenticator app, add an account and scan this QR code.</li>
+      <li>Type the 6-digit code it shows.</li>
+    </ol>
+    <div class="totp-qr">{{ qr|safe }}</div>
+    <p class="muted small">Can't scan? Enter this key by hand: <code class="totp-secret">{{ secret }}</code></p>
+    <label class="field"><span class="label">Code from the app</span>
+      <input class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required>
+      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}</label>
+    <button class="btn btn-accent btn-block btn-lg" type="submit">Link the app</button>
+  </form>
+</div>
+{% endblock %}

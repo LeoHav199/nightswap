@@ -33,15 +33,16 @@ login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); logi
 # ---- Admin second factor
 r = admin.get("/admin")
 ok(r.status_code == 302 and "/admin/verify" in r.location, "admin area asks for the extra check")
+# (#23: an authenticator app, see hardening_test.py for the details)
+import totp
 r = admin.get("/admin/verify", follow_redirects=True)
-ok("verified phone number" in html(r), "admins must have a verified phone first")
-phone(admin, "0699999999")
-r = admin.get("/admin/verify", follow_redirects=True)
-real = code_of(r)
-admin.post("/admin/verify", data={"code": "000000" if real != "000000" else "111111", "next": "/admin", "_csrf": csrf(admin)})
+secret = re.search(r'class="totp-secret">([A-Z2-7]+)<', html(r)).group(1)
+real = totp.code_at(secret, totp.current_step())
+admin.post("/admin/authenticator", data={"code": "000000" if real != "000000" else "111111", "next": "/admin", "_csrf": csrf(admin)})
 ok(admin.get("/admin").status_code == 302, "wrong admin code doesn't get you in")
-admin.post("/admin/verify", data={"code": real, "next": "/admin", "_csrf": csrf(admin)})
-ok(admin.get("/admin").status_code == 200, "correct text code opens the admin area")
+admin.post("/admin/authenticator", data={"code": real, "next": "/admin", "_csrf": csrf(admin)})
+ok(admin.get("/admin").status_code == 200, "the authenticator code opens the admin area")
+phone(admin, "0699999999")
 
 # ---- 18+ to sell
 phone(seller, "0611111111")

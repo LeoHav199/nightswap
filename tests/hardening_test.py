@@ -403,4 +403,45 @@ ok("the organiser allows name changes, says the seller" in lp, "#21 buyers see t
 ok("connected to this venue" in lp and "Sold by a private person" in lp, "#21 the listing page has the not-affiliated and private-seller lines")
 with app.app_context(): ok(A.db.one("SELECT name_on_ticket FROM listings WHERE id=?", nlid)["name_on_ticket"] == "changeable", "#21 the answer is stored on the listing")
 
+# --- #23: an authenticator app for admins, not an email code
+import totp, base64, json as _json
+ok(totp.code_at(base64.b32encode(b"12345678901234567890").decode(), 1) == "287082", "#23 TOTP matches the RFC 6238 test vector")
+config.ADMIN_SECOND_FACTOR = True
+boss = app.test_client(); login(boss, "admin@example.com", "Ad")
+r = boss.get("/admin")
+ok(r.status_code == 302 and "/admin/verify" in r.location, "#23 /admin asks for the extra check")
+r = boss.get("/admin/verify")
+ok(r.status_code == 302 and "/admin/authenticator" in r.location, "#23 without an authenticator, admins are sent to set one up (no email fallback)")
+MAIL_WORKS[0] = True; SENT.clear()
+page = html(boss.get("/admin/authenticator"))
+secret = re.search(r'class="totp-secret">([A-Z2-7]+)<', page).group(1)
+ok("<svg" in page and "otpauth" not in page, "#23 the setup page shows a QR code to scan")
+r = boss.post("/admin/authenticator", data={"code": totp.code_at(secret, totp.current_step()), "_csrf": csrf(boss)})
+codes = re.findall(r"<code>([a-z2-9]{4}-[a-z2-9]{4})</code>", html(r))
+ok(len(codes) == 8, "#23 linking the app shows 8 one-time recovery codes")
+ok(any("authenticator set up" in sub for to, sub, b in SENT), "#23 the admins get an email when an authenticator is linked")
+with app.app_context(): u = A.db.one("SELECT * FROM users WHERE email='admin@example.com'")
+ok(secret not in (u["totp_secret"] or "") and not any(c in (u["totp_recovery"] or "") for c in codes), "#23 the secret is stored encrypted and recovery codes only as hashes")
+ok(boss.get("/admin").status_code == 200, "#23 ...and the admin area opens")
+def expire(c):
+    with c.session_transaction() as sess: sess["admin_ok_until"] = 0
+    return c
+boss2 = expire(boss)
+used = totp.code_at(secret, totp.current_step())
+boss2.post("/admin/verify", data={"code": used, "next": "/admin", "_csrf": csrf(boss2)})
+ok(boss2.get("/admin").status_code == 302, "#23 a code that was already used is refused")
+boss2.post("/admin/verify", data={"code": totp.code_at(secret, totp.current_step() + 1), "next": "/admin", "_csrf": csrf(boss2)})
+ok(boss2.get("/admin").status_code == 200, "#23 the next code works (one step of clock drift allowed)")
+boss3 = expire(boss)
+boss3.post("/admin/verify", data={"code": codes[0], "next": "/admin", "_csrf": csrf(boss3)})
+ok(boss3.get("/admin").status_code == 200, "#23 a recovery code opens the admin area")
+boss4 = expire(boss)
+boss4.post("/admin/verify", data={"code": codes[0], "next": "/admin", "_csrf": csrf(boss4)})
+ok(boss4.get("/admin").status_code == 302, "#23 ...but only once")
+ok(boss4.get("/admin/authenticator").status_code == 302, "#23 replacing the authenticator needs a verified admin session")
+res = app.test_cli_runner().invoke(args=["reset-admin-2fa", "admin@example.com"])
+with app.app_context(): ok("Reset" in res.output and A.db.one("SELECT totp_secret FROM users WHERE email='admin@example.com'")["totp_secret"] is None,
+                           "#23 'flask --app app reset-admin-2fa <email>' unlinks it if everything is lost")
+config.ADMIN_SECOND_FACTOR = False; MAIL_WORKS[0] = False
+
 print("FAILED:", fails or "none")
