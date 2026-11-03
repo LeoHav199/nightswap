@@ -644,4 +644,5 @@ STRINGS = {
     "dsa_what_account": "wir haben dein Konto gesperrt. Deine Angebote sind offline und Auszahlungen angehalten.",
     "dsa_what_listing": "wir haben dein Angebot für {title} entfernt.",
     "dsa_what_account_listing": "wir haben dein Angebot für {title} entfernt und dein Konto gesperrt. Deine anderen Angebote sind offline und Auszahlungen angehalten.",
+    "offline_saved": "Auf diesem Handy gespeichert: Diese Seite und der QR-Code öffnen sich auch ohne Empfang.",
 }

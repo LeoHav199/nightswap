@@ -183,4 +183,15 @@ admin.post("/admin/users/%d/block" % uid, data={"reason": "Tried to sell outside
 ok(any(to == "fresh@test.nl" and "we blocked your account" in b and "Tried to sell outside Spare." in b for to, sub, b in SENT), "#12 a blocked user is told why and how to object")
 MAIL_WORKS[0] = False
 
+# --- #13: the buyer's ticket page works without signal at the door
+r = buyer.get("/orders/%s" % pub)
+ok(r.headers.get("X-Spare-Offline") == (date.fromisoformat(D) + timedelta(days=3)).isoformat() and "data-offline-note" in html(r),
+   "#13 the buyer's paid order page is marked for offline use, until 3 days after the event")
+ok("X-Spare-Offline" not in seller.get("/orders/%s" % pub).headers, "#13 the seller's view of the order isn't kept offline")
+with live_test_mode():
+    ok("X-Spare-Offline" not in buyer.get("/orders/%s" % pub).headers, "#13 nothing is kept offline while the real site is test-locked")
+sw = open("static/js/sw.js", encoding="utf-8").read()
+ok("spare-orders" in sw and '"/logout"' in sw and "X-Spare-Offline" in sw, "#13 the service worker stores marked order pages and forgets them on sign-out")
+ok("never push" in open("CLAUDE.md", encoding="utf-8").read().lower(), "#13 CLAUDE.md has the no-deploys-on-event-nights rule")
+
 print("FAILED:", fails or "none")

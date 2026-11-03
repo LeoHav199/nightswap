@@ -644,4 +644,5 @@ STRINGS = {
     "dsa_what_account": "on a bloqué ton compte. Tes annonces ne sont plus en vente et les versements sont suspendus.",
     "dsa_what_listing": "on a retiré ton annonce pour {title}.",
     "dsa_what_account_listing": "on a retiré ton annonce pour {title} et bloqué ton compte. Tes autres annonces ne sont plus en vente et les versements sont suspendus.",
+    "offline_saved": "Enregistré sur ce téléphone : cette page et le QR code s'ouvrent aussi sans réseau.",
 }

@@ -6,6 +6,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Leo is a student building this as a business, not a developer. Explain steps plainly, one at a time, with exactly where to click; give commands in separate code blocks he can paste.
 - Leo makes the product calls. When he suggests an idea, give an honest opinion (including "don't do this") and a recommendation, then build what he picks.
 - Leo signs up for outside services himself (GitHub, Stripe, Render, Brevo, all under his own email). Never ask him to paste keys, tokens or passwords into the chat; they go into `.env` locally or Render's Environment page.
+- **Never push to production between Thursday and Saturday, 18:00 to 04:00 Amsterdam time**, unless it fixes a live outage: Render can't deploy without about a minute of downtime (the disk), and buyers open their tickets at the door.
 - Run `sh tests/run_all.sh` after changes, then commit and `git push` (his Mac has the GitHub token saved; on slow Wi-Fi a push can time out, so just retry).
 - To show the site on his phone or to family at home: start the `nightswap-phone` server and give http://<Mac's Wi-Fi IP>:5002. Home Wi-Fi only, since sign-in codes show on screen in development. If the preview tool can't reach the Desktop folder, start it with Bash instead: `../.venv/bin/flask --app app.py run --host 0.0.0.0 --port 5002`.
 - The project was built in an earlier Claude account; this file is the handover. History lives in git (`git log`).
@@ -35,7 +36,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 ## Stack
 - Flask 3, SQLite in WAL mode, Jinja templates, plain JS and CSS, no build step. Python 3.9 locally, 3.11 on Render.
 - `app.py` holds all the routes. The rest: `db.py` (schema plus migrations in `ADDED_COLUMNS`), `config.py` (all settings come from env vars or `.env`), `payments.py` (Stripe Checkout and Connect Accounts **v2**), `notify.py` (SMTP email, Twilio SMS), `push.py` (web push), `wallet.py` (Apple Wallet), `ticketcodes.py` (duplicate QR check), `importer.py` (schema.org event import), `i18n.py` + `locales/` (translations).
-- Installable web app: `static/js/sw.js` (bump `VERSION` when caching changes), the manifest is served by `app.py`, and static links carry `?v=hash`.
+- Installable web app: `static/js/sw.js` (bump `VERSION` when caching changes); the buyer's paid order pages are kept offline in the `spare-orders` cache when the server sends `X-Spare-Offline`, forgotten 3 days after the event and on sign-out, the manifest is served by `app.py`, and static links carry `?v=hash`.
 - Without a Stripe key it uses a pretend checkout. Without SMTP or Twilio, sign-in codes are printed and shown on screen (development only).
 
 ## Running

@@ -1332,8 +1332,11 @@ def order_page(public_id):
                       if wallet.enabled() and wallet.supports(tk)]
     due = parse_sqltime(order["payout_due_at"])
     is_buyer = g.user["id"] == order["buyer_id"]
-    return render_template(
-        "order.html", order=order, l=listing, buyer=buyer, seller=seller, payout_due=due, files=files,
+    # #13: the buyer's paid order page (with the QR code) may be kept on their phone for the door, where there's
+    # often no signal. The service worker only stores pages with this header, until 3 days after the event.
+    offline = is_buyer and order["status"] in PAID_STATES and not (g.get("test_lock") and not g.is_admin)
+    resp = app.make_response(render_template(
+        "order.html", offline=offline, order=order, l=listing, buyer=buyer, seller=seller, payout_due=due, files=files,
         wallet_tickets=wallet_tickets, just_paid=just_paid and order["status"] in PAID_STATES,
         qr_codes=[(tk["id"], qr_svg(tk["code_text"])) for tk in db.all("SELECT * FROM tickets WHERE order_id=? ORDER BY id", order["id"])
                   if tk["code_text"] and tk["code_format"] == "QR"] if order["status"] in PAID_STATES and g.user["id"] == order["buyer_id"] else [],
@@ -1345,7 +1348,11 @@ def order_page(public_id):
         can_report=order["status"] == "paid" and due and utcnow() < due and is_buyer,
         can_rate=(is_buyer and order["status"] in PAID_STATES and not order["rating"]
                   and listing["event_date"] <= today().isoformat()),
-    )
+    ))
+    if offline:
+        resp.headers["X-Spare-Offline"] = (date.fromisoformat(listing["event_date"]) + timedelta(days=3)).isoformat()
+    resp.headers["Cache-Control"] = "private, no-cache"
+    return resp
 
 
 @app.route("/orders/<public_id>/tickets/<int:ticket_id>")

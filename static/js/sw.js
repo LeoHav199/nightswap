@@ -1,7 +1,21 @@
 // Spare service worker: fast repeat visits and an offline page.
 // Pages always come from the network first (prices and availability change constantly);
 // static files are served from cache and refreshed in the background.
-const VERSION = "spare-v8";
+const VERSION = "spare-v9";
+// The buyer's paid order pages (with the QR code), kept for the door where there's often no signal.
+// Only pages the server marks with X-Spare-Offline (its value: the date to forget them) are stored.
+const ORDERS = "spare-orders";
+const ORDER_PAGE = /^\/orders\/[A-Za-z0-9_-]+$/;
+const SIGN_OUT = ["/logout", "/account/sign-out-everywhere", "/account/delete"];
+
+function forgetOldOrders() {
+  const today = new Date().toISOString().slice(0, 10);
+  return caches.open(ORDERS).then((cache) => cache.keys().then((reqs) => Promise.all(reqs.map((r) =>
+    cache.match(r).then((res) => {
+      const until = res && res.headers.get("X-Spare-Offline");
+      if (!until || until < today) return cache.delete(r);
+    })))));
+}
 // Static file URLs carry ?v=<hash>, so a changed file is a new URL and is always fetched fresh.
 const PRECACHE = ["/offline", "/static/favicon.svg", "/static/icons/icon-192.png"];
 
@@ -12,15 +26,33 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== ORDERS).map((k) => caches.delete(k))))
+      .then(forgetOldOrders)
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
   const url = new URL(req.url);
+  if (req.method === "POST" && url.origin === location.origin && SIGN_OUT.includes(url.pathname)) {
+    event.waitUntil(caches.delete(ORDERS));  // signing out forgets the saved tickets
+    return;
+  }
+  if (req.method !== "GET") return;
+
+  if (req.mode === "navigate" && url.origin === location.origin && ORDER_PAGE.test(url.pathname)) {
+    const key = url.origin + url.pathname;
+    event.respondWith(
+      fetch(req).then((res) => {
+        const store = caches.open(ORDERS).then((cache) =>
+          res.ok && res.headers.get("X-Spare-Offline") ? cache.put(key, res.clone()) : res.ok ? cache.delete(key) : null);
+        event.waitUntil(store.then(forgetOldOrders));
+        return res;
+      }).catch(() => caches.open(ORDERS).then((cache) => cache.match(key)).then((hit) => hit || caches.match("/offline")))
+    );
+    return;
+  }
 
   if (req.mode === "navigate") {
     event.respondWith(fetch(req).catch(() => caches.match("/offline")));

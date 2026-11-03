@@ -30,6 +30,7 @@
             </div>
             <p class="muted small center">{{ t('qr_hint') }}</p>
           {% endif %}
+          {% if offline %}<p class="muted small center offline-note" data-offline-note hidden>✓ {{ t('offline_saved') }}</p>{% endif %}
           {% if l.delivery == 'transfer' %}
             {% set app = app_name(l.transfer_app) %}
             <div class="transfer-task {{ 'is-done' if order.received_at }}">

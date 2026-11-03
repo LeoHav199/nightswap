@@ -7,6 +7,17 @@
   document.addEventListener("load", function (e) {
     if (e.target.tagName === "IMG" && e.target.hasAttribute("data-fade")) faded(e.target);
   }, true);
+  // #13: tell the buyer their ticket page also works without signal, once the service worker has stored it.
+  var offlineNote = document.querySelector("[data-offline-note]");
+  if (offlineNote && window.caches && navigator.serviceWorker && navigator.serviceWorker.controller) {
+    var tries = 0;
+    (function check() {
+      caches.open("spare-orders").then(function (c) { return c.match(location.origin + location.pathname); }).then(function (hit) {
+        if (hit) offlineNote.hidden = false;
+        else if (++tries < 5) setTimeout(check, 1000);
+      }).catch(function () {});
+    })();
+  }
   document.querySelectorAll("input[data-select-all]").forEach(function (el) {
     el.addEventListener("click", function () { el.select(); });
   });
