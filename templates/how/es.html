@@ -1,0 +1,55 @@
+{% set apps = transfer_apps.values()|select|join(', ') %}
+<div class="wrap prose-grid">
+  <section class="panel">
+    <h2>Comprar</h2>
+    <ol class="steps">
+      <li><strong>Encuentra tu entrada.</strong> Todas las entradas están ordenadas por noche, con el precio total a la vista.</li>
+      <li><strong>Paga con iDEAL o tarjeta.</strong> Pagas el precio del vendedor más {{ fee }} de gastos de servicio.</li>
+      <li><strong>Recibe tu entrada.</strong> Una entrada en archivo está en tu cuenta y en tu correo nada más pagar. Una entrada que está en una app ({{ apps }}) te la envía el vendedor a tu cuenta en esa app.</li>
+    </ol>
+    <p class="muted">¿Tu entrada no funciona en la puerta? Avísanos desde tu pedido antes de que se le pague al vendedor, como muy tarde {{ payout_hours }} horas después de la noche, y te devolvemos el dinero.</p>
+  </section>
+  <section class="panel">
+    <h2>Vender</h2>
+    <ol class="steps">
+      {% if sms_enabled %}
+      <li><strong>Verifica tu número de teléfono una vez.</strong> Los compradores nunca lo ven; solo lo usamos si algo sale mal.</li>
+      {% else %}
+      <li><strong>Añade tu número de teléfono una vez.</strong> Los compradores nunca lo ven; solo lo usamos para contactarte si algo sale mal.</li>
+      {% endif %}
+      <li><strong>Publica tu entrada.</strong> Lugar, fecha, precio y el archivo de la entrada, o la app donde está. Te lleva un minuto.</li>
+      <li><strong>Cobra.</strong> Tu precio menos la comisión de vendedor. Si el comprador confirma el día del evento que la entrada funcionó, cobras al momento; si no, {{ payout_hours }} horas después de la noche, siempre que el comprador no haya avisado de un problema. Con una entrada en una app, solo después de marcarla como transferida.</li>
+    </ol>
+  </section>
+  <section class="panel" id="fees">
+    <h2>Comisiones</h2>
+    <dl class="breakdown">
+      <div><dt>Compradores</dt><dd>{{ fee }} por entrada</dd></div>
+      <div><dt>Vendedores</dt><dd>{{ seller_fee_label }} por entrada, descontado del pago</dd></div>
+      <div><dt>Precio máximo</dt><dd>{{ 'Precio original' if price_cap == 100 else 'Precio original + ' ~ price_markup ~ '%' }}</dd></div>
+    </dl>
+    <p class="muted">Sin costes ocultos. Los compradores ven en la lista el precio total con gastos incluidos, y los vendedores ven exactamente lo que recibirán antes de publicar.</p>
+  </section>
+  <section class="panel">
+    <h2>Seguridad</h2>
+    <ul class="checks">
+      <li>Tu dinero queda retenido hasta que confirmas que la entrada funcionó, o como muy tarde {{ payout_hours }} horas después de la noche. No va directo al vendedor.</li>
+      {% if sms_enabled %}
+      <li>Cada vendedor tiene un número de teléfono y un email verificados.</li>
+      {% else %}
+      <li>Cada vendedor tiene un email confirmado y nos dio un número de teléfono en el que podemos contactarle.</li>
+      {% endif %}
+      <li>Cada entrada subida se compara con todas las entradas de Spare, por su archivo y por su código QR o de barras.</li>
+      <li>Los pagos pasan por Stripe; nunca vemos ni guardamos tus datos bancarios.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="wrap faq">
+  <h2>{{ t('faq') }}</h2>
+  <details><summary>¿Puedo revender mi entrada?</summary><p>Normalmente sí, pero algunos organizadores prohíben la reventa o imprimen tu nombre en la entrada. Revisa las condiciones del evento antes de vender.</p></details>
+  <details><summary>¿Qué entradas puedo publicar?</summary><p>Dos tipos. Una entrada en archivo: un PDF o una imagen con código QR o de barras, que el comprador descarga. O una entrada que está en una app ({{ apps }} u otra app con botón de transferir): el comprador da el nombre y el email de su cuenta en esa app, tú la transfieres con el botón de la app y pulsas «{{ t('seller_transfer_done_btn') }}», y el comprador confirma que le ha llegado.</p></details>
+  <details><summary>¿Y si el vendedor vende la misma entrada también en otro sitio?</summary><p>Avísanos desde tu pedido antes de que se le pague al vendedor. Te devolvemos el dinero y bloqueamos al vendedor.</p></details>
+  <details><summary>¿Cuándo cobro como vendedor?</summary><p>Si el comprador confirma el día del evento que la entrada funcionó, al momento. Si no, {{ payout_hours }} horas después de la noche, siempre que el comprador no haya avisado de un problema. Con una entrada en una app, solo cuando la hayas marcado como transferida. Configuras tus pagos una sola vez a través de Stripe con tu IBAN.</p></details>
+  <details><summary>¿Puedo cambiar o quitar mi anuncio?</summary><p>Puedes cambiar el precio en la página de tu anuncio, siempre que no pase del máximo. Puedes quitarlo cuando quieras antes de que se venda.</p></details>
+</div>

@@ -62,4 +62,36 @@ ok(c.post("/tasks/hourly", base_url="https://nightswap.onrender.com").status_cod
 ok(c.get("/robots.txt", base_url="https://sparetickets.eu").status_code == 200, "#1 sparetickets.eu itself isn't redirected")
 config.DEV, config.BASE_URL = saved
 
+# --- #2, #3: event tickets, not only club tickets; no "students selling to students" promise
+import i18n
+for lang in i18n.LANGS:
+    ok(len(i18n.STRINGS[lang]["meta_description"]) <= 155, "#2 the %s Google description fits in 155 characters" % lang)
+home = html(visitor.get("/"))
+ok("Resell event tickets in Rotterdam" in home and "concerts and festivals" in home, "#2 the title, description and footer name more than club tickets")
+ok("Students selling to students" not in home and "from students, for students" not in home and "Made for students in Rotterdam" in home,
+   "#3 the homepage no longer claims every buyer and seller is a student")
+nl = app.test_client(); nl.set_cookie("lang", "nl")
+ok("Van studenten, voor studenten" not in html(nl.get("/")) and "Gemaakt voor studenten in Rotterdam" in html(nl.get("/")), "#3 the same in Dutch")
+
+# --- #4: one payout rule everywhere, matching rate_order and release_payout
+how, terms = html(visitor.get("/how-it-works")), html(visitor.get("/terms"))
+ok("on the day of the event that the ticket worked" in how and "48 hours after the night" in how, "#4 How it works describes the early and the latest payout")
+ok("on the day of the event that the ticket worked" in terms and "nothing is paid out until the seller has transferred it" in terms, "#4 the terms say the same")
+ok("held until after the event" not in how, "#4 no more 'held until after the event'")
+
+# --- #5: the FAQ is up to date and how-it-works exists in every language
+ok("Two kinds" in how and "Ticketmaster" in how and "change the price on your listing" in how, "#5 the FAQ explains app tickets and the price-change form")
+for lang in ("fr", "de", "es"):
+    c = app.test_client(); c.set_cookie("lang", lang); page = html(c.get("/how-it-works"))
+    ok(("<h2>" + {"fr": "Vendre", "de": "Verkaufen", "es": "Vender"}[lang] + "</h2>") in page and "Buying" not in page, "#5 How it works is translated into %s" % lang)
+
+# --- #6: no "verified phone" claim while codes go by email
+ok("gave us a phone number" in how and "verified phone number" not in how, "#6 without SMS, the page doesn't claim phones are verified")
+config.SMS_ENABLED = True
+ok("Every seller has a verified phone number" in html(visitor.get("/how-it-works")), "#6 with real SMS on, it does")
+config.SMS_ENABLED = False
+
+# --- #7: the duplicate check is described as what it is
+ok("checked against all tickets on Spare" in how and "can only be listed once" not in how, "#7 the duplicate promise says what's checked")
+
 print("FAILED:", fails or "none")

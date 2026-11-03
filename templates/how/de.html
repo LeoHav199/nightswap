@@ -1,0 +1,55 @@
+{% set apps = transfer_apps.values()|select|join(', ') %}
+<div class="wrap prose-grid">
+  <section class="panel">
+    <h2>Kaufen</h2>
+    <ol class="steps">
+      <li><strong>Finde dein Ticket.</strong> Alle Tickets sind nach Abend sortiert, mit dem Gesamtpreis direkt dabei.</li>
+      <li><strong>Bezahl mit iDEAL oder Karte.</strong> Du zahlst den Preis des Verkäufers plus {{ fee }} Servicegebühr.</li>
+      <li><strong>Erhalte dein Ticket.</strong> Eine Ticketdatei liegt direkt nach dem Bezahlen in deinem Konto und deinem Postfach. Ein Ticket, das in einer App liegt ({{ apps }}), schickt der Verkäufer an dein Konto in dieser App.</li>
+    </ol>
+    <p class="muted">Dein Ticket funktioniert am Eingang nicht? Melde es über deine Bestellung, bevor der Verkäufer bezahlt wird, spätestens {{ payout_hours }} Stunden nach dem Abend, und du bekommst dein Geld zurück.</p>
+  </section>
+  <section class="panel">
+    <h2>Verkaufen</h2>
+    <ol class="steps">
+      {% if sms_enabled %}
+      <li><strong>Bestätige einmal deine Telefonnummer.</strong> Käufer sehen sie nie; wir nutzen sie nur, wenn etwas schiefgeht.</li>
+      {% else %}
+      <li><strong>Gib einmal deine Telefonnummer an.</strong> Käufer sehen sie nie; wir nutzen sie nur, um dich zu erreichen, wenn etwas schiefgeht.</li>
+      {% endif %}
+      <li><strong>Stell dein Ticket ein.</strong> Location, Datum, Preis und die Ticketdatei, oder die App, in der es liegt. Dauert etwa eine Minute.</li>
+      <li><strong>Werde bezahlt.</strong> Dein Preis minus Verkäufergebühr. Bestätigt der Käufer am Tag des Events, dass das Ticket funktioniert hat, bekommst du das Geld sofort; sonst {{ payout_hours }} Stunden nach dem Abend, solange der Käufer kein Problem gemeldet hat. Bei einem Ticket in einer App erst, nachdem du es als übertragen markiert hast.</li>
+    </ol>
+  </section>
+  <section class="panel" id="fees">
+    <h2>Gebühren</h2>
+    <dl class="breakdown">
+      <div><dt>Käufer</dt><dd>{{ fee }} pro Ticket</dd></div>
+      <div><dt>Verkäufer</dt><dd>{{ seller_fee_label }} pro Ticket, von der Auszahlung abgezogen</dd></div>
+      <div><dt>Höchstpreis</dt><dd>{{ 'Originalpreis' if price_cap == 100 else 'Originalpreis + ' ~ price_markup ~ '%' }}</dd></div>
+    </dl>
+    <p class="muted">Keine versteckten Kosten. Käufer sehen in der Liste den Gesamtpreis inklusive Servicegebühr, Verkäufer sehen vorher genau, was sie bekommen.</p>
+  </section>
+  <section class="panel">
+    <h2>Sicherheit</h2>
+    <ul class="checks">
+      <li>Dein Geld wird zurückgehalten, bis du bestätigst, dass das Ticket funktioniert hat, oder spätestens {{ payout_hours }} Stunden nach dem Abend. Es geht nicht direkt an den Verkäufer.</li>
+      {% if sms_enabled %}
+      <li>Jeder Verkäufer hat eine bestätigte Telefonnummer und E-Mail-Adresse.</li>
+      {% else %}
+      <li>Jeder Verkäufer hat eine bestätigte E-Mail-Adresse und hat uns eine Telefonnummer gegeben, unter der wir ihn erreichen.</li>
+      {% endif %}
+      <li>Jedes hochgeladene Ticket wird mit allen Tickets auf Spare abgeglichen, anhand der Datei und des QR- oder Barcodes.</li>
+      <li>Zahlungen laufen über Stripe; wir sehen oder speichern nie deine Bankdaten.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="wrap faq">
+  <h2>{{ t('faq') }}</h2>
+  <details><summary>Darf ich mein Ticket weiterverkaufen?</summary><p>Meistens ja, aber manche Veranstalter verbieten den Weiterverkauf oder drucken deinen Namen aufs Ticket. Prüf die Bedingungen des Events, bevor du verkaufst.</p></details>
+  <details><summary>Welche Tickets kann ich einstellen?</summary><p>Zwei Arten. Eine Ticketdatei: ein PDF oder Bild mit QR- oder Barcode, das der Käufer herunterlädt. Oder ein Ticket, das in einer App liegt ({{ apps }} oder eine andere App mit Übertragen-Knopf): Der Käufer gibt Name und E-Mail seines Kontos in dieser App an, du überträgst es mit dem Knopf der App und tippst auf „{{ t('seller_transfer_done_btn') }}“, und der Käufer bestätigt, dass es angekommen ist.</p></details>
+  <details><summary>Was, wenn der Verkäufer dasselbe Ticket auch woanders verkauft?</summary><p>Melde es über deine Bestellung, bevor der Verkäufer bezahlt wird. Du bekommst dein Geld zurück und der Verkäufer wird gesperrt.</p></details>
+  <details><summary>Wann werde ich als Verkäufer bezahlt?</summary><p>Bestätigt der Käufer am Tag des Events, dass das Ticket funktioniert hat, sofort. Sonst {{ payout_hours }} Stunden nach dem Abend, solange der Käufer kein Problem gemeldet hat. Bei einem Ticket in einer App erst, wenn du es als übertragen markiert hast. Deine Auszahlung richtest du einmal über Stripe mit deiner IBAN ein.</p></details>
+  <details><summary>Kann ich mein Angebot ändern oder löschen?</summary><p>Den Preis änderst du auf der Seite deines Angebots, solange er unter dem Höchstpreis bleibt. Löschen kannst du es jederzeit, bevor es verkauft ist.</p></details>
+</div>

@@ -73,7 +73,7 @@ buyer.post("/orders/%s/rate" % pub, data={"rating": "up", "_csrf": csrf(buyer)})
 with app.app_context(): o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
 ok(o["status"] == "released" and o["rating"] == "up", "the buyer's thumbs-up pays the seller straight away")
 ok("on its way" in html(seller.get("/orders/%s" % pub)), "the seller sees the money is on its way")
-ok("as soon as the buyer confirms the ticket worked" in html(buyer.get("/how-it-works")).lower(), "How it works explains the early payout")
+ok("confirms on the day of the event that the ticket worked" in html(buyer.get("/how-it-works")).lower(), "How it works explains the early payout")
 
 # --- Explained honestly
 how = html(buyer.get("/how-it-works"))

@@ -1,0 +1,55 @@
+{% set apps = transfer_apps.values()|select|join(', ') %}
+<div class="wrap prose-grid">
+  <section class="panel">
+    <h2>Acheter</h2>
+    <ol class="steps">
+      <li><strong>Trouve ton billet.</strong> Tous les billets sont classés par soirée, avec le prix total affiché d'emblée.</li>
+      <li><strong>Paie avec iDEAL ou par carte.</strong> Tu paies le prix du vendeur plus {{ fee }} de frais de service.</li>
+      <li><strong>Reçois ton billet.</strong> Un billet en fichier est dans ton compte et ta boîte mail dès le paiement. Un billet qui se trouve dans une appli ({{ apps }}) est transféré par le vendeur vers ton compte dans cette appli.</li>
+    </ol>
+    <p class="muted">Ton billet ne marche pas à l'entrée ? Signale-le depuis ta commande avant que le vendeur soit payé, au plus tard {{ payout_hours }} heures après la soirée, et tu es remboursé.</p>
+  </section>
+  <section class="panel">
+    <h2>Vendre</h2>
+    <ol class="steps">
+      {% if sms_enabled %}
+      <li><strong>Vérifie ton numéro de téléphone une fois.</strong> Les acheteurs ne le voient jamais ; on ne l'utilise qu'en cas de problème.</li>
+      {% else %}
+      <li><strong>Indique ton numéro de téléphone une fois.</strong> Les acheteurs ne le voient jamais ; on ne l'utilise que pour te joindre en cas de problème.</li>
+      {% endif %}
+      <li><strong>Mets ton billet en vente.</strong> Lieu, date, prix et le fichier du billet, ou l'appli où il se trouve. Ça prend une minute.</li>
+      <li><strong>Sois payé.</strong> Ton prix moins les frais vendeur. Si l'acheteur confirme le jour de l'événement que le billet a marché, tu es payé tout de suite ; sinon {{ payout_hours }} heures après la soirée, tant que l'acheteur n'a pas signalé de problème. Pour un billet dans une appli, seulement après l'avoir marqué comme transféré.</li>
+    </ol>
+  </section>
+  <section class="panel" id="fees">
+    <h2>Frais</h2>
+    <dl class="breakdown">
+      <div><dt>Acheteurs</dt><dd>{{ fee }} par billet</dd></div>
+      <div><dt>Vendeurs</dt><dd>{{ seller_fee_label }} par billet, déduits du versement</dd></div>
+      <div><dt>Prix maximum</dt><dd>{{ "Prix d'origine" if price_cap == 100 else "Prix d'origine + " ~ price_markup ~ '%' }}</dd></div>
+    </dl>
+    <p class="muted">Pas de frais cachés. Les acheteurs voient le prix total, frais compris, dans la liste, et les vendeurs voient exactement ce qu'ils recevront avant de publier.</p>
+  </section>
+  <section class="panel">
+    <h2>Sécurité</h2>
+    <ul class="checks">
+      <li>Ton argent est bloqué jusqu'à ce que tu confirmes que le billet a marché, ou au plus tard {{ payout_hours }} heures après la soirée. Il ne va pas directement au vendeur.</li>
+      {% if sms_enabled %}
+      <li>Chaque vendeur a un numéro de téléphone et une adresse e-mail vérifiés.</li>
+      {% else %}
+      <li>Chaque vendeur a une adresse e-mail confirmée et nous a donné un numéro de téléphone où le joindre.</li>
+      {% endif %}
+      <li>Chaque billet envoyé est comparé à tous les billets sur Spare, par son fichier et par son QR code ou code-barres.</li>
+      <li>Les paiements passent par Stripe ; on ne voit ni ne stocke jamais tes coordonnées bancaires.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="wrap faq">
+  <h2>{{ t('faq') }}</h2>
+  <details><summary>Ai-je le droit de revendre mon billet ?</summary><p>En général oui, mais certains organisateurs interdisent la revente ou impriment ton nom sur le billet. Vérifie les conditions de l'événement avant de vendre.</p></details>
+  <details><summary>Quels billets puis-je mettre en vente ?</summary><p>Deux sortes. Un billet en fichier : un PDF ou une image avec un QR code ou un code-barres, que l'acheteur télécharge. Ou un billet qui se trouve dans une appli ({{ apps }} ou une autre appli avec un bouton de transfert) : l'acheteur donne le nom et l'e-mail de son compte dans cette appli, tu le transfères avec le bouton de l'appli et tu appuies sur « {{ t('seller_transfer_done_btn') }} », puis l'acheteur confirme qu'il l'a reçu.</p></details>
+  <details><summary>Et si le vendeur vend aussi le même billet ailleurs ?</summary><p>Signale-le depuis ta commande avant que le vendeur soit payé. Tu es remboursé et le vendeur est bloqué.</p></details>
+  <details><summary>Quand suis-je payé en tant que vendeur ?</summary><p>Si l'acheteur confirme le jour de l'événement que le billet a marché, tout de suite. Sinon {{ payout_hours }} heures après la soirée, tant que l'acheteur n'a pas signalé de problème. Pour un billet dans une appli, seulement une fois que tu l'as marqué comme transféré. Tu configures tes versements une seule fois via Stripe avec ton IBAN.</p></details>
+  <details><summary>Puis-je modifier ou retirer mon annonce ?</summary><p>Tu peux changer le prix sur la page de ton annonce, tant qu'il reste sous le maximum. Tu peux la retirer à tout moment avant la vente.</p></details>
+</div>

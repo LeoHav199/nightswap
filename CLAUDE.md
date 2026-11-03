@@ -72,4 +72,4 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 
 ## Still open
 - Marketing plan: student associations, ambassadors, Instagram/TikTok, flyers at venues, organiser partnerships (Exchange Party, ESN), referral credit.
-- The how-it-works, terms and privacy pages fall back to English for fr/de/es.
+- The terms and privacy pages fall back to English for fr/de/es (to be translated once they're rewritten for review items #19 and #20). How it works has one file per language in `templates/how/`; its payout and safety texts must match `rate_order`/`release_payout`.

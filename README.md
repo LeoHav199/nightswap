@@ -1,6 +1,6 @@
 # Spare
 
-Student-to-student club ticket resale for Rotterdam. Flask + SQLite, Stripe Connect for payments, English and Dutch.
+Ticket resale made for students in Rotterdam: club nights, student parties, concerts and festivals, at sparetickets.eu. Flask + SQLite, Stripe Connect for payments. English and Dutch, plus French, German and Spanish.
 
 ## Run locally
 
@@ -16,10 +16,13 @@ Add your email to `ADMIN_EMAILS` in `.env` to see `/admin`.
 
 ## How money moves
 
-1. The buyer pays ticket price + service fee (default 8%, at least €1) through Stripe Checkout (iDEAL or card).
-2. The money stays on Spare's Stripe balance. The buyer can download the ticket right away.
-3. Until `PAYOUT_DELAY_HOURS` (default 48) after the event night, the buyer can report a problem, which puts the payout on hold for review in `/admin`.
-4. `flask --app app release-payouts` (run it hourly via cron) transfers the ticket price minus the seller fee to the seller's Stripe Express account. Spare keeps both fees.
+1. The buyer pays ticket price + buyer fee (default 8%, at least €1.50) through Stripe Checkout (iDEAL or card).
+2. The money stays on Spare's Stripe balance. A ticket file can be downloaded right away; a ticket in an app is transferred by the seller with the app's own button (see "Two kinds of tickets").
+3. The seller is paid the ticket price minus the seller fee (default 5%, at least €1; orders from before 28 Oct 2026 have no seller fee):
+   - straight away when the buyer confirms on the day of the event that the ticket worked (`rate_order` → `release_payout`), or
+   - at the latest `PAYOUT_DELAY_HOURS` (default 48) after the event night (`release_due_payouts`, run by the hourly task).
+   Until then the buyer can report a problem, which puts the payout on hold for review in `/admin`. App tickets are never paid out before the seller has marked them as transferred (or the buyer confirmed they arrived).
+4. Spare keeps both fees.
 
 Sellers set up payouts (IBAN + ID check, hosted by Stripe) only after their first sale, so posting a ticket stays quick.
 
@@ -42,11 +45,16 @@ Events are real records (`events` table): name, venue, city, category, date, doo
 - **Rate limits** on sign-in codes, code guesses, texts, messages, offers, reports and poster uploads. Behind a proxy (Render, Fly) set `TRUST_PROXY=1`.
 - **Sellers confirm they're 18+** the first time they post.
 
+## Two kinds of tickets
+
+- **A file** (PDF or screenshot): checked for duplicates, downloaded by the buyer after paying.
+- **In an app** with a changing QR code (`listings.delivery='transfer'`, apps in `config.TRANSFER_APPS`): the buyer gives the name and email of their account in that app, the seller transfers it and taps "I've transferred it", the buyer taps "I've got it". Sellers get one reminder after `TRANSFER_REMIND_HOURS`.
+
 ## Trust features
 
 - **Verified students:** sign up with (or later add) a university email from `STUDENT_DOMAINS` in `config.py` to get a badge.
-- **Duplicate tickets:** every upload is checked by file hash *and* by the QR code/barcode inside it (`ticketcodes.py`), so a re-saved PDF or screenshot of an already-listed ticket is refused.
-- **Ratings:** after the event, buyers answer "did your ticket work?"; a thumbs-down before the payout date opens the problem report and holds the payout.
+- **Duplicate tickets:** every uploaded file is checked against all tickets on Spare by file hash *and* by the QR code/barcode inside it (`ticketcodes.py`), so a re-saved PDF or screenshot of an already-listed ticket is refused. App tickets have no file, so they aren't checked this way, and nothing on Spare can see whether a ticket is also offered elsewhere.
+- **Ratings:** from the day of the event, buyers answer "did your ticket work?". A thumbs-up pays the seller straight away; a thumbs-down before the payout opens the problem report and holds the payout.
 - **Several tickets per listing:** one file per ticket. One file containing several QR codes becomes a set that's sold together.
 
 ## Rules you can change in `.env`
@@ -59,7 +67,7 @@ Events are real records (`events` table): name, venue, city, category, date, doo
 | `NIGHTSWAP_SELLER_FEE_MIN_CENTS` | `100` | Minimum seller fee per ticket (EUR 1.00) |
 | `NIGHTSWAP_FEE_MAX_CENTS` | `0` | Optional maximum fee per ticket (0 = none) |
 | `NIGHTSWAP_PRICE_CAP_PERCENT` | `120` | Max price as % of face value (120 = up to 20% above) |
-| `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `48` | Hold after the event night |
+| `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `48` | Latest payout, in hours after the event night (earlier when the buyer confirms) |
 
 The venue list is in `config.py` (`VENUES`). Sellers can also type another venue.
 
@@ -71,8 +79,8 @@ The venue list is in `config.py` (`VENUES`). Sellers can also type another venue
 - [ ] Email: any SMTP provider (Postmark, Mailgun, Brevo…) → `SMTP_*`, `MAIL_FROM`.
 - [ ] SMS: Twilio → `TWILIO_*` (or swap `notify.send_sms` for another provider).
 - [ ] Set `NIGHTSWAP_ENV=production`, a long random `SECRET_KEY`, `BASE_URL=https://your-domain`.
-- [ ] Host it (Fly.io, Render, Railway, a VPS) behind HTTPS with `gunicorn app:app`; keep `instance/` and `uploads/` on a persistent disk and back them up.
-- [ ] Hourly cron: `flask --app app release-payouts` and `flask --app app send-reminders` (day-of-event price nudges, "did your ticket work?" emails).
+- [ ] Host it (`render.yaml` is ready for Render) behind HTTPS with `gunicorn app:app`; keep the data directory on a persistent disk. `backup.py` emails the admins a nightly zip of the database and uploads and keeps copies in `DATA_DIR/backups`; `/admin` has "Download backup".
+- [ ] Hourly cron: POST to `/tasks/hourly` with the header `X-Task-Secret` (= `TASK_SECRET`). It releases due payouts, sends day-of-event price nudges and "did your ticket work?" emails, the day-before resell reminders and app-transfer reminders, and makes the nightly backup around 03:00. (`flask --app app release-payouts` and `send-reminders` do the first parts by hand.)
 - [ ] Check the university email domains in `config.py` (`STUDENT_DOMAINS`) against what each school issues.
 - [ ] Have the Terms and Privacy pages checked by someone with legal knowledge.
 
