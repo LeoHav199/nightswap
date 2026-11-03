@@ -591,6 +591,21 @@ def send_resell_reminders():
 # Request setup
 # --------------------------------------------------------------------------
 
+# Stripe, the cron job and Render's health check must keep working on any address.
+HOST_REDIRECT_EXEMPT = {"/webhooks/stripe", "/tasks/hourly", "/robots.txt"}
+
+
+@app.before_request
+def canonical_host():
+    """#1: serve Spare only at BASE_URL (sparetickets.eu); old addresses like nightswap.onrender.com redirect there."""
+    if config.DEV or not config.BASE_URL or request.path in HOST_REDIRECT_EXEMPT:
+        return None
+    wanted = urlparse(config.BASE_URL).netloc.lower()
+    if wanted and request.host.lower() != wanted:
+        return redirect(config.BASE_URL + request.full_path.rstrip("?"), code=301)
+    return None
+
+
 @app.before_request
 def before():
     lang = request.cookies.get("lang")

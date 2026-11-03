@@ -52,4 +52,14 @@ with live_test_mode():
     ok(admin.get("/sell").status_code == 200, "#22 admins can still test selling")
 ok(buyer.get("/orders/%s/tickets/%d" % (pub, tid)).status_code == 200, "#22 in development nothing is locked")
 
+# --- #1: one address
+saved = (config.DEV, config.BASE_URL); config.DEV = False; config.BASE_URL = "https://sparetickets.eu"
+c = app.test_client()
+r = c.get("/event?venue=Maassilo&date=%s" % D, base_url="https://nightswap.onrender.com")
+ok(r.status_code == 301 and r.location == "https://sparetickets.eu/event?venue=Maassilo&date=%s" % D, "#1 the old address redirects to sparetickets.eu, keeping the page")
+ok(c.get("/robots.txt", base_url="https://nightswap.onrender.com").status_code == 200, "#1 Render's health check still works on the old address")
+ok(c.post("/tasks/hourly", base_url="https://nightswap.onrender.com").status_code == 404, "#1 the cron job isn't redirected (404 = reached the route without its secret)")
+ok(c.get("/robots.txt", base_url="https://sparetickets.eu").status_code == 200, "#1 sparetickets.eu itself isn't redirected")
+config.DEV, config.BASE_URL = saved
+
 print("FAILED:", fails or "none")
