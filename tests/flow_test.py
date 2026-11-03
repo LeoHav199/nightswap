@@ -1,6 +1,6 @@
 import io, os, re, sys, tempfile
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
+import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0; config.FEE_MIN_CENTS = 100  # these tests were written for a flat €1 fee
 config.SELLER_FEE_PERCENT = 0; config.SELLER_FEE_MIN_CENTS = 0  # ...and no seller fee
@@ -36,7 +36,7 @@ r = seller.post("/account/phone/verify", data={"code": code, "_csrf": csrf(selle
 ok(r.location.endswith("/sell"), "phone verified, back to sell")
 pdf = b"%PDF-1.4 unique test ticket"
 def post(face, price, data=pdf):
-    return seller.post("/sell", data={"name_on_ticket": "no", "venue": "Perron", "event_date": "2026-11-07", "face_value": face, "price": price,
+    return seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "venue": "Perron", "event_date": "2026-11-07", "face_value": face, "price": price,
         "event_name": "Test Night", "adult": "yes", "ticket": (io.BytesIO(data), "t.pdf"), "poster": (io.BytesIO(b"\x89PNG fake poster"), "p.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 r = post("20", "25"); ok("maximum for this ticket is €24" in r.get_data(as_text=True), "price cap enforced (face value + 20%)")
 ok(A.max_price(2000) == 2400 and A.max_price(1550) == 1860, "sellers may ask up to 20% above face value")

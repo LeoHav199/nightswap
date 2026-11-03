@@ -43,7 +43,10 @@
       {% endif %}
 
       <h2 class="panel-title">{{ t('your_listing') }}</h2>
-      {% if l.status == 'review' %}
+      {% if l.status == 'draft' %}
+        <p class="notice">{{ t('listing_draft') }}</p>
+        <a class="btn btn-accent btn-block" href="{{ url_for('payouts_setup') }}">{{ t('set_up_payouts') }}</a>
+      {% elif l.status == 'review' %}
         <p class="notice">{{ t('listing_in_review') }}</p>
       {% elif l.status == 'active' and not past and l.available %}
         {% if suggestions %}

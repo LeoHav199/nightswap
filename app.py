@@ -363,10 +363,31 @@ def seller_stats(seller_ids):
     return stats
 
 
-def payout_due_for(event_date):
-    # The night ends the next morning; count the delay from then.
+def payout_due_for(event_date, seller_id=None):
+    # The night ends the next morning; count the delay from then. New sellers wait longer (#28).
     night_end = datetime.combine(date.fromisoformat(event_date) + timedelta(days=1), datetime.min.time())
-    return night_end + timedelta(hours=config.PAYOUT_DELAY_HOURS)
+    hours = config.NEW_SELLER_PAYOUT_HOURS if seller_id and is_new_seller(seller_id) else config.PAYOUT_DELAY_HOURS
+    return night_end + timedelta(hours=hours)
+
+
+def is_new_seller(user_id):
+    """#28: fewer than 2 paid-out sales. New sellers get limits that make selling a ticket twice not worth trying."""
+    if not config.NEW_SELLER_LIMITS:
+        return False
+    done = db.one("SELECT COUNT(*) AS n FROM orders WHERE seller_id=? AND status='released'", user_id)["n"]
+    return done < config.NEW_SELLER_SALES
+
+
+def set_payouts_ready(user_id):
+    """Payout setup (with Stripe's identity check) is done: listings that waited for it go on sale (#28)."""
+    db.run("UPDATE users SET payouts_ready=1 WHERE id=?", user_id)
+    for l in db.all("SELECT * FROM listings WHERE seller_id=? AND status='draft'", user_id):
+        db.run("UPDATE listings SET status=? WHERE id=?", "review" if l["review_reason"] else "active", l["id"])
+        if l["review_reason"]:
+            notify.notify_admins("Spare: listing to check (%s)" % l["review_reason"],
+                                 "A listing for %s needs a check before it goes live:\n\n%s" % (listing_title(l), base_url() + url_for("admin") + "#review"))
+        else:
+            notify_alerts(db.one("SELECT * FROM listings WHERE id=?", l["id"]))
 
 
 def qr_svg(text):
@@ -421,7 +442,7 @@ def mark_paid(order, payment_intent=None):
             return db.one("SELECT * FROM orders WHERE id=?", order["id"])
 
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
-    due = payout_due_for(listing["event_date"])
+    due = payout_due_for(listing["event_date"], order["seller_id"])
     db.run(
         "UPDATE orders SET status='paid', paid_at=?, payout_due_at=?, payment_intent=COALESCE(?, payment_intent) WHERE id=?",
         sqltime(utcnow()), sqltime(due), payment_intent, order["id"],
@@ -502,7 +523,7 @@ def release_payout(order):
     if payments.live() and seller["stripe_account_id"] and not ready:
         ready = payments.payouts_ready(seller["stripe_account_id"])
         if ready:
-            db.run("UPDATE users SET payouts_ready=1 WHERE id=?", seller["id"])
+            set_payouts_ready(seller["id"])
     if not ready:
         return False
     if bank_matches_blocked(seller):
@@ -1293,7 +1314,7 @@ def listing_page(listing_id):
     if not l or l["status"] == "removed":
         abort(404)
     own = bool(g.user and g.user["id"] == l["seller_id"])
-    if l["status"] == "review" and not (own or g.is_admin):
+    if l["status"] in ("review", "draft") and not (own or g.is_admin):
         abort(404)
     past = l["event_date"] < today().isoformat()
     suggestions = []
@@ -1305,7 +1326,7 @@ def listing_page(listing_id):
     return render_template(
         "listing.html", l=l, own=own, past=past, stats=seller_stats([l["seller_id"]])[l["seller_id"]],
         available=(l["status"] == "active" and not past and l["available"] > 0),
-        report_until=payout_due_for(l["event_date"]), colour=venue_colour(l["venue"]),
+        report_until=payout_due_for(l["event_date"], l["seller_id"]), colour=venue_colour(l["venue"]),
         max_price=max_price(l["face_value_cents"]), suggestions=suggestions,
         just_listed=request.args.get("new") == "1", questions=QUICK_QUESTIONS,
         venue=get_venue(l["venue"], l["city"]),
@@ -1588,8 +1609,9 @@ def rate_order(public_id):
             or order["status"] not in PAID_STATES or listing["event_date"] > today().isoformat()):
         abort(400)
     db.run("UPDATE orders SET rating=?, rated_at=? WHERE id=?", value, sqltime(utcnow()), order["id"])
-    if value == "up" and order["status"] == "paid":
+    if value == "up" and order["status"] == "paid" and not is_new_seller(order["seller_id"]):
         # The buyer confirms the ticket worked: no need to keep the seller waiting for the full 48 hours.
+        # (New sellers are always paid 72 hours after the night, #28.)
         db.run("UPDATE orders SET payout_due_at=? WHERE id=?", sqltime(utcnow()), order["id"])
         try:
             release_payout(db.one("SELECT * FROM orders WHERE id=?", order["id"]))
@@ -2138,6 +2160,10 @@ def sell():
         elif face is not None and price > max_price(face):
             errors["price"] = t("err_price_cap", max=money(max_price(face)))
 
+        # #28: the seller promises the ticket isn't for sale anywhere else.
+        if form.get("no_double_sell") != "yes":
+            errors["no_double_sell"] = t("err_no_double_sell")
+
         # #21: names on tickets are why buyers get turned away at the door. A name that can't be changed: don't list.
         name_on_ticket = form.get("name_on_ticket")
         if name_on_ticket == "fixed":
@@ -2185,6 +2211,16 @@ def sell():
             elif sum(max(1, len(codes)) for _, _, codes in files) > config.MAX_TICKETS_PER_LISTING:
                 errors["ticket"] = t("err_too_many", n=config.MAX_TICKETS_PER_LISTING)
 
+        new_seller = is_new_seller(g.user["id"])
+        if not errors and new_seller:
+            # #28: new sellers have at most 2 tickets on sale at once (waiting for payout setup or a check counts too).
+            on_sale = db.one("""SELECT COUNT(*) AS n FROM tickets t JOIN listings l ON l.id = t.listing_id
+                                WHERE l.seller_id=? AND l.status IN ('active', 'draft', 'review') AND t.status='available'""",
+                             g.user["id"])["n"]
+            adding = transfer_qty if delivery == "transfer" else sum(max(1, len(codes)) for _, _, codes in (files or []))
+            if on_sale + (adding or 0) > config.NEW_SELLER_MAX_TICKETS:
+                errors["ticket"] = t("err_new_seller_max", n=config.NEW_SELLER_MAX_TICKETS, sales=config.NEW_SELLER_SALES)
+
         if not errors:
             poster_file = None
             if poster_data:
@@ -2206,6 +2242,8 @@ def sell():
                            event_name, venue, city, category, event_date.isoformat(), start_time or None, g.user["id"])
                     chosen = find_event(event_date.isoformat(), venue, event_name)
             review = ["face"] if face_proof else []
+            # #28: a seller's listings only go on sale once Stripe's payout setup (with its identity check) is done.
+            draft = config.NEW_SELLER_LIMITS and not g.user["payouts_ready"]
             listing_id = db.run(
                 """INSERT INTO listings (seller_id, venue, event_name, event_date, face_value_cents, price_cents,
                    poster_file, sold_together, category, city, start_time, event_id, delivery, transfer_app, name_on_ticket,
@@ -2213,8 +2251,9 @@ def sell():
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 g.user["id"], venue, event_name, event_date.isoformat(), face, price, poster_file, sold_together,
                 category, city, start_time or None, chosen["id"] if chosen else None, delivery, transfer_app, name_on_ticket,
-                "review" if review else "active", ",".join(review) or None, 0 if face_proof else 1,
+                "draft" if draft else "review" if review else "active", ",".join(review) or None, 0 if face_proof else 1,
             )
+            db.run("UPDATE listings SET no_double_sell_at=? WHERE id=?", sqltime(utcnow()), listing_id)
             if face_proof:
                 save_proof(face_proof, "face", listing_id=listing_id)
             for _ in range(transfer_qty or 0):  # app tickets: one row per ticket, no file
@@ -2228,6 +2267,9 @@ def sell():
                 for code_hash_, code_text, code_format in (codes or [(None, None, None)]):
                     db.run("""INSERT INTO tickets (listing_id, file, file_hash, code_hash, code_text, code_format)
                               VALUES (?, ?, ?, ?, ?, ?)""", listing_id, filename, digest, code_hash_, code_text, code_format)
+            if draft:
+                flash(t("listed_draft"), "ok")
+                return redirect(url_for("payouts_setup"))
             if review:
                 notify.notify_admins("Spare: listing to check (%s)" % ", ".join(review),
                                      "%s listed a ticket for %s that needs a check before it goes live:\n\n%s" % (
@@ -2246,7 +2288,9 @@ def sell():
                            city_suggestions=config.CITY_SUGGESTIONS, preset=preset,
                            preset_looking=looking_count(preset["event_date"], preset["venue"], preset["name"]) if preset else 0,
                            today=today().isoformat(), max_date=(today() + timedelta(days=365)).isoformat(),
-                           max_tickets=config.MAX_TICKETS_PER_LISTING)
+                           max_tickets=config.MAX_TICKETS_PER_LISTING, new_seller=is_new_seller(g.user["id"]),
+                           new_seller_max=config.NEW_SELLER_MAX_TICKETS, new_seller_hours=config.NEW_SELLER_PAYOUT_HOURS,
+                           new_seller_sales=config.NEW_SELLER_SALES)
 
 
 @app.route("/api/events")
@@ -2548,7 +2592,7 @@ def account():
         # Stripe verifies details for a little while after onboarding; check again until it's done.
         try:
             if payments.payouts_ready(g.user["stripe_account_id"]):
-                db.run("UPDATE users SET payouts_ready=1 WHERE id=?", uid)
+                set_payouts_ready(uid)
                 g.user = db.one("SELECT * FROM users WHERE id=?", uid)
         except Exception:
             app.logger.exception("Could not check payout status")
@@ -2576,7 +2620,7 @@ def account():
 @login_required
 def payouts_setup():
     if not payments.live():
-        db.run("UPDATE users SET payouts_ready=1 WHERE id=?", g.user["id"])
+        set_payouts_ready(g.user["id"])
         flash(t("payouts_test_ok"), "ok")
         return redirect(url_for("account"))
     try:
@@ -2598,7 +2642,10 @@ def payouts_return():
         ready = payments.payouts_ready(g.user["stripe_account_id"])
     except Exception:
         ready = False
-    db.run("UPDATE users SET payouts_ready=? WHERE id=?", 1 if ready else 0, g.user["id"])
+    if ready:
+        set_payouts_ready(g.user["id"])
+    else:
+        db.run("UPDATE users SET payouts_ready=0 WHERE id=?", g.user["id"])
     flash(t("payouts_ok") if ready else t("payouts_pending"), "ok" if ready else "error")
     return redirect(url_for("account"))
 
@@ -3323,10 +3370,9 @@ def notify_event_change(event_id, note):
     """After a date/time change: tell ticket holders and sellers; buyers may ask for a refund."""
     e = db.one("SELECT * FROM events WHERE id=?", event_id)
     db.run("UPDATE events SET changed_at=?, change_note=? WHERE id=?", sqltime(utcnow()), note, event_id)
-    due = sqltime(payout_due_for(e["event_date"]))
     for o in db.all("""SELECT o.* FROM orders o JOIN listings l ON l.id = o.listing_id
                        WHERE l.event_id=? AND o.status IN ('paid', 'disputed')""", event_id):
-        db.run("UPDATE orders SET payout_due_at=? WHERE id=?", due, o["id"])
+        db.run("UPDATE orders SET payout_due_at=? WHERE id=?", sqltime(payout_due_for(e["event_date"], o["seller_id"])), o["id"])
         path = url_for("order_page", public_id=o["public_id"])
         tell(o["buyer_id"], t("mail_changed_subject", title=e["name"]), t("mail_changed_buyer", title=e["name"], note=note), path)
         tell(o["seller_id"], t("mail_changed_subject", title=e["name"]), t("mail_changed_seller", title=e["name"], note=note), path)

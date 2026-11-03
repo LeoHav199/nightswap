@@ -682,4 +682,12 @@ STRINGS = {
     "face_checked": "Originalpreis geprüft",
     "status_releasing": "Wird ausgezahlt",
     "status_refunding": "Wird erstattet",
+    "no_double_sell": "Dieses Ticket steht nirgendwo sonst zum Verkauf und ich nutze es nicht selbst. Ein Ticket doppelt zu verkaufen ist Betrug, und Spare kann Anzeige erstatten.",
+    "err_no_double_sell": "Bestätige, dass dieses Ticket nirgendwo sonst zum Verkauf steht.",
+    "new_seller_note": "Neu auf Spare? Dein Ticket geht in den Verkauf, sobald du deine Auszahlung bei Stripe eingerichtet hast (mit kurzer Ausweisprüfung). Bis du {sales} Verkäufe abgeschlossen hast, kannst du {n} Tickets gleichzeitig anbieten und wirst {hours} Stunden nach dem Abend bezahlt.",
+    "err_new_seller_max": "Neue Verkäufer können {n} Tickets gleichzeitig anbieten, bis sie {sales} Verkäufe abgeschlossen haben.",
+    "listed_draft": "Fast geschafft! Richte deine Auszahlung bei Stripe ein (mit kurzer Ausweisprüfung), dann geht dein Ticket sofort in den Verkauf.",
+    "listing_draft": "Noch nicht im Verkauf: Richte zuerst deine Auszahlung ein. Danach geht es sofort in den Verkauf.",
+    "set_up_payouts": "Auszahlung einrichten",
+    "status_draft": "Wartet auf Auszahlung",
 }

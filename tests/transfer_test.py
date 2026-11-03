@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
+import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -32,10 +32,10 @@ with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='App Nigh
 # --- Listing a ticket that lives in an app
 page = html(seller.get("/sell?event=%d" % ev["id"]))
 ok('name="delivery" value="transfer"' in page and "Ticketmaster" in page and "Weeztix" in page, "the sell form offers 'in an app (I transfer it)'")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
                                "transfer_app": "made-up", "transfer_qty": "2", "_csrf": csrf(seller)})
 ok(r.status_code != 302 and "Pick the app" in html(r), "an unknown app is refused")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
                                "transfer_app": "ticketmaster", "transfer_qty": "2", "_csrf": csrf(seller)})
 ok(r.status_code == 302 and "/t/" in r.location, "an app ticket can be listed without uploading a file")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
@@ -97,7 +97,7 @@ ok(released == 1 and order(pub)["status"] == "released", "once transferred, the 
 MAIL_WORKS[0] = False
 
 # --- File tickets are unaffected
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 normal"), "n.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 with app.app_context(): l2 = A.db.one("SELECT * FROM listings WHERE id=?", int(re.search(r"/t/(\d+)", r.location).group(1)))
 ok(l2["delivery"] == "file" and "transfer_email" not in html(buyer.get("/t/%d" % l2["id"])), "ordinary file tickets work as before")

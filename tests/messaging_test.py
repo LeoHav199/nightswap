@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
+import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0; config.FEE_MIN_CENTS = 100  # these tests were written for a flat €1 fee
 config.SELLER_FEE_PERCENT = 0; config.SELLER_FEE_MIN_CENTS = 0  # ...and no seller fee
@@ -29,7 +29,7 @@ login(seller, "sara@test.nl", "Sara"); login(buyer, "bo@test.nl", "Bo"); login(s
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 D = (date.today() + timedelta(days=4)).isoformat()
-r = seller.post("/sell", data={"name_on_ticket": "no", "venue": "Perron", "event_date": D, "face_value": "25", "price": "22", "event_name": "Chat Night",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "venue": "Perron", "event_date": D, "face_value": "25", "price": "22", "event_name": "Chat Night",
     "adult": "yes", "ticket": [(io.BytesIO(b"%PDF-1.4 a"), "a.pdf"), (io.BytesIO(b"%PDF-1.4 b"), "b.pdf")], "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 

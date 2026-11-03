@@ -682,4 +682,12 @@ STRINGS = {
     "face_checked": "Precio original comprobado",
     "status_releasing": "Pagando",
     "status_refunding": "Reembolsando",
+    "no_double_sell": "Esta entrada no está a la venta en ningún otro sitio y no la usaré yo. Vender una entrada dos veces es fraude, y Spare puede denunciarlo a la policía.",
+    "err_no_double_sell": "Confirma que esta entrada no está a la venta en ningún otro sitio.",
+    "new_seller_note": "¿Nuevo en Spare? Tu entrada se pone a la venta en cuanto configures tus cobros con Stripe (con una comprobación rápida de identidad). Hasta completar {sales} ventas, puedes tener {n} entradas a la venta a la vez y cobras {hours} horas después de la noche.",
+    "err_new_seller_max": "Los vendedores nuevos pueden tener {n} entradas a la venta a la vez, hasta completar {sales} ventas.",
+    "listed_draft": "¡Casi listo! Configura tus cobros con Stripe (con una comprobación rápida de identidad) y tu entrada se pondrá a la venta al momento.",
+    "listing_draft": "Aún no está a la venta: primero configura tus cobros. Se pondrá a la venta en cuanto termines.",
+    "set_up_payouts": "Configurar cobros",
+    "status_draft": "Esperando cobros",
 }

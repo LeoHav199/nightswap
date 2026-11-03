@@ -1,9 +1,10 @@
 """Checks for the fixes from the 'Bulletproofing Spare' review (numbers refer to its items)."""
 import io, os, re, sys, tempfile
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
+config.NEW_SELLER_LIMITS = False  # switched on in the #28 section only
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
 import notify; SENT = []; MAIL_WORKS = [False]
@@ -36,7 +37,7 @@ verify_phone(seller, "0611111111"); verify_phone(admin, "0699999999")
 D = (date.today() + timedelta(days=3)).isoformat()
 admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Guard Night", "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Guard Night'")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard"), "g.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); pub = r.location.split("/")[2]
@@ -155,7 +156,7 @@ ok(laptop.get("/account").status_code == 302, "#11 blocking someone signs them o
 # --- #12: sellers hear about complaints; blocks and removals come with reasons
 MAIL_WORKS[0] = True; SENT.clear()
 # The Guard Night ticket is already sold: list another one to dispute
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard two"), "g2.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid2 = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = buyer.post("/t/%d/buy" % lid2, data={"_csrf": csrf(buyer)}); pub2 = r.location.split("/")[2]
@@ -164,7 +165,7 @@ buyer.post("/orders/%s/report" % pub2, data={"reason": "The QR code was already 
 mail = [b for to, sub, b in SENT if to == "s@test.nl" and "Problem reported" in sub]
 ok(mail and "within 24 hours" in mail[0] and "/orders/%s" % pub2 in mail[0], "#12 the seller gets an email about the problem, with 24 hours to reply in the chat")
 with app.app_context(): ok(A.db.one("SELECT 1 FROM messages WHERE kind='system' AND body='sys_disputed'") is not None, "#12 the order chat notes the report")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard three"), "g3.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid3 = int(re.search(r"/t/(\d+)", r.location).group(1))
 buyer.post("/t/%d/report" % lid3, data={"reason": "fake", "details": "looks fake", "_csrf": csrf(buyer)})
@@ -218,7 +219,7 @@ def pdf_with(pages, w=595, h=842):
 ok(ticketcodes.check(pdf_with(11), "pdf") == "too_many_pages" and ticketcodes.check(pdf_with(2), "pdf") is None, "#14 PDFs with more than 10 pages are refused")
 sizes = [img.shape for img in ticketcodes._images(pdf_with(1, 14400, 14400), "pdf")]
 ok(sizes and sizes[0][0] * sizes[0][1] <= ticketcodes.MAX_PIXELS, "#14 a giant PDF page is rendered at a lower scale, never above 25 million pixels")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(bomb), "bomb.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 ok(r.status_code == 200 and "too large to check" in html(r), "#14 the seller sees a clear error")
 
@@ -241,7 +242,7 @@ ok(n >= 1 and not os.path.exists(path1) and after1["file"] == "" and after1["fil
 ok(after2["file"] == t2["file"] and os.path.exists(os.path.join(config.UPLOAD_DIR, t2["file"])), "#15 a ticket with an open dispute keeps its file")
 r = buyer.get("/orders/%s/tickets/%d" % (pub, t1["id"]))
 ok(r.status_code == 302 and "deleted 14 days after the event" in html(buyer.get("/orders/%s" % pub)), "#15 the order page explains the file is gone, politely")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard"), "again.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 ok(r.status_code == 200, "#15 the duplicate check still recognises the deleted ticket")
 ok(backup.KEEP == 3, "#15 3 backup copies on the disk")
@@ -320,7 +321,7 @@ ok(r.status_code == 200 and gone, "#17 a mail app's one-click unsubscribe (POST,
 dele = app.test_client(); dele.get("/?from=flyer1"); login(dele, "gone@test.nl", "Gwen"); verify_phone(dele, "0655555555")
 with app.app_context(): A.db.run("UPDATE users SET avatar='cat' WHERE email='gone@test.nl'")
 dele.post("/waitlist", data={"email": "gone@test.nl", "_csrf": csrf(dele)})
-r = dele.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = dele.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                              "ticket": (io.BytesIO(b"%PDF-1.4 Gwen Vermeer ticket"), "gwen.pdf"), "_csrf": csrf(dele)}, content_type="multipart/form-data")
 glid = int(re.search(r"/t/(\d+)", r.location).group(1))
 buyer.post("/t/%d/ask" % glid, data={"question": "q_name", "_csrf": csrf(buyer)})
@@ -333,7 +334,7 @@ with app.app_context():
     A.db.run("UPDATE orders SET status='released' WHERE public_id=?", gpub)
     gfile = A.db.one("SELECT file FROM tickets WHERE listing_id=?", glid)["file"]
 # Gwen also bought an app ticket, giving her ticket-app name and email
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
                                "transfer_app": "ticketmaster", "transfer_qty": "1", "_csrf": csrf(seller)})
 alid = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = dele.post("/t/%d/buy" % alid, data={"qty": "1", "transfer_name": "Gwen Vermeer", "transfer_email": "gwen.tm@example.com", "_csrf": csrf(dele)})
@@ -392,7 +393,7 @@ ep = html(visitor.get("/event?venue=Maassilo&date=%s&name=Guard+Night" % D))
 ok("connected to this venue or organiser" in ep and "https://shop.example.com/guard" in ep, "#21 the event page says Spare isn't the venue's, linking the official shop")
 sp = html(seller.get("/sell?event=%d" % ev["id"]))
 ok("Is there a name on this ticket?" in sp and 'name="name_on_ticket" value="fixed"' in sp, "#21 the sell form asks whether there's a name on the ticket")
-base = {"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer", "transfer_app": "ticketmaster", "transfer_qty": "1"}
+base = {"no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer", "transfer_app": "ticketmaster", "transfer_qty": "1"}
 r = seller.post("/sell", data=dict(base, _csrf=csrf(seller)))
 ok(r.status_code == 200 and "Tell buyers whether there" in html(r), "#21 the answer is required")
 r = seller.post("/sell", data=dict(base, name_on_ticket="fixed", _csrf=csrf(seller)))
@@ -504,7 +505,7 @@ with app.app_context():
 ok(priced["face_value_max_cents"] == 2500 and unpriced["face_value_max_cents"] is None, "#25 admins can store the official price per event")
 seller3 = app.test_client(); login(seller3, "s3@test.nl", "Sy"); verify_phone(seller3, "0644444444")
 def sell3(event, face, extra=None):
-    data = {"name_on_ticket": "no", "event_id": str(event["id"]), "face_value": face, "price": face, "adult": "yes",
+    data = {"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(event["id"]), "face_value": face, "price": face, "adult": "yes",
             "ticket": (io.BytesIO(b"%PDF-1.4 " + os.urandom(8)), "t.pdf"), "_csrf": csrf(seller3)}
     data.update(extra or {})
     return seller3.post("/sell", data=data, content_type="multipart/form-data")
@@ -647,5 +648,43 @@ r = sell3(priced, "25"); l_again = int(re.search(r"/t/(\d+)", r.location).group(
 buyer.post("/t/%d/buy" % l_again, data={"_csrf": csrf(buyer)})
 payments.create_checkout, payments.live = real_checkout, real_live
 ok(seen == [True, False], "#27 a first-time buyer pays by iDEAL only; someone who bought before can also use a card")
+
+# --- #28: new sellers: payout setup first, 2 tickets at a time, paid 72 hours after the night, a no-double-sell promise
+config.NEW_SELLER_LIMITS = True
+newbie = app.test_client(); login(newbie, "newbie@test.nl", "Nia"); verify_phone(newbie, "0666666666")
+def newbie_sells(n=1, promise=True):
+    data = {"name_on_ticket": "no", "event_id": str(priced["id"]), "face_value": "25", "price": "25", "adult": "yes",
+            "delivery": "transfer", "transfer_app": "ticketmaster", "transfer_qty": str(n), "_csrf": csrf(newbie)}
+    if promise: data["no_double_sell"] = "yes"
+    return newbie.post("/sell", data=data)
+sp = html(newbie.get("/sell?event=%d" % priced["id"]))
+ok("won&#39;t use it myself" in sp and "New on Spare?" in sp, "#28 the sell form has the no-double-sell promise and explains the new-seller rules")
+r = newbie_sells(promise=False)
+ok(r.status_code == 200 and "isn&#39;t for sale anywhere else" in html(r), "#28 the promise is required")
+real_live = payments.live
+payments.live = lambda: True; real_onboard = payments.payout_onboarding_url
+payments.payout_onboarding_url = lambda user, ret, refresh: ("acct_nia", "https://connect.stripe.com/setup/x")
+r = newbie_sells(1)
+payments.live, payments.payout_onboarding_url = real_live, real_onboard
+with app.app_context(): nl1 = A.db.one("SELECT * FROM listings l JOIN users u ON u.id = l.seller_id WHERE u.email='newbie@test.nl' ORDER BY l.id DESC")
+ok(nl1["status"] == "draft" and nl1["no_double_sell_at"] and "/account/payouts" in r.location, "#28 a new seller's listing waits for payout setup and they're sent to set it up")
+ok(buyer.get("/t/%d" % nl1["id"]).status_code == 404, "#28 ...and buyers can't see it yet")
+newbie.get("/account/payouts")  # (development: payout setup completes straight away)
+with app.app_context(): ok(A.db.one("SELECT status FROM listings WHERE id=?", nl1["id"])["status"] == "active", "#28 once payouts are set up, it goes on sale")
+r = newbie_sells(2)
+ok(r.status_code == 200 and "2 tickets on sale at a time" in html(r), "#28 new sellers can have at most 2 tickets on sale")
+r = newbie_sells(1)
+ok(r.status_code == 302, "#28 ...a second ticket is fine")
+with app.app_context(): nl2 = A.db.one("SELECT * FROM listings l JOIN users u ON u.id = l.seller_id WHERE u.email='newbie@test.nl' ORDER BY l.id DESC")
+r = buyer.post("/t/%d/buy" % nl2["id"], data={"qty": "1", "transfer_name": "Bo", "transfer_email": "bo@example.com", "_csrf": csrf(buyer)})
+npub = r.location.split("/")[2]; buyer.post("/checkout/%s/test" % npub, data={"_csrf": csrf(buyer)})
+with app.app_context(): no = A.db.one("SELECT * FROM orders WHERE public_id=?", npub)
+expected = datetime.combine(date.fromisoformat(D) + timedelta(days=1), datetime.min.time()) + timedelta(hours=72)
+ok(no["payout_due_at"] == A.sqltime(expected), "#28 a new seller is paid 72 hours after the night")
+with app.app_context(): A.db.run("UPDATE listings SET event_date=? WHERE id=?", date.today().isoformat(), nl2["id"]); A.db.run("UPDATE orders SET transferred_at=? WHERE id=?", A.sqltime(A.utcnow()), no["id"])
+buyer.post("/orders/%s/rate" % npub, data={"rating": "up", "_csrf": csrf(buyer)})
+with app.app_context(): no = A.db.one("SELECT * FROM orders WHERE public_id=?", npub)
+ok(no["status"] == "paid", "#28 a 👍 doesn't pay a new seller early")
+config.NEW_SELLER_LIMITS = False
 
 print("FAILED:", fails or "none")

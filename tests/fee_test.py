@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
+import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}; config.FEE_PERCENT = 8; config.FEE_MIN_CENTS = 100
@@ -29,7 +29,7 @@ r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(sel
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Summer Fest", "venue": "Strijp-S", "city": "Eindhoven", "category": "festival", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Summer Fest'")
-r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "90", "price": "90", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "90", "price": "90", "adult": "yes",
     "ticket": [(io.BytesIO(b"%PDF-1.4 a"), "a.pdf"), (io.BytesIO(b"%PDF-1.4 b"), "b.pdf")], "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 ok("€97.20" in html(buyer.get("/")), "homepage card shows €90 + €7.20 = €97.20")

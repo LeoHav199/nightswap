@@ -56,6 +56,10 @@ PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price 
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
 # Safety checks from the "Bulletproofing" review. Always on; only older tests that check other things switch them off.
 FACE_PROOF_REQUIRED = True   # #25: no official price known → proof of the price and an admin check before going live
+NEW_SELLER_LIMITS = True     # #28: limits below for sellers with fewer than NEW_SELLER_SALES paid-out sales
+NEW_SELLER_SALES = 2
+NEW_SELLER_MAX_TICKETS = 2   # tickets on sale at once
+NEW_SELLER_PAYOUT_HOURS = 72  # paid this long after the night, never early
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes
 MAX_FACE_VALUE_CENTS = 50000
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024          # per file

@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, datetime, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
+import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -37,7 +37,7 @@ admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Big Nig
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Big Night'")
 pdf = b"%PDF-1.4 the one and only ticket"
 def sell(c, data=pdf):
-    return c.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+    return c.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                   "ticket": (io.BytesIO(data), "t.pdf"), "_csrf": csrf(c)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", sell(seller).location).group(1))
 r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); pub = r.location.split("/")[2]

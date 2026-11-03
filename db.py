@@ -47,6 +47,7 @@ ADDED_COLUMNS = [
     ("orders", "chargeback_at", "TEXT"),        # #27: the buyer's bank opened a dispute (chargeback)
     ("orders", "chargeback_status", "TEXT"),    # Stripe's dispute status when it closed: won | lost | ...
     ("orders", "reversal_ref", "TEXT"),         # the seller's payout taken back (Stripe transfer reversal)         # #26: when a payout was claimed (status 'releasing'), to find stuck ones
+    ("listings", "no_double_sell_at", "TEXT"),   # #28: when the seller promised it's not for sale elsewhere
     ("listings", "review_reason", "TEXT"),          # why a listing waits for an admin (status 'review'): face, code, app
     ("listings", "face_checked", "INTEGER NOT NULL DEFAULT 0"),  # #25: face value matched the official price or proof
     ("events", "face_value_max_cents", "INTEGER"),  # #25: the official ticket price; face values above it are refused                     # #21: no | changeable | unsure (NULL on older listings)

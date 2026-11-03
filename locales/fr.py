@@ -682,4 +682,12 @@ STRINGS = {
     "face_checked": "Prix d'origine vérifié",
     "status_releasing": "Versement en cours",
     "status_refunding": "Remboursement en cours",
+    "no_double_sell": "Ce billet n'est en vente nulle part ailleurs et je ne l'utiliserai pas. Vendre un billet deux fois est une fraude, et Spare peut porter plainte.",
+    "err_no_double_sell": "Confirme que ce billet n'est en vente nulle part ailleurs.",
+    "new_seller_note": "Nouveau sur Spare ? Ton billet est mis en vente dès que tu as configuré tes versements avec Stripe (avec une vérification d'identité rapide). Tant que tu n'as pas terminé {sales} ventes, tu peux avoir {n} billets en vente à la fois et tu es payé {hours} heures après la soirée.",
+    "err_new_seller_max": "Les nouveaux vendeurs peuvent avoir {n} billets en vente à la fois, jusqu'à {sales} ventes terminées.",
+    "listed_draft": "Presque fini ! Configure tes versements avec Stripe (avec une vérification d'identité rapide), et ton billet est mis en vente aussitôt.",
+    "listing_draft": "Pas encore en vente : configure d'abord tes versements. Il est mis en vente dès que c'est fait.",
+    "set_up_payouts": "Configurer les versements",
+    "status_draft": "En attente des versements",
 }

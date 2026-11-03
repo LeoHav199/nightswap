@@ -167,6 +167,9 @@
       </label>
     </details>
 
+    <label class="consent"><input type="checkbox" name="no_double_sell" value="yes" {{ 'checked' if form.get('no_double_sell') == 'yes' }} required><span>{{ t('no_double_sell') }}</span></label>
+    {{ m.field_error(errors, 'no_double_sell') }}
+    {% if new_seller %}<p class="muted small new-seller-note">{{ t('new_seller_note', n=new_seller_max, hours=new_seller_hours, sales=new_seller_sales) }}</p>{% endif %}
     {% if not user.adult_confirmed_at %}
       <label class="consent"><input type="checkbox" name="adult" value="yes" {{ 'checked' if form.get('adult') == 'yes' }} required><span>{{ t('adult_confirm') }}</span></label>
       {{ m.field_error(errors, 'adult') }}
