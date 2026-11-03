@@ -647,4 +647,5 @@ STRINGS = {
     "offline_saved": "Guardado en este móvil: esta página y el código QR también se abren sin cobertura.",
     "err_ticket_too_big": "Esta imagen es demasiado grande para comprobarla. Sube una captura de pantalla normal o el PDF original.",
     "err_ticket_too_many_pages": "Este PDF tiene más de {pages} páginas. Sube solo la(s) página(s) con tu entrada.",
+    "ticket_file_gone": "El archivo de la entrada se borró {days} días después del evento, como indica nuestra política de privacidad.",
 }

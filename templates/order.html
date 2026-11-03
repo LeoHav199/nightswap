@@ -47,6 +47,7 @@
               {% endif %}
             </div>
           {% endif %}
+          {% if file_gone %}<p class="muted small">{{ t('ticket_file_gone', days=file_days) }}</p>{% endif %}
           <div class="downloads">
             {% for f in files %}
               <a class="btn btn-accent {{ 'btn-lg' if files|length == 1 }}" href="{{ url_for('download_ticket', public_id=order.public_id, ticket_id=f.id) }}">{{ t('download_ticket') if files|length == 1 else t('download_ticket_n', n=loop.index) }}</a>

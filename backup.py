@@ -1,7 +1,7 @@
 """Backups: a consistent copy of the database plus the uploaded tickets and posters, zipped.
 
 Every night the hourly task emails the zip to the admins (off Render's disk) and keeps the last
-copies in DATA_DIR/backups. Render also snapshots the disk daily; this is the copy that survives
+few database-only copies in DATA_DIR/backups (#15: uploads aren't copied on the same disk, which would fill it). Render also snapshots the disk daily; this is the copy that survives
 even if the whole Render service is lost.
 """
 import io
@@ -13,7 +13,7 @@ from datetime import datetime
 
 import config
 
-KEEP = 7                         # copies kept on the disk
+KEEP = 3                         # database-only copies kept on the disk
 EMAIL_LIMIT = 15 * 1024 * 1024   # bigger than this and the uploads stay out of the email (the database always goes)
 
 
@@ -49,8 +49,9 @@ def keep_on_disk(data, name):
 
 def for_email():
     """The zip for the nightly email: with uploads if it fits, otherwise the database alone."""
+    disk_copy, disk_name, _ = make_zip(with_uploads=False)
+    keep_on_disk(disk_copy, disk_name)
     data, name, full = make_zip(with_uploads=True)
-    keep_on_disk(data, name)
     if len(data) > EMAIL_LIMIT:
         data, name, full = make_zip(with_uploads=False)
     return data, name, full

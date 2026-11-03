@@ -993,3 +993,4 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .transfer-task .who { font-size: 17px; font-weight: 600; color: var(--text); word-break: break-word; }
 .transfer-task.is-done { background: var(--surface); border-color: var(--line-strong); }
 .lockbar { background: #3a1015; color: #ffb3b3; font-weight: 600; }
+.warn-text { color: #ffb3b3; }

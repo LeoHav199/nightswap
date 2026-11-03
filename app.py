@@ -7,6 +7,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import unicodedata
 from datetime import date, datetime, timedelta
 from functools import wraps
@@ -570,11 +571,59 @@ def nightly_backup(force=False):
     data, name, full = backup.for_email()
     size = "%.1f MB" % (len(data) / 1024 / 1024)
     note = ("Database and uploaded tickets/posters." if full else
-            "Database only: the uploaded files were too big for email. Render's daily disk snapshots and the copies in /var/data/backups cover them.")
+            "Database only: the uploaded files were too big for email. Render's daily disk snapshots cover them.")
     body = "Spare's nightly backup (%s, %s).\n\n%s\n\nKeep these emails. To restore, ask Claude to put this file back on the server." % (name, size, note)
     for email in config.ADMIN_EMAILS:
         notify.send_email(email, "Spare backup %s" % day, body, attachments=[(name, data)])
     set_setting("last_backup_day", day)
+    return True
+
+
+TICKET_FILE_DAYS = 14   # #15: ticket files are deleted this long after the event, once the money is settled
+DISK_ALERT = 0.70       # warn the admins when the data disk is this full
+
+
+def cleanup_ticket_files():
+    """#15: deletes ticket files 14 days after the event when nothing can still change: the order was paid out or
+    refunded, or the ticket never sold. The hashes stay, so the duplicate check still recognises the ticket."""
+    cutoff = (today() - timedelta(days=TICKET_FILE_DAYS)).isoformat()
+    rows = db.all("""SELECT t.id, t.file, o.status AS order_status FROM tickets t JOIN listings l ON l.id = t.listing_id
+                     LEFT JOIN orders o ON o.id = t.order_id
+                     WHERE t.file != '' AND l.event_date < ?""", cutoff)
+    by_file = {}
+    for r in rows:
+        by_file.setdefault(r["file"], []).append(r)
+    deleted = 0
+    for name, tickets in by_file.items():
+        settled = all(r["order_status"] in (None, "released", "refunded", "expired", "cancelled") for r in tickets)
+        # A file can be shared by several tickets (one PDF with several codes): only delete it when all are done.
+        if not settled or db.one("SELECT COUNT(*) AS n FROM tickets WHERE file=?", name)["n"] != len(tickets):
+            continue
+        db.run("UPDATE tickets SET file='' WHERE file=?", name)
+        try:
+            os.remove(os.path.join(config.UPLOAD_DIR, name))
+        except FileNotFoundError:
+            pass
+        deleted += 1
+    return deleted
+
+
+def disk_usage():
+    """(used fraction, used bytes, total bytes) of the disk holding the data."""
+    usage = shutil.disk_usage(config.DATA_DIR)
+    return usage.used / usage.total, usage.used, usage.total
+
+
+def check_disk():
+    """#15: email the admins (at most once a day) when the disk passes 70%, before a full disk stops all writes."""
+    used, _, total = disk_usage()
+    day = today().isoformat()
+    if used < DISK_ALERT or get_setting("disk_alert_day") == day:
+        return False
+    notify.notify_admins("Spare: the disk is %d%% full" % round(used * 100),
+                         "Spare's data disk is %d%% full (%.1f GB). When it's full, nothing can be saved: no sign-ins, sales or payouts.\n\n"
+                         "Ask Claude to look at what's using the space, or make the disk bigger on Render (Disks)." % (round(used * 100), total / 1e9))
+    set_setting("disk_alert_day", day)
     return True
 
 
@@ -1336,7 +1385,8 @@ def order_page(public_id):
     # often no signal. The service worker only stores pages with this header, until 3 days after the event.
     offline = is_buyer and order["status"] in PAID_STATES and not (g.get("test_lock") and not g.is_admin)
     resp = app.make_response(render_template(
-        "order.html", offline=offline, order=order, l=listing, buyer=buyer, seller=seller, payout_due=due, files=files,
+        "order.html", offline=offline, file_gone=listing["delivery"] == "file" and not files and order["status"] in PAID_STATES,
+        file_days=TICKET_FILE_DAYS, order=order, l=listing, buyer=buyer, seller=seller, payout_due=due, files=files,
         wallet_tickets=wallet_tickets, just_paid=just_paid and order["status"] in PAID_STATES,
         qr_codes=[(tk["id"], qr_svg(tk["code_text"])) for tk in db.all("SELECT * FROM tickets WHERE order_id=? ORDER BY id", order["id"])
                   if tk["code_text"] and tk["code_format"] == "QR"] if order["status"] in PAID_STATES and g.user["id"] == order["buyer_id"] else [],
@@ -1364,6 +1414,9 @@ def download_ticket(public_id, ticket_id):
     ticket = db.one("SELECT * FROM tickets WHERE id=? AND order_id=?", ticket_id, order["id"])
     if not ticket:
         abort(404)
+    if not ticket["file"] or not os.path.exists(os.path.join(config.UPLOAD_DIR, ticket["file"])):
+        flash(t("ticket_file_gone", days=TICKET_FILE_DAYS), "error")  # #15: deleted after the event
+        return redirect(url_for("order_page", public_id=public_id))
     ext = ticket["file"].rsplit(".", 1)[-1]
     return send_file(os.path.join(config.UPLOAD_DIR, ticket["file"]), mimetype=FILE_TYPES[ext][1],
                      as_attachment=True, download_name="spare-ticket-%s-%s.%s" % (order["public_id"], ticket_id, ext))
@@ -2532,8 +2585,10 @@ def admin():
     preview_link = base_url() + url_for("preview", code=preview_code) if preview_code else None
     chain = [p for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
     network = {"ip": client_ip(), "entries": len(chain), "hops": config.PROXY_HOPS, "proxy": config.TRUST_PROXY}
+    used, used_bytes, total = disk_usage()
+    disk = {"pct": round(used * 100), "used": used_bytes / 1e9, "total": total / 1e9, "warn": used >= DISK_ALERT}
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
-                           waitlist=waitlist, preview_link=preview_link, network=network)
+                           waitlist=waitlist, preview_link=preview_link, network=network, disk=disk)
 
 
 @app.route("/admin/backup")
@@ -3269,9 +3324,12 @@ def hourly_tasks():
     resell = send_resell_reminders()
     transfer_reminders = send_transfer_reminders()
     backed_up = nightly_backup()
+    files_deleted = cleanup_ticket_files()
+    check_disk()
     db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
-            "resell_reminders": resell, "transfer_reminders": transfer_reminders, "backup": backed_up}
+            "resell_reminders": resell, "transfer_reminders": transfer_reminders, "backup": backed_up,
+            "ticket_files_deleted": files_deleted}
 
 
 @app.cli.command("init-db")

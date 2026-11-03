@@ -647,4 +647,5 @@ STRINGS = {
     "offline_saved": "Auf diesem Handy gespeichert: Diese Seite und der QR-Code öffnen sich auch ohne Empfang.",
     "err_ticket_too_big": "Dieses Bild ist zu groß zum Prüfen. Lade einen normalen Screenshot oder das Original-PDF hoch.",
     "err_ticket_too_many_pages": "Dieses PDF hat mehr als {pages} Seiten. Lade nur die Seite(n) mit deinem Ticket hoch.",
+    "ticket_file_gone": "Die Ticketdatei wurde {days} Tage nach dem Event gelöscht, wie in unserer Datenschutzerklärung beschrieben.",
 }

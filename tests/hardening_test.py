@@ -221,4 +221,42 @@ r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "p
                                "ticket": (io.BytesIO(bomb), "bomb.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 ok(r.status_code == 200 and "too large to check" in html(r), "#14 the seller sees a clear error")
 
+# --- #15: the disk doesn't fill up
+import backup
+with app.app_context():
+    old = (date.today() - timedelta(days=20)).isoformat()
+    t1 = A.db.one("SELECT * FROM tickets WHERE listing_id=?", lid)  # sold in the first purchase above
+    A.db.run("UPDATE listings SET event_date=? WHERE id IN (?, ?)", old, lid, lid2)
+    A.db.run("UPDATE orders SET status='released' WHERE public_id=?", pub)   # paid out
+    # lid2's order is disputed (reported above): it must stay
+    path1 = os.path.join(config.UPLOAD_DIR, t1["file"])
+    t2 = A.db.one("SELECT * FROM tickets WHERE listing_id=?", lid2)
+ok(os.path.exists(path1), "#15 (setup) the sold ticket's file is on disk")
+with app.test_request_context(): n = A.cleanup_ticket_files()
+with app.app_context():
+    after1 = A.db.one("SELECT * FROM tickets WHERE id=?", t1["id"]); after2 = A.db.one("SELECT * FROM tickets WHERE id=?", t2["id"])
+ok(n >= 1 and not os.path.exists(path1) and after1["file"] == "" and after1["file_hash"] == t1["file_hash"],
+   "#15 14 days after the event, a paid-out ticket's file is deleted but its hash is kept")
+ok(after2["file"] == t2["file"] and os.path.exists(os.path.join(config.UPLOAD_DIR, t2["file"])), "#15 a ticket with an open dispute keeps its file")
+r = buyer.get("/orders/%s/tickets/%d" % (pub, t1["id"]))
+ok(r.status_code == 302 and "deleted 14 days after the event" in html(buyer.get("/orders/%s" % pub)), "#15 the order page explains the file is gone, politely")
+r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+                               "ticket": (io.BytesIO(b"%PDF-1.4 guard"), "again.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
+ok(r.status_code == 200, "#15 the duplicate check still recognises the deleted ticket")
+ok(backup.KEEP == 3, "#15 3 backup copies on the disk")
+config.DATA_DIR = tmp
+with app.app_context(): data, name, _ = backup.for_email()
+import zipfile
+on_disk = sorted(os.listdir(os.path.join(tmp, "backups")))
+ok(on_disk and not any(n.startswith("uploads/") for n in zipfile.ZipFile(os.path.join(tmp, "backups", on_disk[-1])).namelist()),
+   "#15 the copies on the disk leave the uploads out")
+real_usage = A.shutil.disk_usage
+A.shutil.disk_usage = lambda p: type("U", (), {"used": 75, "total": 100, "free": 25})()
+MAIL_WORKS[0] = True; SENT.clear()
+with app.test_request_context():
+    first, second = A.check_disk(), A.check_disk()
+ok(first and not second and any("75% full" in sub for to, sub, b in SENT), "#15 the admins get one email a day when the disk passes 70%")
+ok("75% full" in html(admin.get("/admin")), "#15 /admin shows the disk usage")
+A.shutil.disk_usage = real_usage; MAIL_WORKS[0] = False
+
 print("FAILED:", fails or "none")

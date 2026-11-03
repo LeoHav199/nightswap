@@ -647,4 +647,5 @@ STRINGS = {
     "offline_saved": "Enregistré sur ce téléphone : cette page et le QR code s'ouvrent aussi sans réseau.",
     "err_ticket_too_big": "Cette image est trop grande pour être vérifiée. Envoie une capture d'écran normale ou le PDF d'origine.",
     "err_ticket_too_many_pages": "Ce PDF a plus de {pages} pages. Envoie seulement la ou les pages avec ton billet.",
+    "ticket_file_gone": "Le fichier du billet a été supprimé {days} jours après l'événement, comme le prévoit notre politique de confidentialité.",
 }
