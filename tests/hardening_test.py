@@ -315,4 +315,37 @@ r = app.test_client().post(leave_path, data={"List-Unsubscribe": "One-Click"})
 with app.app_context(): gone = A.db.one("SELECT 1 FROM waitlist WHERE email='wait@test.nl'") is None
 ok(r.status_code == 200 and gone, "#17 a mail app's one-click unsubscribe (POST, no CSRF token) removes the address")
 
+# --- #18: deleting an account leaves nothing personal behind
+dele = app.test_client(); dele.get("/?from=flyer1"); login(dele, "gone@test.nl", "Gwen"); verify_phone(dele, "0655555555")
+with app.app_context(): A.db.run("UPDATE users SET avatar='cat' WHERE email='gone@test.nl'")
+dele.post("/waitlist", data={"email": "gone@test.nl", "_csrf": csrf(dele)})
+r = dele.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+                             "ticket": (io.BytesIO(b"%PDF-1.4 Gwen Vermeer ticket"), "gwen.pdf"), "_csrf": csrf(dele)}, content_type="multipart/form-data")
+glid = int(re.search(r"/t/(\d+)", r.location).group(1))
+buyer.post("/t/%d/ask" % glid, data={"question": "q_name", "_csrf": csrf(buyer)})
+with app.app_context(): gtid = A.db.one("SELECT id FROM threads WHERE listing_id=?", glid)["id"]
+dele.post("/threads/%d/send" % gtid, data={"body": "Hi from Gwen, see you at Maassilo", "_csrf": csrf(dele)})
+dele.post("/threads/%d/send" % gtid, data={"body": "pay me on tikkie 0655555555", "_csrf": csrf(dele)})
+r = buyer.post("/t/%d/buy" % glid, data={"_csrf": csrf(buyer)}); gpub = r.location.split("/")[2]
+buyer.post("/checkout/%s/test" % gpub, data={"_csrf": csrf(buyer)})
+with app.app_context():
+    A.db.run("UPDATE orders SET status='released' WHERE public_id=?", gpub)
+    gfile = A.db.one("SELECT file FROM tickets WHERE listing_id=?", glid)["file"]
+# Gwen also bought an app ticket, giving her ticket-app name and email
+r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
+                               "transfer_app": "ticketmaster", "transfer_qty": "1", "_csrf": csrf(seller)})
+alid = int(re.search(r"/t/(\d+)", r.location).group(1))
+r = dele.post("/t/%d/buy" % alid, data={"qty": "1", "transfer_name": "Gwen Vermeer", "transfer_email": "gwen.tm@example.com", "_csrf": csrf(dele)})
+apub = r.location.split("/")[2]; dele.post("/checkout/%s/test" % apub, data={"_csrf": csrf(dele)})
+with app.app_context(): A.db.run("UPDATE orders SET status='released' WHERE public_id=?", apub)
+r = dele.post("/account/delete", data={"confirm": "gone@test.nl", "_csrf": csrf(dele)})
+import sqlite3; dump = "\n".join(sqlite3.connect(config.DATABASE).iterdump())
+leftovers = [w for w in ("gone@test.nl", "Gwen", "0655555555", "655555555", "see you at Maassilo", "tikkie", "gwen.tm@example.com", "Vermeer") if w in dump]
+ok(not leftovers, "#18 after deleting the account, nothing personal is left in the database: %s" % leftovers)
+ok(not os.path.exists(os.path.join(config.UPLOAD_DIR, gfile)), "#18 the ticket file they uploaded (with their name) is deleted")
+with app.app_context():
+    o = A.db.one("SELECT * FROM orders WHERE public_id=?", gpub)
+ok(o and o["price_cents"] == 2000 and o["paid_at"], "#18 the order's amounts, dates and number are kept for the bookkeeping")
+ok("the sender deleted their account" in html(buyer.get("/threads/%d" % gtid)), "#18 the other person sees 'message removed'")
+
 print("FAILED:", fails or "none")

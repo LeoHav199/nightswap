@@ -3288,13 +3288,34 @@ def account_delete():
     for o in db.all("SELECT id FROM orders WHERE buyer_id=? AND status='pending'", uid):
         db.run("UPDATE orders SET status='cancelled' WHERE id=?", o["id"])
         db.run("UPDATE tickets SET status='available', order_id=NULL WHERE order_id=? AND status='held'", o["id"])
-    # Orders stay (bookkeeping law requires keeping them for 7 years) but are no longer linked to a person.
+    # Orders stay (bookkeeping law requires keeping them for 7 years) but are no longer linked to a person:
+    # only amounts, dates and order numbers are kept. Everything else personal goes (#18).
+    u = g.user
     db.run("""UPDATE users SET email=?, first_name=?, phone=NULL, phone_verified_at=NULL, student_email=NULL,
-              student_school=NULL, student_verified_at=NULL, deleted_at=? WHERE id=?""",
+              student_school=NULL, student_verified_at=NULL, avatar=NULL, source=NULL, deleted_at=? WHERE id=?""",
            "deleted-%d@deleted.invalid" % uid, t("deleted_user"), sqltime(utcnow()), uid)
     db.run("DELETE FROM push_subs WHERE user_id=?", uid)
     db.run("DELETE FROM alerts WHERE user_id=?", uid)
-    db.run("DELETE FROM codes WHERE target=?", g.user["email"])
+    db.run("DELETE FROM codes WHERE target IN (?, ?, ?)", u["email"], u["phone"] or "", u["student_email"] or "")
+    db.run("DELETE FROM waitlist WHERE email=?", u["email"])
+    db.run("DELETE FROM hits WHERE key LIKE ?", "%:" + u["email"])  # rate-limit counters keyed by email
+    db.run("UPDATE reports SET email=NULL, details=NULL WHERE reporter_id=? OR email=?", uid, u["email"])
+    # Chat messages they wrote (including the original text of blocked ones) become a "message removed" note.
+    db.run("""UPDATE messages SET kind='system', body='sys_message_removed', raw_body=NULL, flags=NULL
+              WHERE sender_id=? AND kind='text'""", uid)
+    db.run("UPDATE orders SET transfer_name=NULL, transfer_email=NULL, dispute_reason=NULL WHERE buyer_id=?", uid)
+    # Their ticket files (which often show their full name), for sales that are finished and tickets that never sold.
+    for row in db.all("""SELECT DISTINCT t.file FROM tickets t JOIN listings l ON l.id = t.listing_id
+                         LEFT JOIN orders o ON o.id = t.order_id
+                         WHERE l.seller_id=? AND t.file != ''
+                           AND (o.id IS NULL OR o.status IN ('released', 'refunded', 'expired', 'cancelled'))""", uid):
+        if not db.one("""SELECT 1 FROM tickets t JOIN orders o ON o.id = t.order_id
+                         WHERE t.file=? AND o.status IN ('pending', 'paid', 'disputed')""", row["file"]):
+            db.run("UPDATE tickets SET file='' WHERE file=?", row["file"])
+            try:
+                os.remove(os.path.join(config.UPLOAD_DIR, row["file"]))
+            except FileNotFoundError:
+                pass
     end_all_sessions(uid)
     fresh_session()
     flash(t("account_deleted"), "ok")
