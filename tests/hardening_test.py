@@ -77,8 +77,8 @@ ok("Van studenten, voor studenten" not in html(nl.get("/")) and "Gemaakt voor st
 
 # --- #4: one payout rule everywhere, matching rate_order and release_payout
 how, terms = html(visitor.get("/how-it-works")), html(visitor.get("/terms"))
-ok("on the day of the event that the ticket worked" in how and "48 hours after the night" in how, "#4 How it works describes the early and the latest payout")
-ok("on the day of the event that the ticket worked" in terms and "nothing is paid out until the seller has transferred it" in terms, "#4 the terms say the same")
+ok("If the buyer confirms the ticket worked, sooner" in how and "48 hours after the night" in how and "72 hours" in how, "#4 How it works describes the early and the latest payout")
+ok("the payout is brought forward" in terms and "nothing is paid out until the seller has transferred it" in terms, "#4 the terms say the same")
 ok("held until after the event" not in how, "#4 no more 'held until after the event'")
 
 # --- #5: the FAQ is up to date and how-it-works exists in every language
@@ -732,5 +732,36 @@ r = seller4.post("/sell", data=dict(app_base, app_screenshot=(io.BytesIO(ticket_
                                      app_order=(io.BytesIO(b"%PDF-1.4 order2"), "order2.pdf"), _csrf=csrf(seller4)), content_type="multipart/form-data")
 ok(r.status_code == 200, "#29 the same app screenshot can't be used for a second listing")
 config.TICKET_CHECKS = False
+
+# --- #30: "it worked" only once the doors have been open a while; a 👍 doesn't pay on the spot
+o7 = paid_order()   # priced event on D (3 days ahead), doors unknown → 22:00
+r = buyer.post("/orders/%s/rate" % o7["public_id"], data={"rating": "up", "_csrf": csrf(buyer)})
+ok(r.status_code == 400 and "Did your ticket work" not in html(buyer.get("/orders/%s" % o7["public_id"])), "#30 no rating before the event")
+with app.app_context():
+    A.db.run("UPDATE events SET door_time='23:00' WHERE id=?", priced["id"])
+    A.db.run("UPDATE listings SET event_date=? WHERE id=?", date.today().isoformat(), o7["listing_id"])
+    l7 = A.db.one("SELECT * FROM listings WHERE id=?", o7["listing_id"])
+    opens = A.doors_open_at(l7)
+local_doors = opens.replace(tzinfo=__import__("datetime").timezone.utc).astimezone().strftime("%H:%M")
+ok(local_doors == "23:00", "#30 the doors come from the event's door time (Amsterdam time)")
+real_utcnow = A.utcnow
+A.utcnow = lambda: opens + timedelta(hours=1)
+r = buyer.post("/orders/%s/rate" % o7["public_id"], data={"rating": "up", "_csrf": csrf(buyer)})
+ok(r.status_code == 400, "#30 one hour after the doors it's still too early to say 'it worked'")
+A.utcnow = lambda: opens + timedelta(hours=2, minutes=5)
+buyer.post("/orders/%s/rate" % o7["public_id"], data={"rating": "up", "_csrf": csrf(buyer)})
+o7 = order_now(o7)
+ok(o7["rating"] == "up" and o7["status"] == "paid" and o7["payout_due_at"] == A.sqltime(opens + timedelta(hours=3)),
+   "#30 from 2 hours after the doors a 👍 counts, and brings the payout to 3 hours after the doors (not straight away)")
+SENT.clear(); MAIL_WORKS[0] = True
+buyer.post("/orders/%s/report" % o7["public_id"], data={"reason": "Turned away at 00:30, code already scanned", "_csrf": csrf(buyer)})
+ok(order_now(o7)["status"] == "disputed", "#30 the buyer can still report a problem after a 👍, until the money has gone")
+A.utcnow = real_utcnow; MAIL_WORKS[0] = False
+r = seller3.get("/orders/%s" % o7["public_id"])
+with app.app_context(): th = A.db.one("SELECT id FROM threads WHERE order_id=?", o7["id"])
+seller3.post("/threads/%d/send" % th["id"], data={"body": "Can you tap it worked already? Thanks!", "_csrf": csrf(seller3)})
+with app.app_context(): m = A.db.one("SELECT * FROM messages WHERE thread_id=? ORDER BY id DESC", th["id"])
+ok(m["flags"] == "rate_early" and m["kind"] == "text", "#30 asking the buyer to confirm early is flagged for the admins (and still delivered)")
+ok("rate_early" in html(admin.get("/admin")), "#30 ...and shown on /admin")
 
 print("FAILED:", fails or "none")

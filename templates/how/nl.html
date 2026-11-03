@@ -7,7 +7,7 @@
       <li><strong>Betaal met iDEAL of kaart.</strong> Je betaalt de prijs van de verkoper plus {{ fee }} servicekosten.</li>
       <li><strong>Ontvang je ticket.</strong> Een ticketbestand staat meteen na betalen in je account en in je mail. Een ticket dat in een app staat ({{ apps }}) stuurt de verkoper naar jouw account in die app.</li>
     </ol>
-    <p class="muted">Werkt je ticket niet aan de deur? Meld het via je bestelling voordat de verkoper betaald is, uiterlijk {{ payout_hours }} uur na de avond, en je krijgt je geld terug.</p>
+    <p class="muted">Werkt je ticket niet aan de deur? Meld het via je bestelling zolang de verkoper nog niet betaald is, en je krijgt je geld terug.</p>
   </section>
   <section class="panel">
     <h2>Verkopen</h2>
@@ -18,7 +18,7 @@
       <li><strong>Geef eenmalig je telefoonnummer op.</strong> Kopers zien het nooit; wij gebruiken het alleen om je te bereiken als er iets misgaat.</li>
       {% endif %}
       <li><strong>Plaats je ticket.</strong> Club, datum, prijs en het ticketbestand, of de app waar het in staat. Klaar in een minuut.</li>
-      <li><strong>Ontvang je geld.</strong> Jouw prijs min de verkoperskosten. Bevestigt de koper op de dag van het evenement dat het ticket werkte, dan krijg je het meteen; anders {{ payout_hours }} uur na de avond, zolang de koper geen probleem heeft gemeld. Bij een ticket in een app pas nadat je het als overgezet hebt gemarkeerd.</li>
+      <li><strong>Ontvang je geld.</strong> Jouw prijs min de verkoperskosten, {{ payout_hours }} uur na de avond. Bevestigt de koper dat het ticket werkte, dan eerder: vanaf 3 uur nadat de deuren opengaan. Nieuwe verkopers (minder dan {{ new_seller_sales }} afgeronde verkopen) krijgen hun geld {{ new_seller_hours }} uur na de avond. Bij een ticket in een app pas nadat je het als overgezet hebt gemarkeerd.</li>
     </ol>
   </section>
   <section class="panel" id="fees">
@@ -33,7 +33,7 @@
   <section class="panel">
     <h2>Veiligheid</h2>
     <ul class="checks">
-      <li>Je geld staat vast tot je bevestigt dat het ticket werkte, of uiterlijk {{ payout_hours }} uur na de avond. Het gaat niet direct naar de verkoper.</li>
+      <li>Je geld staat vast tot de avond voorbij is en je een probleem hebt kunnen melden. Het gaat niet direct naar de verkoper.</li>
       {% if sms_enabled %}
       <li>Elke verkoper heeft een bevestigd telefoonnummer en e-mailadres.</li>
       {% else %}
@@ -50,6 +50,6 @@
   <details><summary>Mag ik mijn ticket doorverkopen?</summary><p>Meestal wel, maar sommige organisatoren verbieden doorverkoop of zetten je naam op het ticket. Check de voorwaarden van het evenement voordat je verkoopt.</p></details>
   <details><summary>Welke tickets kan ik aanbieden?</summary><p>Twee soorten. Een ticketbestand: een PDF of afbeelding met een QR- of barcode, die de koper downloadt. Of een ticket dat in een app staat ({{ apps }} of een andere app met een knop om over te zetten): de koper geeft de naam en het e-mailadres van zijn account in die app, jij zet het over met de knop in de app en tikt op "{{ t('seller_transfer_done_btn') }}", en de koper bevestigt dat het binnen is.</p></details>
   <details><summary>Wat als de verkoper hetzelfde ticket ook ergens anders verkoopt?</summary><p>Meld het via je bestelling voordat de verkoper betaald is. Je krijgt je geld terug en de verkoper wordt geblokkeerd.</p></details>
-  <details><summary>Wanneer krijg ik als verkoper betaald?</summary><p>Bevestigt de koper op de dag van het evenement dat het ticket werkte, dan meteen. Anders {{ payout_hours }} uur na de avond van het evenement, zolang de koper geen probleem heeft gemeld. Bij een ticket in een app pas nadat je het als overgezet hebt gemarkeerd. Je stelt je uitbetaling eenmalig in via Stripe met je IBAN.</p></details>
+  <details><summary>Wanneer krijg ik als verkoper betaald?</summary><p>{{ payout_hours }} uur na de avond van het evenement, zolang de koper geen probleem heeft gemeld. Bevestigt de koper dat het ticket werkte (dat kan vanaf 2 uur nadat de deuren opengaan), dan eerder: vanaf 3 uur na de deuren. Tot je {{ new_seller_sales }} verkopen hebt afgerond, krijg je je geld {{ new_seller_hours }} uur na de avond. Bij een ticket in een app pas nadat je het als overgezet hebt gemarkeerd. Je stelt je uitbetaling eenmalig in via Stripe met je IBAN.</p></details>
   <details><summary>Kan ik mijn advertentie aanpassen of verwijderen?</summary><p>De prijs pas je aan op de pagina van je advertentie, zolang die onder het maximum blijft. Verwijderen kan altijd zolang het ticket niet verkocht is.</p></details>
 </div>

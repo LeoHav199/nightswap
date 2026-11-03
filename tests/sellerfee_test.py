@@ -65,15 +65,16 @@ ok("€2.60 fees" in html(admin.get("/admin")), "admin totals include both fees 
 
 # --- Paid as soon as the buyer confirms the ticket worked
 with app.app_context():
-    A.db.run("UPDATE listings SET event_date=? WHERE id=?", date.today().isoformat(), lid)  # the night is here
+    A.db.run("UPDATE listings SET event_date=? WHERE id=?", (date.today() - timedelta(days=1)).isoformat(), lid)  # the night was yesterday
     A.db.run("UPDATE users SET payouts_ready=1 WHERE email='s@test.nl'")
     o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
 ok(o["status"] == "paid" and o["payout_due_at"] > A.sqltime(A.utcnow()), "before confirming, the payout waits for its date")
 buyer.post("/orders/%s/rate" % pub, data={"rating": "up", "_csrf": csrf(buyer)})
+with app.test_request_context(): A.release_due_payouts()  # the hourly task (#30: a 👍 no longer pays on the spot)
 with app.app_context(): o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
-ok(o["status"] == "released" and o["rating"] == "up", "the buyer's thumbs-up pays the seller straight away")
+ok(o["status"] == "released" and o["rating"] == "up", "the buyer's thumbs-up brings the payout forward to the next hourly run")
 ok("on its way" in html(seller.get("/orders/%s" % pub)), "the seller sees the money is on its way")
-ok("confirms on the day of the event that the ticket worked" in html(buyer.get("/how-it-works")).lower(), "How it works explains the early payout")
+ok("if the buyer confirms the ticket worked, sooner" in html(buyer.get("/how-it-works")).lower(), "How it works explains the early payout")
 
 # --- Explained honestly
 how = html(buyer.get("/how-it-works"))

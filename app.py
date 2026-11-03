@@ -9,7 +9,7 @@ import re
 import secrets
 import shutil
 import unicodedata
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from urllib.parse import quote, urlencode, urlparse
 
@@ -368,6 +368,27 @@ def payout_due_for(event_date, seller_id=None):
     night_end = datetime.combine(date.fromisoformat(event_date) + timedelta(days=1), datetime.min.time())
     hours = config.NEW_SELLER_PAYOUT_HOURS if seller_id and is_new_seller(seller_id) else config.PAYOUT_DELAY_HOURS
     return night_end + timedelta(hours=hours)
+
+
+RATE_AFTER_DOORS_HOURS = 2   # #30: "did it work?" opens this long after the doors
+PAYOUT_AFTER_DOORS_HOURS = 3  # a 👍 brings the payout forward to this long after the doors (never sooner)
+
+
+def doors_open_at(listing):
+    """The doors (UTC): the event's door time, else the listing's start time, else 22:00, on the event date,
+    Amsterdam time. Times before 06:00 belong to the night after the event date."""
+    e = db.one("SELECT door_time FROM events WHERE id=?", listing["event_id"]) if listing["event_id"] else None
+    door = (e and e["door_time"]) or listing["start_time"] or "22:00"
+    day = date.fromisoformat(listing["event_date"])
+    hh, mm = (int(x) for x in door.split(":")[:2])
+    if hh < 6:
+        day += timedelta(days=1)
+    local = datetime.combine(day, datetime.min.time()).replace(hour=hh, minute=mm)
+    return local.astimezone(timezone.utc).replace(tzinfo=None)  # the server runs on Amsterdam time (TZ in render.yaml)
+
+
+def can_rate_now(listing):
+    return utcnow() >= doors_open_at(listing) + timedelta(hours=RATE_AFTER_DOORS_HOURS)
 
 
 def is_new_seller(user_id):
@@ -891,6 +912,7 @@ def template_globals():
         "price_cap": config.PRICE_CAP_PERCENT,
         "price_markup": config.PRICE_CAP_PERCENT - 100,  # e.g. 20 for "up to 20% above face value"
         "payout_hours": config.PAYOUT_DELAY_HOURS,
+        "new_seller_hours": config.NEW_SELLER_PAYOUT_HOURS, "new_seller_sales": config.NEW_SELLER_SALES,
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"), "test_lock": g.get("test_lock"),
@@ -1515,9 +1537,8 @@ def order_page(public_id):
         venue=get_venue(listing["venue"], listing["city"]),
         directions=directions_url(get_venue(listing["venue"], listing["city"])) if get_venue(listing["venue"], listing["city"]) else None,
         colour=venue_colour(listing["venue"]), is_buyer=is_buyer, is_seller=g.user["id"] == order["seller_id"],
-        can_report=order["status"] == "paid" and due and utcnow() < due and is_buyer,
-        can_rate=(is_buyer and order["status"] in PAID_STATES and not order["rating"]
-                  and listing["event_date"] <= today().isoformat()),
+        can_report=order["status"] == "paid" and is_buyer,
+        can_rate=is_buyer and order["status"] in PAID_STATES and not order["rating"] and can_rate_now(listing),
     ))
     if offline:
         resp.headers["X-Spare-Offline"] = (date.fromisoformat(listing["event_date"]) + timedelta(days=3)).isoformat()
@@ -1599,9 +1620,8 @@ DISPUTE_REPLY_HOURS = 24  # the seller's time to answer a problem report in the 
 @login_required
 def report_problem(public_id):
     order = get_order_for_user(public_id)
-    due = parse_sqltime(order["payout_due_at"])
-    if order["buyer_id"] != g.user["id"] or order["status"] != "paid" or not due or utcnow() >= due:
-        abort(400)
+    if order["buyer_id"] != g.user["id"] or order["status"] != "paid":
+        abort(400)  # #30: possible until the money has actually gone to the seller, even after a 👍
     reason = request.form.get("reason", "").strip()[:1000]
     if len(reason) < 10:
         flash(t("err_report_short"), "error")
@@ -1625,17 +1645,15 @@ def rate_order(public_id):
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
     value = request.form.get("rating")
     if (order["buyer_id"] != g.user["id"] or value not in ("up", "down") or order["rating"]
-            or order["status"] not in PAID_STATES or listing["event_date"] > today().isoformat()):
-        abort(400)
+            or order["status"] not in PAID_STATES or not can_rate_now(listing)):
+        abort(400)  # #30: only once the doors have been open a while, so nobody confirms before they're inside
     db.run("UPDATE orders SET rating=?, rated_at=? WHERE id=?", value, sqltime(utcnow()), order["id"])
     if value == "up" and order["status"] == "paid" and not is_new_seller(order["seller_id"]):
-        # The buyer confirms the ticket worked: no need to keep the seller waiting for the full 48 hours.
+        # The buyer confirms the ticket worked: no need to keep the seller waiting for the full 48 hours. The hourly
+        # task pays it, no sooner than 3 hours after the doors, and until then the buyer can still report a problem.
         # (New sellers are always paid 72 hours after the night, #28.)
-        db.run("UPDATE orders SET payout_due_at=? WHERE id=?", sqltime(utcnow()), order["id"])
-        try:
-            release_payout(db.one("SELECT * FROM orders WHERE id=?", order["id"]))
-        except Exception:
-            app.logger.exception("Early payout failed; the hourly task will try again")
+        sooner = max(utcnow(), doors_open_at(listing) + timedelta(hours=PAYOUT_AFTER_DOORS_HOURS))
+        db.run("UPDATE orders SET payout_due_at=? WHERE id=? AND payout_due_at > ?", sqltime(sooner), order["id"], sqltime(sooner))
     if value == "down" and order["status"] == "paid":
         flash(t("rated_down"), "error")
         return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
@@ -1831,7 +1849,7 @@ def unread_count(user_id):
 
 
 def recent_flags(user_id):
-    return db.one("SELECT COUNT(*) AS n FROM messages WHERE sender_id=? AND flags IS NOT NULL AND created_at > ?",
+    return db.one("SELECT COUNT(*) AS n FROM messages WHERE sender_id=? AND flags IS NOT NULL AND flags != 'rate_early' AND created_at > ?",
                   user_id, sqltime(utcnow() - timedelta(hours=24)))["n"]
 
 
@@ -1938,7 +1956,8 @@ def send_message(thread_id):
     if "off_platform" in flags:
         flags.append("blocked")  # deals and payments outside Spare aren't delivered
     add_message(th, uid, "text", clean, raw=text if flags else None, flags=",".join(flags) or None)
-    warning = (t("msg_blocked") if "blocked" in flags else t("msg_masked")) if flags else None
+    shown = [f for f in flags if f != "rate_early"]  # rate_early is only for the admins (#30)
+    warning = (t("msg_blocked") if "blocked" in flags else t("msg_masked")) if shown else None
     if wants_json():
         try:
             after = int(request.form.get("after", "0"))

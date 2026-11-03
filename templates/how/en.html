@@ -7,7 +7,7 @@
       <li><strong>Pay with iDEAL or card.</strong> You pay the seller's price plus a {{ fee }} service fee.</li>
       <li><strong>Get your ticket.</strong> A ticket file is in your account and your inbox right after paying. A ticket that lives in an app ({{ apps }}) is sent to your account in that app by the seller.</li>
     </ol>
-    <p class="muted">Ticket doesn't work at the door? Report it from your order before the seller is paid, at the latest {{ payout_hours }} hours after the night, and you get your money back.</p>
+    <p class="muted">Ticket doesn't work at the door? Report it from your order any time before the seller is paid, and you get your money back.</p>
   </section>
   <section class="panel">
     <h2>Selling</h2>
@@ -18,7 +18,7 @@
       <li><strong>Add your phone number once.</strong> Buyers never see it; we only use it to reach you if something goes wrong.</li>
       {% endif %}
       <li><strong>Post your ticket.</strong> Venue, date, price and the ticket file, or the app it lives in. It takes about a minute.</li>
-      <li><strong>Get paid.</strong> Your price minus the seller fee. If the buyer confirms on the day of the event that the ticket worked, you're paid straight away; otherwise {{ payout_hours }} hours after the night, as long as the buyer hasn't reported a problem. For a ticket in an app, only after you've marked it as transferred.</li>
+      <li><strong>Get paid.</strong> Your price minus the seller fee, {{ payout_hours }} hours after the night. If the buyer confirms the ticket worked, sooner: from 3 hours after the doors open. New sellers (fewer than {{ new_seller_sales }} completed sales) are paid {{ new_seller_hours }} hours after the night. For a ticket in an app, only after you've marked it as transferred.</li>
     </ol>
   </section>
   <section class="panel" id="fees">
@@ -33,7 +33,7 @@
   <section class="panel">
     <h2>Safety</h2>
     <ul class="checks">
-      <li>Your money is held until you confirm the ticket worked, or at the latest {{ payout_hours }} hours after the night. It isn't passed straight to the seller.</li>
+      <li>Your money is held until the night is over and you've had the chance to report a problem. It isn't passed straight to the seller.</li>
       {% if sms_enabled %}
       <li>Every seller has a verified phone number and email address.</li>
       {% else %}
@@ -50,6 +50,6 @@
   <details><summary>Am I allowed to resell my ticket?</summary><p>Usually yes, but some organisers ban resale or print your name on the ticket. Check the event's terms before you sell.</p></details>
   <details><summary>Which tickets can I list?</summary><p>Two kinds. A ticket file: a PDF or image with a QR code or barcode, which the buyer downloads. Or a ticket that lives in an app ({{ apps }} or another app with a transfer button): the buyer gives the name and email of their account in that app, you send it with the app's own transfer button and tap "{{ t('seller_transfer_done_btn') }}", and the buyer confirms it arrived.</p></details>
   <details><summary>What if the seller sells the same ticket somewhere else too?</summary><p>Report it from your order before the seller is paid. You get your money back and the seller is blocked.</p></details>
-  <details><summary>When do I get paid as a seller?</summary><p>If the buyer confirms on the day of the event that the ticket worked, straight away. Otherwise {{ payout_hours }} hours after the night of the event, as long as the buyer hasn't reported a problem. For a ticket in an app, only once you've marked it as transferred. You set up payouts once through Stripe with your IBAN.</p></details>
+  <details><summary>When do I get paid as a seller?</summary><p>{{ payout_hours }} hours after the night of the event, as long as the buyer hasn't reported a problem. If the buyer confirms the ticket worked (they can from 2 hours after the doors open), sooner: from 3 hours after the doors. Until you've completed {{ new_seller_sales }} sales, you're paid {{ new_seller_hours }} hours after the night. For a ticket in an app, only once you've marked it as transferred. You set up payouts once through Stripe with your IBAN.</p></details>
   <details><summary>Can I edit or remove my listing?</summary><p>You can change the price on your listing's page, as long as it stays within the maximum. You can remove it any time before it sells.</p></details>
 </div>

@@ -55,6 +55,17 @@ OFF_PLATFORM = re.compile(
 )
 
 
+# Delivered, but flagged for the admins (#30): a seller pushing the buyer to confirm before they're inside.
+RATE_EARLY = re.compile(
+    r"\b((tap|click|press|give|leave|hit|confirm|mark|rate)\s+(\w+\s+){0,4}(👍|thumbs?\s*up|it\s+worked|worked|received|got\s+it|rating|confirmation)|"
+    r"(rate|confirm|review)\s+(\w+\s+){0,3}(now|already|early|before|right\s+away|asap)|"
+    r"can\s+you\s+(already\s+|just\s+)?(rate|confirm)|"
+    r"(geef|klik|druk|tik|zet)\s+(\w+\s+){0,4}(duim(pje)?|👍|het\s+werkte|beoordeling|bevestiging)|"
+    r"(nu|alvast|al|even)\s+(bevestigen|beoordelen)|bevestig\s+(je\s+)?(alvast|nu|even|al))",
+    re.I,
+)
+
+
 def check(text):
     """Returns (safe_text, flags). flags is a sorted list like ['phone', 'off_platform']."""
     flags = set()
@@ -74,4 +85,6 @@ def check(text):
         clean = pattern.sub(mask(kind), clean)
     if OFF_PLATFORM.search(clean):
         flags.add("off_platform")
+    if RATE_EARLY.search(clean):
+        flags.add("rate_early")
     return clean, sorted(flags)
