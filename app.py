@@ -615,6 +615,13 @@ def cleanup_ticket_files():
     return deleted
 
 
+def company():
+    """Who runs Spare (#19, #20), with visible placeholders until the KvK details are set on Render."""
+    return {"name": config.COMPANY_NAME or "[COMPANY NAME]", "address": config.COMPANY_ADDRESS or "[ADDRESS]",
+            "kvk": config.KVK_NUMBER or "[KVK NUMBER]", "vat": config.VAT_NUMBER or "[VAT NUMBER]",
+            "complete": bool(config.COMPANY_NAME and config.COMPANY_ADDRESS and config.KVK_NUMBER)}
+
+
 def disk_usage():
     """(used fraction, used bytes, total bytes) of the disk holding the data."""
     usage = shutil.disk_usage(config.DATA_DIR)
@@ -810,6 +817,7 @@ def template_globals():
         "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
         "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
+        "company": company(),
     }
 
 
@@ -3364,6 +3372,7 @@ def hourly_tasks():
     files_deleted = cleanup_ticket_files()
     check_disk()
     db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
+    db.run("DELETE FROM codes WHERE expires_at < ?", sqltime(utcnow()))  # expired sign-in codes (privacy policy)
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
             "resell_reminders": resell, "transfer_reminders": transfer_reminders, "backup": backed_up,
             "ticket_files_deleted": files_deleted}

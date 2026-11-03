@@ -1,0 +1,65 @@
+<h1>Privacy</h1>
+<p class="muted">Last updated: November 2026</p>
+<p>This policy explains what personal data Spare collects, why, how long we keep it, who else handles it and what your rights are. We keep it short and only collect what we need to run a safe ticket marketplace.</p>
+
+<h2>Who is responsible</h2>
+<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, runs Spare and is the controller of your data. Questions or requests: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+
+<h2>What we collect, why, and on what basis</h2>
+<dl class="policy">
+  <dt>Your account</dt>
+  <dd>Email address, first name, the character you picked, your language, and which of our links brought you here (if any). We use these to sign you in with a code and to run your account. <em>Basis: our agreement with you (GDPR art. 6(1)(b)).</em></dd>
+  <dt>Phone number (sellers)</dt>
+  <dd>So we can reach you if something goes wrong with a ticket you sold. Buyers never see it. {% if sms_enabled %}We confirm it with a code by text message.{% else %}For now we send the confirmation code to your email, so we don't check that the number is really yours.{% endif %} <em>Basis: our agreement with you, and our legitimate interest in preventing fraud (art. 6(1)(f)).</em></dd>
+  <dt>Student email (optional)</dt>
+  <dd>If you add a university email address, we keep it and your school's name to show the "verified student" badge. <em>Basis: your consent (art. 6(1)(a)); remove it any time by deleting your account or asking us.</em></dd>
+  <dt>Listings and ticket files</dt>
+  <dd>The event, price, face value and the ticket file you upload. Ticket files often show the original buyer's name. We read the QR code or barcode and keep a fingerprint (hash) of the file and the code, to stop the same ticket being sold twice. <em>Basis: our agreement with you, and our legitimate interest in preventing fraud.</em></dd>
+  <dt>Orders and payouts</dt>
+  <dd>What was bought, when, by whom, the amounts and fees, ratings and any problem reports. Payment details (card, IBAN) and sellers' identity checks are handled by Stripe and never reach us. <em>Basis: our agreement with you, and our legal duty to keep bookkeeping records (art. 6(1)(c)).</em></dd>
+  <dt>Tickets that live in an app</dt>
+  <dd>If you buy a ticket that lives in an app, the name and email address you give for the transfer are shared with the seller, only so they can send you the ticket. <em>Basis: our agreement with you.</em></dd>
+  <dt>Messages</dt>
+  <dd>Messages between buyers and sellers go through Spare. To protect you from scams, phone numbers, email addresses, links and payment details are hidden automatically, and messages that try to arrange paying outside Spare aren't delivered. When something was hidden or a message wasn't delivered, we keep the original text so our team can review it in case of fraud or a reported problem. <em>Basis: our agreement with you, and our legitimate interest in preventing fraud.</em></dd>
+  <dt>Notifications</dt>
+  <dd>If you turn on push notifications or "Notify me" for a night, we keep the address your browser gives us for notifications and which nights you follow. <em>Basis: your consent; switch them off any time.</em></dd>
+  <dt>Waitlist</dt>
+  <dd>If you join the waitlist, your email address, what you want to do (buy, sell or organise) and your language, only to send you one email when Spare opens. That email has a link that removes you. <em>Basis: your consent.</em></dd>
+  <dt>Reports</dt>
+  <dd>If you report a listing without being signed in, the email address you give, so we can follow up. We never tell the seller who reported them. <em>Basis: our legal duties under the EU Digital Services Act, and our legitimate interest in keeping Spare safe.</em></dd>
+  <dt>Security</dt>
+  <dd>Your IP address and email address are counted for a short time to limit sign-in attempts and spam. Our host keeps standard server logs (IP address, page, time) for a short period. <em>Basis: our legitimate interest in keeping Spare secure.</em></dd>
+</dl>
+
+<h2>Cookies and storage on your device</h2>
+<p>We only use what the site needs to work: a session cookie that keeps you signed in, a cookie for your language and one for your city. Some settings (tap sounds, whether you've seen the "Tonight" pop-up) are stored on your device only. If you've bought a ticket, your phone can keep a copy of your order page so the QR code opens without signal; it's removed 3 days after the event and when you log out. We don't use advertising, analytics or tracking cookies, and we don't load anything from other websites.</p>
+
+<h2>How long we keep it</h2>
+<ul>
+  <li><strong>Your account:</strong> until you delete it. Deleting removes your email, name, phone number, student email, messages you wrote, the transfer details you gave, your waitlist entry and your ticket files straight away.</li>
+  <li><strong>Orders:</strong> 7 years, because Dutch law requires businesses to keep their records that long. After you delete your account, only the amounts, dates and order numbers are kept, no longer linked to you.</li>
+  <li><strong>Ticket files:</strong> deleted 14 days after the event once the order is paid out or refunded, or the ticket didn't sell. The fingerprints (hashes) stay, so the same ticket can't be listed again.</li>
+  <li><strong>Sign-in codes:</strong> valid for 10 minutes, then deleted. <strong>Attempt counters:</strong> 1 day.</li>
+  <li><strong>Waitlist:</strong> until you remove yourself or we no longer need it after the launch.</li>
+  <li><strong>Backups:</strong> every night we make an encrypted backup of the database. The server keeps the last 3; a copy is emailed to Spare's own admin mailbox, where we delete them after 30 days.</li>
+</ul>
+
+<h2>Who else handles your data</h2>
+<p>We use these companies to run Spare. They only process your data for us, under a data processing agreement, except Stripe, which is also responsible for its own legal duties (such as checking sellers' identity).</p>
+<ul>
+  <li><strong>Stripe</strong> (Ireland, with group companies in the US): payments, refunds and payouts to sellers.</li>
+  <li><strong>Render</strong> (US company, servers in Frankfurt, Germany): hosts the website, database and files.</li>
+  <li><strong>Brevo</strong> (France): sends our emails.</li>
+  <li><strong>Apple iCloud</strong> (Ireland): receives emails sent to hello@sparetickets.eu and the backups.</li>
+  {% if sms_enabled %}<li><strong>Twilio</strong> (US): sends text messages with confirmation codes.</li>{% endif %}
+  <li><strong>Browser push services</strong> (Apple, Google or Mozilla, depending on your browser): deliver notifications you turned on.</li>
+  <li><strong>cron-job.org</strong> (Germany): starts our hourly tasks. It receives no personal data.</li>
+</ul>
+<p>Where data goes to the US, it's protected by the EU-US Data Privacy Framework or the EU's standard contractual clauses. We never sell your data.</p>
+
+<h2>Automatic checks</h2>
+<p>Some checks run automatically: uploads that match a ticket already on Spare are refused, and chat messages that try to arrange paying outside Spare aren't delivered. These don't decide anything else about you; if you think one got it wrong, email us and a person will look at it. Blocking an account or removing a listing is always decided by a person, and you get the reasons by email.</p>
+
+<h2>Your rights</h2>
+<p>You can ask to see, correct or delete your data, ask us to limit or stop using it, and get a copy to take elsewhere. You can download your data and delete your account yourself under Account → Your data. Where we rely on your consent, you can withdraw it at any time. Email <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>; we answer within a month.</p>
+<p>Not happy with how we handle your data? You can complain to the Dutch data protection authority, the <a href="https://autoriteitpersoonsgegevens.nl" rel="noopener">Autoriteit Persoonsgegevens</a>.</p>

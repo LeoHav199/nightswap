@@ -348,4 +348,18 @@ with app.app_context():
 ok(o and o["price_cents"] == 2000 and o["paid_at"], "#18 the order's amounts, dates and number are kept for the bookkeeping")
 ok("the sender deleted their account" in html(buyer.get("/threads/%d" % gtid)), "#18 the other person sees 'message removed'")
 
+# --- #19: the privacy policy covers what the law asks, matching the code
+priv = html(visitor.get("/privacy"))
+for words, what in (("[KVK NUMBER]", "who's responsible (placeholder until the KvK details are set)"), ("art. 6(1)(b)", "the legal basis for each use"),
+                    ("Stripe", "Stripe"), ("Frankfurt", "Render and where it runs"), ("Brevo", "the email provider"), ("cron-job.org", "cron-job.org"),
+                    ("7 years", "the 7-year bookkeeping rule"), ("14 days after the event", "when ticket files are deleted"),
+                    ("encrypted backup", "backups"), ("Autoriteit Persoonsgegevens", "the right to complain to the AP")):
+    ok(words in priv, "#19 the privacy policy covers %s" % what)
+ok("Twilio" not in priv, "#19 Twilio is only listed when SMS is on")
+config.SMS_ENABLED = True; ok("Twilio" in html(visitor.get("/privacy")), "#19 ...and listed when it is"); config.SMS_ENABLED = False
+config.KVK_NUMBER, config.COMPANY_NAME = "12345678", "Spare Tickets"
+ok("KvK 12345678" in html(visitor.get("/privacy")) and "Spare Tickets" in html(visitor.get("/privacy")), "#19 once set on Render, the real company details show")
+config.KVK_NUMBER = config.COMPANY_NAME = ""
+ok("Autoriteit Persoonsgegevens" in html(nl.get("/privacy")) and "Grond:" in html(nl.get("/privacy")), "#19 the Dutch version too")
+
 print("FAILED:", fails or "none")

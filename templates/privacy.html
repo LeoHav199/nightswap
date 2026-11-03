@@ -1,37 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ t('footer_privacy') }} · Spare{% endblock %}
 {% block content %}
+{# One file per language. Keep it in line with what the code stores: see account_delete, cleanup_ticket_files, backup.py. #}
 <div class="wrap prose">
-  {% if lang == 'nl' %}
-  <h1>Privacy</h1>
-  <p class="muted">Laatst bijgewerkt: oktober 2026</p>
-  <h2>Wat we bewaren</h2>
-  <p>Je e-mailadres en voornaam; je telefoonnummer als je verkoopt; je advertenties, ticketbestanden en bestellingen. Betaalgegevens worden door Stripe verwerkt en komen nooit bij ons.</p>
-  <p>Koop je een ticket dat in een app staat, dan delen we de naam en het e-mailadres die je opgeeft voor het overzetten met de verkoper, alleen zodat die het ticket naar je kan overzetten.</p>
-  <p>Meld je je aan voor de wachtlijst, dan bewaren we je e-mailadres en wat je wilt doen (kopen, verkopen of organiseren), alleen om je één mail te sturen als Spare opent. Via de link in die mail haal je jezelf van de lijst.</p>
-  <h2>Waarom</h2>
-  <p>Om je in te laten loggen, tickets te leveren, uitbetalingen te doen en fraude te voorkomen. We gebruiken geen advertentie- of trackingcookies.</p>
-  <h2>Wie het ziet</h2>
-  <p>Kopers zien de voornaam van de verkoper. Na een aankoop kunnen koper en verkoper elkaar berichten sturen via Spare; e-mailadressen blijven verborgen. Telefoonnummers zijn alleen zichtbaar voor Spare.</p>
-  <h2>Berichten</h2>
-  <p>Berichten tussen kopers en verkopers lopen via Spare. Om je te beschermen tegen oplichting verbergen we automatisch telefoonnummers, e-mailadressen, links en betaalgegevens. Berichten waarin iets verborgen is of die over betalen buiten Spare gaan, bewaren we in originele vorm, zodat ons team ze kan bekijken bij fraude of een gemeld probleem.</p>
-  <h2>Je rechten</h2>
-  <p>Je kunt je gegevens opvragen, laten aanpassen of laten verwijderen via <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
-  {% else %}
-  <h1>Privacy</h1>
-  <p class="muted">Last updated: October 2026</p>
-  <h2>What we store</h2>
-  <p>Your email address and first name; your phone number if you sell; your listings, ticket files and orders. Payment details are handled by Stripe and never reach us.</p>
-  <p>If you buy a ticket that lives in an app, the name and email you give for the transfer are shared with the seller, only so they can transfer the ticket to you.</p>
-  <p>If you join the waitlist, we keep your email address and what you want to do (buy, sell or organise), only to send you one email when Spare opens. The link in that email removes you from the list.</p>
-  <h2>Why</h2>
-  <p>To sign you in, deliver tickets, pay sellers and prevent fraud. We don't use advertising or tracking cookies.</p>
-  <h2>Who sees it</h2>
-  <p>Buyers see the seller's first name. After a purchase, buyer and seller can message each other through Spare; email addresses stay hidden. Phone numbers are only visible to Spare.</p>
-  <h2>Messages</h2>
-  <p>Messages between buyers and sellers go through Spare. To protect you from scams, phone numbers, email addresses, links and payment details are hidden automatically. Messages where something was hidden, or that talk about paying outside Spare, are kept in their original form so our team can review them in case of fraud or a reported problem.</p>
-  <h2>Your rights</h2>
-  <p>You can request, correct or delete your data by emailing <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
-  {% endif %}
+  {% include "privacy/" ~ (lang if lang in ('nl', 'fr', 'de', 'es') else 'en') ~ ".html" %}
 </div>
 {% endblock %}

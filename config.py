@@ -104,6 +104,12 @@ STUDENT_DOMAINS = {
 }
 
 SUPPORT_EMAIL = env("SUPPORT_EMAIL", "hello@sparetickets.eu")
+# Who runs Spare, shown in the footer, emails, terms and privacy policy (#19, #20). Fill in after the KvK registration;
+# until then the pages show [placeholders].
+COMPANY_NAME = env("COMPANY_NAME")
+COMPANY_ADDRESS = env("COMPANY_ADDRESS")
+KVK_NUMBER = env("KVK_NUMBER")
+VAT_NUMBER = env("VAT_NUMBER")
 ADMIN_SECOND_FACTOR = env("ADMIN_SECOND_FACTOR", "1") != "0"   # admins confirm a text code every 12 hours
 TRUST_PROXY = env("TRUST_PROXY", "0") == "1"                     # set to 1 behind Render/Fly so client IPs are read correctly
 PROXY_HOPS = int(env("TRUST_PROXY_HOPS", "1"))  # how many proxies add to X-Forwarded-For; check /admin → Network check
