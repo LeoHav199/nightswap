@@ -764,4 +764,44 @@ with app.app_context(): m = A.db.one("SELECT * FROM messages WHERE thread_id=? O
 ok(m["flags"] == "rate_early" and m["kind"] == "text", "#30 asking the buyer to confirm early is flagged for the admins (and still delivered)")
 ok("rate_early" in html(admin.get("/admin")), "#30 ...and shown on /admin")
 
+# --- #31: app tickets: proof of the transfer, buyer reminders, no payout before the buyer had their say
+config.TICKET_CHECKS = True
+def app_order(seed):
+    r = seller4.post("/sell", data=dict(app_base, app_screenshot=(io.BytesIO(ticket_png(seed)), "app.png"),
+                                         app_order=(io.BytesIO(b"%PDF-1.4 o" + bytes([seed])), "o.pdf"), _csrf=csrf(seller4)), content_type="multipart/form-data")
+    l_id = int(re.search(r"/t/(\d+)", r.location).group(1))
+    r = buyer.post("/t/%d/buy" % l_id, data={"qty": "1", "transfer_name": "Bo", "transfer_email": "bo.tm@example.com", "_csrf": csrf(buyer)})
+    pid = r.location.split("/")[2]; buyer.post("/checkout/%s/test" % pid, data={"_csrf": csrf(buyer)})
+    with app.app_context(): return A.db.one("SELECT * FROM orders WHERE public_id=?", pid)
+a1 = app_order(31)
+seller4.post("/orders/%s/transferred" % a1["public_id"], data={"_csrf": csrf(seller4)})
+ok(order_now(a1)["transferred_at"] is None, "#31 'I've transferred it' needs a screenshot of the transfer")
+seller4.post("/orders/%s/transferred" % a1["public_id"], data={"transfer_proof": (io.BytesIO(ticket_png(310)), "done.png"), "_csrf": csrf(seller4)},
+             content_type="multipart/form-data")
+ok(order_now(a1)["transferred_at"] is not None, "#31 ...with it, the transfer is recorded")
+with app.app_context(): tp = A.db.one("SELECT * FROM proofs WHERE order_id=? AND kind='transfer'", a1["id"])
+ok(buyer.get("/orders/%s/proofs/%d" % (a1["public_id"], tp["id"])).status_code == 200, "#31 the buyer can see the transfer screenshot")
+a2 = app_order(32)
+seller4.post("/orders/%s/transferred" % a2["public_id"], data={"transfer_proof": (io.BytesIO(ticket_png(310, scale=0.9, fmt="JPEG")), "again.jpg"), "_csrf": csrf(seller4)},
+             content_type="multipart/form-data")
+ok(order_now(a2)["transferred_at"] is None, "#31 the same screenshot can't prove a second transfer")
+with app.app_context():
+    A.db.run("UPDATE orders SET payout_due_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(minutes=1)), a1["id"])
+    A.db.run("UPDATE users SET payouts_ready=1 WHERE email='s4@test.nl'")
+with app.test_request_context(): A.release_payout(order_now(a1))
+ok(order_now(a1)["status"] == "paid", "#31 no payout while the buyer hasn't confirmed or even been asked")
+MAIL_WORKS[0] = True; SENT.clear()
+with app.app_context(): A.db.run("UPDATE orders SET transferred_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(hours=3)), a1["id"])
+with app.test_request_context(): n1 = A.send_buyer_transfer_reminders(); n2 = A.send_buyer_transfer_reminders()
+ok(n1 >= 1 and n2 == 0 and any(to == "b@test.nl" and "Did your ticket arrive" in sub for to, sub, b in SENT), "#31 2 hours after the transfer the buyer is asked whether it arrived (once)")
+with app.test_request_context(): A.release_payout(order_now(a1))
+ok(order_now(a1)["status"] == "released", "#31 once the buyer was asked and the payout date passed, the seller is paid")
+a3 = app_order(33)
+seller4.post("/orders/%s/transferred" % a3["public_id"], data={"transfer_proof": (io.BytesIO(ticket_png(330)), "d.png"), "_csrf": csrf(seller4)},
+             content_type="multipart/form-data")
+ok("It didn&#39;t arrive" in html(buyer.get("/orders/%s" % a3["public_id"])), "#31 the buyer has an 'It didn't arrive' button")
+buyer.post("/orders/%s/not-received" % a3["public_id"], data={"_csrf": csrf(buyer)})
+ok(order_now(a3)["status"] == "disputed", "#31 'It didn't arrive' opens a dispute straight away")
+MAIL_WORKS[0] = False; config.TICKET_CHECKS = False
+
 print("FAILED:", fails or "none")

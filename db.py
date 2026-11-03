@@ -44,6 +44,8 @@ ADDED_COLUMNS = [
     ("listings", "transfer_app", "TEXT"),                       # key from config.TRANSFER_APPS
     ("listings", "name_on_ticket", "TEXT"),
     ("orders", "releasing_at", "TEXT"),
+    ("orders", "buyer_reminders", "INTEGER NOT NULL DEFAULT 0"),  # #31: "did the app ticket arrive?" reminders sent
+    ("orders", "buyer_reminded_at", "TEXT"),
     ("orders", "chargeback_at", "TEXT"),        # #27: the buyer's bank opened a dispute (chargeback)
     ("orders", "chargeback_status", "TEXT"),    # Stripe's dispute status when it closed: won | lost | ...
     ("orders", "reversal_ref", "TEXT"),         # the seller's payout taken back (Stripe transfer reversal)         # #26: when a payout was claimed (status 'releasing'), to find stuck ones

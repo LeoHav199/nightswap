@@ -540,6 +540,8 @@ def release_payout(order):
     listing = db.one("SELECT delivery FROM listings WHERE id=?", order["listing_id"])
     if listing["delivery"] == "transfer" and not (order["transferred_at"] or order["received_at"] or order["rating"] == "up"):
         return False  # an app ticket that was never sent: no money until it is (the buyer can report it and get a refund)
+    if listing["delivery"] == "transfer" and not order["received_at"] and order["rating"] != "up" and not order["buyer_reminders"]:
+        return False  # #31: the buyer hasn't confirmed and hasn't even been asked yet
     ready = seller["payouts_ready"] and (seller["stripe_account_id"] or not payments.live())
     if payments.live() and seller["stripe_account_id"] and not ready:
         ready = payments.payouts_ready(seller["stripe_account_id"])
@@ -645,6 +647,28 @@ def send_transfer_reminders():
                             tname=o["transfer_name"], temail=o["transfer_email"], url=base_url() + path))
         push.send(seller["id"], t("mail_transfer_reminder_subject", title=listing_title(o)), t("seller_transfer_title"), path,
                   tag="transfer-remind-" + o["public_id"])
+        sent += 1
+    return sent
+
+
+def send_buyer_transfer_reminders():
+    """#31: "Did your ticket arrive in the app?" to the buyer, 2 hours after the seller marked it as transferred and
+    again from 12:00 on the event day, while they haven't confirmed. One tap answers either way."""
+    sent = 0
+    now = utcnow()
+    for o in db.all("""SELECT o.*, l.venue, l.event_name, l.event_date, l.transfer_app FROM orders o JOIN listings l ON l.id = o.listing_id
+                       WHERE l.delivery = 'transfer' AND o.status = 'paid' AND o.transferred_at IS NOT NULL
+                         AND o.received_at IS NULL AND o.buyer_reminders < 2""", ):
+        first_due = parse_sqltime(o["transferred_at"]) + timedelta(hours=config.BUYER_REMIND_HOURS)
+        day_of = o["event_date"] == today().isoformat() and datetime.now().hour >= 12
+        if o["buyer_reminders"] == 0 and now < first_due and not day_of:
+            continue
+        if o["buyer_reminders"] == 1 and not (day_of and o["buyer_reminded_at"] and o["buyer_reminded_at"][:10] != now.strftime("%Y-%m-%d")):
+            continue
+        db.run("UPDATE orders SET buyer_reminders = buyer_reminders + 1, buyer_reminded_at=? WHERE id=?", sqltime(now), o["id"])
+        path = url_for("order_page", public_id=o["public_id"])
+        tell(o["buyer_id"], t("mail_arrived_subject", title=listing_title(o)),
+             t("mail_arrived_body", title=listing_title(o), app=app_name(o["transfer_app"]), email=o["transfer_email"]), path)
         sent += 1
     return sent
 
@@ -1527,7 +1551,8 @@ def order_page(public_id):
     # often no signal. The service worker only stores pages with this header, until 3 days after the event.
     offline = is_buyer and order["status"] in PAID_STATES and not (g.get("test_lock") and not g.is_admin)
     resp = app.make_response(render_template(
-        "order.html", offline=offline, file_gone=listing["delivery"] == "file" and not files and order["status"] in PAID_STATES,
+        "order.html", offline=offline,
+        transfer_proofs=db.all("SELECT * FROM proofs WHERE order_id=? AND kind='transfer'", order["id"]), file_gone=listing["delivery"] == "file" and not files and order["status"] in PAID_STATES,
         file_days=TICKET_FILE_DAYS, order=order, l=listing, buyer=buyer, seller=seller, payout_due=due, files=files,
         wallet_tickets=wallet_tickets, just_paid=just_paid and order["status"] in PAID_STATES,
         qr_codes=[(tk["id"], qr_svg(tk["code_text"])) for tk in db.all("SELECT * FROM tickets WHERE order_id=? ORDER BY id", order["id"])
@@ -1616,6 +1641,19 @@ def order_calendar(public_id):
 DISPUTE_REPLY_HOURS = 24  # the seller's time to answer a problem report in the order chat
 
 
+def open_dispute(order, reason):
+    """Holds the payout and tells the admins and the seller (#12), who can answer in the order chat."""
+    if not db.count("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=? AND status='paid'", reason, order["id"]):
+        return False
+    notify.notify_admins("Spare: problem reported (%s)" % order["public_id"],
+                         "%s\n\n%s" % (reason, base_url() + url_for("admin")))
+    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_disputed")
+    tell(order["seller_id"], t("mail_dispute_seller_subject", title=listing_title(listing)),
+         t("mail_dispute_seller_body", title=listing_title(listing), hours=DISPUTE_REPLY_HOURS), url_for("order_page", public_id=order["public_id"]))
+    return True
+
+
 @app.route("/orders/<public_id>/report", methods=["POST"])
 @login_required
 def report_problem(public_id):
@@ -1626,14 +1664,7 @@ def report_problem(public_id):
     if len(reason) < 10:
         flash(t("err_report_short"), "error")
         return redirect(url_for("order_page", public_id=public_id))
-    db.run("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=?", reason, order["id"])
-    notify.notify_admins("Spare: problem reported (%s)" % public_id,
-                         "%s\n\n%s" % (reason, base_url() + url_for("admin")))
-    # #12: the seller hears about it too and can give their side in the order chat.
-    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
-    add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_disputed")
-    tell(order["seller_id"], t("mail_dispute_seller_subject", title=listing_title(listing)),
-         t("mail_dispute_seller_body", title=listing_title(listing), hours=DISPUTE_REPLY_HOURS), url_for("order_page", public_id=public_id))
+    open_dispute(order, reason)
     flash(t("report_sent"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
 
@@ -1670,6 +1701,20 @@ def mark_transferred(public_id):
     if order["seller_id"] != g.user["id"] or listing["delivery"] != "transfer" or order["status"] not in PAID_STATES:
         abort(400)
     if not order["transferred_at"]:
+        # #31: proof of the transfer, a screenshot of the app's confirmation (the buyer and Spare's team can see it)
+        errors = {}
+        proof = read_proof(request.files.get("transfer_proof"), errors, "transfer_proof") if config.TICKET_CHECKS else None
+        if errors:
+            flash(errors["transfer_proof"], "error")
+            return redirect(url_for("order_page", public_id=public_id))
+        if proof:
+            picture = ticketcodes.phash(*proof)
+            reused = picture and any(ticketcodes.phash_distance(picture, p["phash"]) <= ticketcodes.PHASH_MATCH for p in db.all(
+                "SELECT phash FROM proofs WHERE kind='transfer' AND phash IS NOT NULL AND order_id != ?", order["id"]))
+            if reused:
+                flash(t("err_transfer_proof_reused"), "error")
+                return redirect(url_for("order_page", public_id=public_id))
+            save_proof(proof, "transfer", order_id=order["id"], phash=picture)
         db.run("UPDATE orders SET transferred_at=? WHERE id=?", sqltime(utcnow()), order["id"])
         th = get_thread(listing, order["buyer_id"])
         add_message(th, None, "system", "sys_transferred")
@@ -1699,6 +1744,31 @@ def mark_received(public_id):
         add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_received")
     flash(t("buyer_received_done"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
+
+
+@app.route("/orders/<public_id>/not-received", methods=["POST"])
+@login_required
+def mark_not_received(public_id):
+    """#31: the app ticket never arrived: a dispute straight away, the seller isn't paid."""
+    order = get_order_for_user(public_id)
+    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    if order["buyer_id"] != g.user["id"] or listing["delivery"] != "transfer" or order["status"] != "paid" or order["received_at"]:
+        abort(400)
+    open_dispute(order, "The ticket never arrived in %s." % app_name(listing["transfer_app"]))
+    flash(t("report_sent"), "ok")
+    return redirect(url_for("order_page", public_id=public_id))
+
+
+@app.route("/orders/<public_id>/proofs/<int:proof_id>")
+@login_required
+def order_proof(public_id, proof_id):
+    """Evidence attached to an order, for its buyer, its seller and the admins."""
+    order = get_order_for_user(public_id)
+    p = db.one("SELECT * FROM proofs WHERE id=? AND order_id=?", proof_id, order["id"])
+    if not p:
+        abort(404)
+    ext = p["file"].rsplit(".", 1)[-1]
+    return send_file(os.path.join(config.UPLOAD_DIR, "proofs", p["file"]), mimetype=FILE_TYPES[ext][1])
 
 
 @app.route("/webhooks/stripe", methods=["POST"])
@@ -3841,6 +3911,7 @@ def hourly_tasks():
     nudged, asked = send_reminders()
     resell = send_resell_reminders()
     transfer_reminders = send_transfer_reminders()
+    send_buyer_transfer_reminders()
     backed_up = nightly_backup()
     files_deleted = cleanup_ticket_files()
     check_disk()

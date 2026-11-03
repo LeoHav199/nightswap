@@ -51,6 +51,7 @@ SELLER_FEE_MIN_CENTS = int(env("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "100"))
 # Ticket apps with changing QR codes, where tickets move with the app's own "transfer" button.
 TRANSFER_APPS = {"ticketmaster": "Ticketmaster", "weeztix": "Weeztix / Eventix", "paylogic": "Paylogic",
                  "seetickets": "See Tickets", "other": None}  # None: shown as "another app" in the visitor's language
+BUYER_REMIND_HOURS = 2       # #31: ask the buyer whether an app ticket arrived this long after the transfer (and at 12:00 on the day)
 TRANSFER_REMIND_HOURS = 3  # remind sellers who haven't marked the transfer as done after this long
 PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price as % of face value: 120 = up to 20% above
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))

@@ -38,8 +38,11 @@
                 <p>✓ {{ t('buyer_received_done') }}</p>
               {% elif order.transferred_at %}
                 <p>{{ t('buyer_transfer_sent', email=order.transfer_email, app=app) }}</p>
+                {% for p in transfer_proofs %}<p class="small"><a href="{{ url_for('order_proof', public_id=order.public_id, proof_id=p.id) }}" target="_blank" rel="noopener">{{ t('see_transfer_proof') }}</a></p>{% endfor %}
                 <form method="post" action="{{ url_for('mark_received', public_id=order.public_id) }}">{{ m.csrf() }}
                   <button class="btn btn-accent btn-block" type="submit">{{ t('buyer_received_btn') }}</button></form>
+                {% if order.status == 'paid' %}<form method="post" action="{{ url_for('mark_not_received', public_id=order.public_id) }}" data-confirm="{{ t('not_arrived_confirm') }}">{{ m.csrf() }}
+                  <button class="btn btn-ghost btn-block" type="submit">{{ t('not_arrived_btn') }}</button></form>{% endif %}
                 <p class="muted small">{{ t('buyer_transfer_missing') }}</p>
               {% else %}
                 <p>{{ t('buyer_transfer_wait', email=order.transfer_email, app=app) }}</p>
@@ -96,7 +99,10 @@
               <h2>{{ t('seller_transfer_title') }}</h2>
               <p>{{ t('seller_transfer_body', app=app, n=order.quantity) }}</p>
               <p class="who">{{ order.transfer_name }}<br>{{ order.transfer_email }}</p>
-              <form method="post" action="{{ url_for('mark_transferred', public_id=order.public_id) }}">{{ m.csrf() }}
+              <form method="post" action="{{ url_for('mark_transferred', public_id=order.public_id) }}" enctype="multipart/form-data" data-once>{{ m.csrf() }}
+                <label class="field"><span class="label">{{ t('transfer_proof_label') }}</span>
+                  <span class="file-drop file-drop-sm"><input type="file" name="transfer_proof" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" required data-file>
+                    <span class="file-drop-text" data-file-label>{{ t('transfer_proof_cta') }}</span></span></label>
                 <button class="btn btn-accent btn-block" type="submit">{{ t('seller_transfer_done_btn') }}</button></form>
               <p class="muted small">{{ t('seller_transfer_pay_note') }}</p>
             {% endif %}

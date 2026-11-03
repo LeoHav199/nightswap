@@ -700,4 +700,13 @@ STRINGS = {
     "app_proof_hint": "Solo el equipo de Spare las ve, para comprobar que la entrada es real y resolver cualquier problema.",
     "err_app_screenshot": "Añade una captura de la app de entradas con el evento, la fecha y el titular.",
     "err_app_order": "Añade la confirmación de tu pedido (captura o PDF).",
+    "transfer_proof_label": "Captura de la transferencia",
+    "transfer_proof_cta": "Añade la confirmación «transferida» de la app",
+    "err_transfer_proof": "Añade una captura de la confirmación de transferencia de la app.",
+    "err_transfer_proof_reused": "Esta captura ya se usó para otro pedido. Añade la confirmación de esta transferencia.",
+    "see_transfer_proof": "Ver la captura de la transferencia del vendedor",
+    "not_arrived_btn": "No ha llegado",
+    "not_arrived_confirm": "¿Avisar de que la entrada nunca llegó? El vendedor no cobrará mientras lo revisamos.",
+    "mail_arrived_subject": "¿Te ha llegado la entrada? {title}",
+    "mail_arrived_body": "Hola, {name}:\n\nEl vendedor dice que envió tu entrada para {title} a {email} en {app}. Abre {app} y compruébalo, y luego pulsa «Ya la tengo» o «No ha llegado» en la página de tu pedido:",
 }

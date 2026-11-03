@@ -700,4 +700,13 @@ STRINGS = {
     "app_proof_hint": "Seule l'équipe de Spare les voit, pour vérifier que le billet est réel et régler un éventuel problème.",
     "err_app_screenshot": "Ajoute une capture de l'appli montrant l'événement, la date et le titulaire du billet.",
     "err_app_order": "Ajoute ta confirmation de commande (capture ou PDF).",
+    "transfer_proof_label": "Capture du transfert",
+    "transfer_proof_cta": "Ajoute la confirmation « transféré » de l'appli",
+    "err_transfer_proof": "Ajoute une capture de la confirmation de transfert de l'appli.",
+    "err_transfer_proof_reused": "Cette capture a déjà servi pour une autre commande. Ajoute la confirmation de ce transfert.",
+    "see_transfer_proof": "Voir la capture du transfert du vendeur",
+    "not_arrived_btn": "Il n'est pas arrivé",
+    "not_arrived_confirm": "Signaler que le billet n'est jamais arrivé ? Le vendeur ne sera pas payé le temps qu'on vérifie.",
+    "mail_arrived_subject": "Ton billet est-il arrivé ? {title}",
+    "mail_arrived_body": "Salut {name},\n\nLe vendeur dit avoir envoyé ton billet pour {title} à {email} dans {app}. Ouvre {app} pour vérifier, puis appuie sur « Je l'ai reçu » ou « Il n'est pas arrivé » sur ta page de commande :",
 }

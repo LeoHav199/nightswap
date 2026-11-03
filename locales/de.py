@@ -700,4 +700,13 @@ STRINGS = {
     "app_proof_hint": "Nur das Spare-Team sieht diese Dateien, um zu prüfen, ob das Ticket echt ist, und Probleme zu klären.",
     "err_app_screenshot": "Füg einen Screenshot aus der Ticket-App mit Event, Datum und Ticketinhaber hinzu.",
     "err_app_order": "Füg deine Bestellbestätigung hinzu (Screenshot oder PDF).",
+    "transfer_proof_label": "Screenshot der Übertragung",
+    "transfer_proof_cta": "Füg die Bestätigung „übertragen“ aus der App hinzu",
+    "err_transfer_proof": "Füg einen Screenshot der Übertragungsbestätigung aus der App hinzu.",
+    "err_transfer_proof_reused": "Dieser Screenshot wurde schon für eine andere Bestellung verwendet. Füg die Bestätigung dieser Übertragung hinzu.",
+    "see_transfer_proof": "Screenshot der Übertragung ansehen",
+    "not_arrived_btn": "Es ist nicht angekommen",
+    "not_arrived_confirm": "Melden, dass das Ticket nie angekommen ist? Der Verkäufer wird nicht bezahlt, solange wir das klären.",
+    "mail_arrived_subject": "Ist dein Ticket angekommen? {title}",
+    "mail_arrived_body": "Hi {name},\n\nder Verkäufer sagt, er hat dein Ticket für {title} an {email} in {app} geschickt. Öffne {app} und prüf es, dann tipp auf deiner Bestellseite auf „Ich hab's“ oder „Es ist nicht angekommen“:",
 }
