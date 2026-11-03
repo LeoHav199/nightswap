@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, datetime
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -45,7 +45,7 @@ ok(visitor.post("/settings", data={"avatar": "sunny", "_csrf": csrf(visitor)}).s
 
 # --- A ticket for tonight
 today = date.today().isoformat()
-admin.post("/admin/events/save", data={"name": "Tonight Rave", "venue": "Maassilo", "category": "club", "event_date": today, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Tonight Rave", "venue": "Maassilo", "category": "club", "event_date": today, "_csrf": csrf(admin)})
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Tonight Rave'")
@@ -93,7 +93,7 @@ A.datetime = real
 # --- "People looking" count
 from datetime import timedelta
 day = (date.today() + timedelta(days=5)).isoformat()
-admin.post("/admin/events/save", data={"name": "Demand Night", "venue": "Perron", "category": "club", "event_date": day, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Demand Night", "venue": "Perron", "category": "club", "event_date": day, "_csrf": csrf(admin)})
 with app.app_context(): dn = A.db.one("SELECT * FROM events WHERE name='Demand Night'")
 url = "/event?venue=Perron&date=%s&name=Demand+Night" % day
 ok("looking for a ticket" not in html(visitor.get(url)), "nobody looking: no banner")

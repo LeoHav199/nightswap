@@ -275,3 +275,18 @@ CREATE TABLE IF NOT EXISTS blocked_phones (
   user_id    INTEGER,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Private evidence, visible only to admins (and where noted, the other side of the order): proof of the price paid (#25),
+-- app-ticket screenshots (#29), transfer screenshots (#31) and dispute photos (#32).
+CREATE TABLE IF NOT EXISTS proofs (
+  id         INTEGER PRIMARY KEY,
+  listing_id INTEGER REFERENCES listings (id),
+  order_id   INTEGER REFERENCES orders (id),
+  user_id    INTEGER REFERENCES users (id),
+  kind       TEXT NOT NULL,            -- face | app_screenshot | app_order | transfer | dispute_buyer | dispute_seller
+  file       TEXT NOT NULL,            -- inside uploads/proofs/
+  phash      TEXT,                     -- perceptual hash of an image (#29)
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS proofs_listing ON proofs (listing_id);
+CREATE INDEX IF NOT EXISTS proofs_order ON proofs (order_id);

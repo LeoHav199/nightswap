@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -39,7 +39,7 @@ admin, seller, buyer = (app.test_client() for _ in range(3))
 login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); login(buyer, "b@test.nl", "Bo")
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
-admin.post("/admin/events/save", data={"name": "Fee Night", "venue": "Perron", "category": "club", "event_date": D, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Fee Night", "venue": "Perron", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Fee Night'")
 sell_page = html(seller.get("/sell?event=%d" % ev["id"]))
 ok('data-seller-pct="5.0"' in sell_page and 'data-seller-min="100"' in sell_page and "5% (min. €1)" in sell_page,

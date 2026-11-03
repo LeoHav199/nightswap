@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile, json
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.FEE_PERCENT = 0
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
@@ -46,7 +46,7 @@ phone(admin, "0699999999")
 
 # ---- 18+ to sell
 phone(seller, "0611111111")
-admin.post("/admin/events/save", data={"name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": D, "door_time": "23:00", "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": D, "door_time": "23:00", "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Big Night'")
 sell = lambda data, **kw: seller.post("/sell", data=dict({"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "_csrf": csrf(seller),
                                        "ticket": (io.BytesIO(b"%PDF-1.4 " + os.urandom(6)), "t.pdf")}, **data), content_type="multipart/form-data")
@@ -72,7 +72,7 @@ for c in (buyer, buyer2):
 with app.app_context(): orders = {o["buyer_id"]: o for o in A.db.all("SELECT * FROM orders WHERE status='paid'")}
 NEW = (date.today() + timedelta(days=9)).isoformat()
 SENT.clear()
-admin.post("/admin/events/save", data={"id": ev["id"], "name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": NEW, "door_time": "23:00", "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "id": ev["id"], "name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": NEW, "door_time": "23:00", "_csrf": csrf(admin)})
 ok(sum(1 for to, s, _ in SENT if s.startswith("Changed:")) == 4, "date change emails both buyers and both sellers")
 with app.app_context():
     o1 = A.db.one("SELECT * FROM orders WHERE buyer_id=(SELECT id FROM users WHERE email='b@test.nl')")
@@ -103,7 +103,7 @@ with app.app_context(): after = A.db.one("SELECT COUNT(*) AS n FROM listings")["
 ok(before == after and "isn" in html(r), "re-adding a cancelled event by hand is refused (no listing created)")
 
 # ---- Block a user
-admin.post("/admin/events/save", data={"name": "Other Night", "venue": "Toffler", "category": "club", "event_date": D, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Other Night", "venue": "Toffler", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev2 = A.db.one("SELECT * FROM events WHERE name='Other Night'")
 r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev2["id"]), "face_value": "20", "price": "20", "_csrf": csrf(seller),
                                "ticket": (io.BytesIO(b"%PDF-1.4 other"), "t.pdf")}, content_type="multipart/form-data")

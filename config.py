@@ -54,6 +54,8 @@ TRANSFER_APPS = {"ticketmaster": "Ticketmaster", "weeztix": "Weeztix / Eventix",
 TRANSFER_REMIND_HOURS = 3  # remind sellers who haven't marked the transfer as done after this long
 PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price as % of face value: 120 = up to 20% above
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
+# Safety checks from the "Bulletproofing" review. Always on; only older tests that check other things switch them off.
+FACE_PROOF_REQUIRED = True   # #25: no official price known → proof of the price and an admin check before going live
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes
 MAX_FACE_VALUE_CENTS = 50000
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024          # per file

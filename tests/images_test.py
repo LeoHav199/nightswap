@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0  # these tests were written for a flat €1 fee
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
@@ -25,7 +25,7 @@ def png(color):
 D = (date.today() + timedelta(days=4)).isoformat()
 admin, org, visitor = app.test_client(), app.test_client(), app.test_client()
 login(admin, "admin@example.com", "Ad"); login(org, "promo@exchangeparty.nl", "Pim"); visitor.get("/")
-admin.post("/admin/events/save", data={"name": "Halloween Rotterdam", "venue": "Maassilo", "category": "student", "event_date": D, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Halloween Rotterdam", "venue": "Maassilo", "category": "student", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context():
     ev = A.db.one("SELECT * FROM events WHERE name='Halloween Rotterdam'")
     vid = A.db.one("SELECT id FROM venues WHERE slug='maassilo'")["id"]
@@ -57,7 +57,7 @@ ok("/credits#v-maassilo" in v and "Luke Price" not in v, "venue page links to it
 cr = html(visitor.get("/credits"))
 ok("Photo: Luke Price" in cr and ">CC BY 2.0<" in cr and "creativecommons.org/licenses/by/2.0" in cr and "commons.wikimedia.org/wiki/File:Maassilo.jpg" in cr, "credits page: photographer, linked licence and source")
 ok("Photo credits" in html(visitor.get("/how-it-works")), "credits page linked from the footer on every page")
-admin.post("/admin/events/save", data={"name": "Club Night", "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Club Night", "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 evp = html(visitor.get("/event?venue=Maassilo&date=%s&name=Club+Night" % D))
 ok("is-photo" in evp and 'class="credit"' not in evp, "events use the venue photo, with no credit drawn on it")
 print("FAILED:", fails or "none")

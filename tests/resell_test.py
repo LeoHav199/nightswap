@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile
 from datetime import date, datetime, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -33,7 +33,7 @@ login(other, "o@test.nl", "Olli"); login(fan, "f@test.nl", "Fay")
 verify_phone(seller, "0611111111"); verify_phone(buyer, "0622222222"); verify_phone(other, "0633333333")
 
 tomorrow = (date.today() + timedelta(days=1)).isoformat()
-admin.post("/admin/events/save", data={"name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": tomorrow, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": tomorrow, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Big Night'")
 pdf = b"%PDF-1.4 the one and only ticket"
 def sell(c, data=pdf):

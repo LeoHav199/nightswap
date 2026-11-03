@@ -9,7 +9,7 @@
 
 <div class="wrap sell">
   <form class="panel form" method="post" enctype="multipart/form-data" data-sell-form data-once
-        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-seller-pct="{{ seller_fee_pct }}" data-seller-min="{{ seller_fee_min }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" novalidate>
+        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-seller-pct="{{ seller_fee_pct }}" data-seller-min="{{ seller_fee_min }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" data-face-official="{{ t('face_official', max='{max}') }}" novalidate>
     {{ m.csrf() }}
     {% set picked = form.get('venue', '') %}
     {% set picked_event = (preset.id|string) if preset else form.get('event_id', '') %}
@@ -85,7 +85,7 @@
       <label class="field">
         <span class="label">{{ t('face_value') }}</span>
         <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="face_value" value="{{ form.get('face_value', '') }}" placeholder="25" required data-face></span>
-        <span class="hint">{{ t('face_value_hint') }}</span>
+        <span class="hint" data-face-hint>{% if preset and preset.face_value_max_cents %}{{ t('face_official', max=money(preset.face_value_max_cents)) }}{% else %}{{ t('face_value_hint') }}{% endif %}</span>
         {{ m.field_error(errors, 'face_value') }}
       </label>
       <label class="field">
@@ -95,6 +95,16 @@
         {{ m.field_error(errors, 'price') }}
       </label>
     </div>
+
+    <label class="field face-proof" data-face-proof {{ 'hidden' if preset and preset.face_value_max_cents }}>
+      <span class="label">{{ t('face_proof_label') }}</span>
+      <span class="file-drop file-drop-sm">
+        <input type="file" name="face_proof" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" data-file>
+        <span class="file-drop-text" data-file-label>{{ t('face_proof_cta') }}</span>
+      </span>
+      <span class="hint">{{ t('face_proof_hint') }}</span>
+      {{ m.field_error(errors, 'face_proof') }}
+    </label>
 
     {% set delivery = form.get('delivery', 'file') %}
     <fieldset class="field delivery-choice" data-delivery>

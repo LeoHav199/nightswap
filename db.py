@@ -42,7 +42,10 @@ ADDED_COLUMNS = [
     # Tickets that live in an organiser's app (changing QR codes): sent with the app's own "transfer" button.
     ("listings", "delivery", "TEXT NOT NULL DEFAULT 'file'"),   # file | transfer
     ("listings", "transfer_app", "TEXT"),                       # key from config.TRANSFER_APPS
-    ("listings", "name_on_ticket", "TEXT"),                     # #21: no | changeable | unsure (NULL on older listings)
+    ("listings", "name_on_ticket", "TEXT"),
+    ("listings", "review_reason", "TEXT"),          # why a listing waits for an admin (status 'review'): face, code, app
+    ("listings", "face_checked", "INTEGER NOT NULL DEFAULT 0"),  # #25: face value matched the official price or proof
+    ("events", "face_value_max_cents", "INTEGER"),  # #25: the official ticket price; face values above it are refused                     # #21: no | changeable | unsure (NULL on older listings)
     ("orders", "transfer_name", "TEXT"),                        # who the buyer is in that app
     ("orders", "transfer_email", "TEXT"),
     ("orders", "transferred_at", "TEXT"),                       # seller says it's sent

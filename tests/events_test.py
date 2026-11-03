@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile, json
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0  # these tests were written for a flat €1 fee
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
@@ -24,7 +24,7 @@ admin, seller, visitor = app.test_client(), app.test_client(), app.test_client()
 login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); visitor.get("/")
 
 # Admin adds a real event by hand
-r = admin.post("/admin/events/save", data={"name": "Exchange Halloween", "venue": "Maassilo", "city": "Rotterdam", "category": "student",
+r = admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Exchange Halloween", "venue": "Maassilo", "city": "Rotterdam", "category": "student",
     "event_date": D, "door_time": "23:00", "end_time": "05:00", "min_age": "18", "ticket_url": "exchangeparty.nl/halloween",
     "description": "Biggest student party", "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Exchange Halloween'")
@@ -34,7 +34,7 @@ ok("Exchange Halloween" in home and "Coming up" in home and 'class="coming-row"'
 page = html(visitor.get("/event?venue=Maassilo&date=%s&name=Exchange+Halloween" % D))
 ok("23:00 – 05:00" in page and "18+" in page and "exchangeparty.nl" in page and "Biggest student party" in page, "event page shows doors, age, official link and description")
 ok("Got a ticket? Sell it here" in page and "sell?event=%d" % ev["id"] in page, "event page links straight to selling for it")
-r = admin.post("/admin/events/save", data={"name": "Exchange Halloween", "venue": "Maassilo", "event_date": D, "_csrf": csrf(admin)}, follow_redirects=True)
+r = admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Exchange Halloween", "venue": "Maassilo", "event_date": D, "_csrf": csrf(admin)}, follow_redirects=True)
 ok("already exists" in html(r), "duplicates are refused")
 
 # Picker API + selling for a chosen event
@@ -62,7 +62,7 @@ admin.post("/admin/events/%d/approve" % new["id"], data={"_csrf": csrf(admin)})
 with app.app_context(): ok(A.db.one("SELECT status FROM events WHERE id=?", new["id"])["status"] == "published", "admin approves it")
 
 # Editing an event updates its tickets
-admin.post("/admin/events/save", data={"id": ev["id"], "name": "Halloween Rotterdam", "venue": "Maassilo", "city": "Rotterdam", "category": "student",
+admin.post("/admin/events/save", data={"face_value_max": "500", "id": ev["id"], "name": "Halloween Rotterdam", "venue": "Maassilo", "city": "Rotterdam", "category": "student",
     "event_date": D, "door_time": "22:30", "_csrf": csrf(admin)})
 with app.app_context(): l2 = A.db.one("SELECT * FROM listings WHERE id=?", l["id"])
 ok(l2["event_name"] == "Halloween Rotterdam" and l2["start_time"] == "22:30", "renaming an event updates its listings")

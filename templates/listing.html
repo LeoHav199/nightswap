@@ -24,7 +24,7 @@
       {{ m.avatar(l.seller_avatar, l.seller_name) }}
       <div>
         <div class="seller-name">{{ t('sold_by', name=l.seller_name) }}</div>
-        <div class="badges">{{ m.seller_badges(l, stats) }}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>
+        <div class="badges">{{ m.seller_badges(l, stats) }}{% if l.face_checked %}<span class="badge">{{ t('face_checked') }}</span>{% endif %}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>
         <div class="muted small">{{ t('member_since', date=fmt_date(l.seller_since, 'month')) }}{% if not own %} · <a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report_listing') }}</a>{% endif %}</div>
       </div>
     </div>
@@ -43,7 +43,9 @@
       {% endif %}
 
       <h2 class="panel-title">{{ t('your_listing') }}</h2>
-      {% if l.status == 'active' and not past and l.available %}
+      {% if l.status == 'review' %}
+        <p class="notice">{{ t('listing_in_review') }}</p>
+      {% elif l.status == 'active' and not past and l.available %}
         {% if suggestions %}
           <div class="nudge">
             <strong>{{ t('nudge_title') }}</strong>

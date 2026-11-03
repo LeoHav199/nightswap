@@ -34,7 +34,7 @@ admin, seller, buyer, visitor = (app.test_client() for _ in range(4))
 login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); login(buyer, "b@test.nl", "Bo"); visitor.get("/")
 verify_phone(seller, "0611111111"); verify_phone(admin, "0699999999")
 D = (date.today() + timedelta(days=3)).isoformat()
-admin.post("/admin/events/save", data={"name": "Guard Night", "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Guard Night", "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Guard Night'")
 r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard"), "g.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
@@ -492,5 +492,59 @@ with app.test_request_context(): ok(A.bank_matches_blocked(newbie) and not SENT,
 admin.post("/admin/users/%d/clear_bank_flag" % newbie["id"], data={"_csrf": csrf(admin)})
 with app.app_context(): ok(A.db.one("SELECT bank_flagged_at FROM users WHERE id=?", newbie["id"])["bank_flagged_at"] is None, "#24 an admin can clear the hold")
 payments.bank_fingerprint, payments.live, payments.transfer_to_seller = real_fp, real_live, real_transfer; MAIL_WORKS[0] = False
+
+# --- #25: a face value we can check
+def real_png(text=b""):
+    return cv2.imencode(".png", np.full((600, 300), 255, np.uint8))[1].tobytes() + text
+admin.post("/admin/events/save", data={"name": "Priced Night", "venue": "Perron", "category": "club", "event_date": D,
+                                       "face_value_max": "25", "_csrf": csrf(admin)})
+admin.post("/admin/events/save", data={"name": "Unpriced Night", "venue": "Perron", "category": "club", "event_date": D, "_csrf": csrf(admin)})
+with app.app_context():
+    priced = A.db.one("SELECT * FROM events WHERE name='Priced Night'"); unpriced = A.db.one("SELECT * FROM events WHERE name='Unpriced Night'")
+ok(priced["face_value_max_cents"] == 2500 and unpriced["face_value_max_cents"] is None, "#25 admins can store the official price per event")
+seller3 = app.test_client(); login(seller3, "s3@test.nl", "Sy"); verify_phone(seller3, "0644444444")
+def sell3(event, face, extra=None):
+    data = {"name_on_ticket": "no", "event_id": str(event["id"]), "face_value": face, "price": face, "adult": "yes",
+            "ticket": (io.BytesIO(b"%PDF-1.4 " + os.urandom(8)), "t.pdf"), "_csrf": csrf(seller3)}
+    data.update(extra or {})
+    return seller3.post("/sell", data=data, content_type="multipart/form-data")
+r = sell3(priced, "40")
+ok(r.status_code == 200 and "official price for this event is €25" in html(r), "#25 a face value above the official price is refused")
+r = sell3(priced, "25")
+plid = int(re.search(r"/t/(\d+)", r.location).group(1))
+with app.app_context(): pl = A.db.one("SELECT * FROM listings WHERE id=?", plid)
+ok(pl["status"] == "active" and pl["face_checked"] == 1 and "Face value checked" in html(buyer.get("/t/%d" % plid)),
+   "#25 within the official price it goes live with 'Face value checked'")
+r = sell3(unpriced, "30")
+ok(r.status_code == 200 and "original order confirmation" in html(r), "#25 without an official price, proof of the price is required")
+MAIL_WORKS[0] = True; SENT.clear()
+r = sell3(unpriced, "30", {"face_proof": (io.BytesIO(real_png()), "order.png")})
+ulid = int(re.search(r"/t/(\d+)", r.location).group(1))
+with app.app_context():
+    ul = A.db.one("SELECT * FROM listings WHERE id=?", ulid); proof = A.db.one("SELECT * FROM proofs WHERE listing_id=?", ulid)
+ok(ul["status"] == "review" and proof and proof["kind"] == "face", "#25 with proof, the listing waits for a check (not on sale yet)")
+ok(buyer.get("/t/%d" % ulid).status_code == 404 and "Waiting for a quick check" in html(seller3.get("/t/%d" % ulid)),
+   "#25 buyers can't see it yet; the seller sees it's being checked")
+ok(any("listing to check" in sub for to, sub, b in SENT), "#25 the admins are told there's a listing to check")
+ok("Listings to check" in html(admin.get("/admin")) and admin.get("/admin/proofs/%d" % proof["id"]).status_code == 200,
+   "#25 the admin queue shows it with the proof")
+ok(seller3.get("/admin/proofs/%d" % proof["id"]).status_code == 404, "#25 nobody else can open the proof")
+admin.post("/admin/listings/%d/approve" % ulid, data={"_csrf": csrf(admin)})
+with app.app_context(): ul = A.db.one("SELECT * FROM listings WHERE id=?", ulid)
+ok(ul["status"] == "active" and ul["face_checked"] == 1 and any("on sale" in sub for to, sub, b in SENT if to == "s3@test.nl"),
+   "#25 approving puts it on sale and tells the seller")
+r = sell3(unpriced, "30", {"face_proof": (io.BytesIO(real_png(b"2")), "order2.png")})
+rlid = int(re.search(r"/t/(\d+)", r.location).group(1))
+admin.post("/admin/listings/%d/reject" % rlid, data={"why": "", "_csrf": csrf(admin)})
+with app.app_context(): ok(A.db.one("SELECT status FROM listings WHERE id=?", rlid)["status"] == "review", "#25 rejecting needs a reason")
+SENT.clear()
+admin.post("/admin/listings/%d/reject" % rlid, data={"why": "The confirmation shows €20, not €30.", "_csrf": csrf(admin)})
+with app.app_context(): ok(A.db.one("SELECT status FROM listings WHERE id=?", rlid)["status"] == "removed", "#25 a rejected listing never goes on sale")
+ok(any("not €30" in b for to, sub, b in SENT if to == "s3@test.nl"), "#25 ...and the seller gets the reason")
+MAIL_WORKS[0] = False
+import importer
+page_html = '<script type="application/ld+json">{"@type": "Event", "name": "Imported", "startDate": "%sT23:00", "location": {"name": "Perron"}, "offers": {"price": "19.50", "highPrice": "24,00"}}</script>' % D
+found = importer.extract(page_html, "https://example.com/e")
+ok(found and found[0]["face_value_max"] == "24.00", "#25 the importer reads the official (highest) price")
 
 print("FAILED:", fails or "none")

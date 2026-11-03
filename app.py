@@ -635,7 +635,22 @@ def cleanup_ticket_files():
         except FileNotFoundError:
             pass
         deleted += 1
+    # Proof files (screenshots, order confirmations) go on the same schedule, unless an order is still open.
+    delete_proofs(db.all("""SELECT p.* FROM proofs p LEFT JOIN listings l ON l.id = p.listing_id
+                            LEFT JOIN orders o ON o.id = p.order_id LEFT JOIN listings ol ON ol.id = o.listing_id
+                            WHERE COALESCE(l.event_date, ol.event_date) < ?
+                              AND NOT EXISTS (SELECT 1 FROM orders x WHERE (x.listing_id = p.listing_id OR x.id = p.order_id)
+                                              AND x.status IN ('pending', 'paid', 'disputed', 'releasing'))""", cutoff))
     return deleted
+
+
+def delete_proofs(rows):
+    for p in rows:
+        db.run("DELETE FROM proofs WHERE id=?", p["id"])
+        try:
+            os.remove(os.path.join(config.UPLOAD_DIR, "proofs", p["file"]))
+        except FileNotFoundError:
+            pass
 
 
 def company():
@@ -1257,6 +1272,8 @@ def listing_page(listing_id):
     if not l or l["status"] == "removed":
         abort(404)
     own = bool(g.user and g.user["id"] == l["seller_id"])
+    if l["status"] == "review" and not (own or g.is_admin):
+        abort(404)
     past = l["event_date"] < today().isoformat()
     suggestions = []
     if own and l["event_date"] == today().isoformat() and l["available"]:
@@ -1906,6 +1923,37 @@ def order_chat(public_id):
 # Selling
 # --------------------------------------------------------------------------
 
+def read_proof(upload, errors, field, required=True):
+    """A private evidence file (screenshot or PDF): returns (data, ext) or None, with the same checks as tickets."""
+    if not upload or not upload.filename:
+        if required:
+            errors[field] = t("err_" + field)
+        return None
+    ext = upload.filename.rsplit(".", 1)[-1].lower() if "." in upload.filename else ""
+    ext = "jpg" if ext == "jpeg" else ext
+    data = upload.read()
+    if ext not in FILE_TYPES or not data.startswith(FILE_TYPES[ext][0]):
+        errors[field] = t("err_ticket_type")
+    elif len(data) > config.MAX_UPLOAD_BYTES:
+        errors[field] = t("err_ticket_size")
+    elif ticketcodes.check(data, ext):
+        errors[field] = t("err_ticket_" + ticketcodes.check(data, ext), pages=ticketcodes.MAX_PDF_PAGES)
+    else:
+        return data, ext
+    return None
+
+
+def save_proof(proof, kind, listing_id=None, order_id=None, phash=None):
+    data, ext = proof
+    folder = os.path.join(config.UPLOAD_DIR, "proofs")
+    os.makedirs(folder, exist_ok=True)
+    name = "%s.%s" % (secrets.token_hex(16), ext)
+    with open(os.path.join(folder, name), "wb") as fh:
+        fh.write(data)
+    return db.run("INSERT INTO proofs (listing_id, order_id, user_id, kind, file, phash) VALUES (?, ?, ?, ?, ?, ?)",
+                  listing_id, order_id, g.user["id"], kind, name, phash)
+
+
 def read_ticket_files(uploads, errors):
     """Validates the uploaded ticket files. Returns a list of (data, ext, [(code hash, text, format)]) or None."""
     files = [u for u in uploads if u and u.filename]
@@ -2002,6 +2050,15 @@ def sell():
             errors["face_value"] = t("err_face_value")
             face = None
 
+        # #25: the price cap only means something if the face value is real. Known official price: enforce it.
+        # Unknown: the seller shows their original order confirmation and an admin checks it before the listing goes live.
+        official = chosen["face_value_max_cents"] if chosen else None
+        face_proof = None
+        if face is not None and official and face > official:
+            errors["face_value"] = t("err_face_official", max=money(official))
+        elif not official and config.FACE_PROOF_REQUIRED:
+            face_proof = read_proof(request.files.get("face_proof"), errors, "face_proof")
+
         price = parse_money(form.get("price"))
         if price is None or price < 100:
             errors["price"] = t("err_price")
@@ -2075,13 +2132,18 @@ def sell():
                               VALUES (?, ?, ?, ?, ?, ?, 'review', ?)""",
                            event_name, venue, city, category, event_date.isoformat(), start_time or None, g.user["id"])
                     chosen = find_event(event_date.isoformat(), venue, event_name)
+            review = ["face"] if face_proof else []
             listing_id = db.run(
                 """INSERT INTO listings (seller_id, venue, event_name, event_date, face_value_cents, price_cents,
-                   poster_file, sold_together, category, city, start_time, event_id, delivery, transfer_app, name_on_ticket)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   poster_file, sold_together, category, city, start_time, event_id, delivery, transfer_app, name_on_ticket,
+                   status, review_reason, face_checked)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 g.user["id"], venue, event_name, event_date.isoformat(), face, price, poster_file, sold_together,
                 category, city, start_time or None, chosen["id"] if chosen else None, delivery, transfer_app, name_on_ticket,
+                "review" if review else "active", ",".join(review) or None, 0 if face_proof else 1,
             )
+            if face_proof:
+                save_proof(face_proof, "face", listing_id=listing_id)
             for _ in range(transfer_qty or 0):  # app tickets: one row per ticket, no file
                 db.run("INSERT INTO tickets (listing_id, file, file_hash) VALUES (?, '', ?)",
                        listing_id, "transfer:" + secrets.token_hex(12))
@@ -2093,6 +2155,12 @@ def sell():
                 for code_hash_, code_text, code_format in (codes or [(None, None, None)]):
                     db.run("""INSERT INTO tickets (listing_id, file, file_hash, code_hash, code_text, code_format)
                               VALUES (?, ?, ?, ?, ?, ?)""", listing_id, filename, digest, code_hash_, code_text, code_format)
+            if review:
+                notify.notify_admins("Spare: listing to check (%s)" % ", ".join(review),
+                                     "%s listed a ticket for %s that needs a check before it goes live:\n\n%s" % (
+                                         g.user["email"], event_name or venue, base_url() + url_for("admin") + "#review"))
+                flash(t("listed_review"), "ok")
+                return redirect(url_for("listing_page", listing_id=listing_id))
             notify_alerts(db.one("SELECT * FROM listings WHERE id=?", listing_id))
             flash(t("listed_ok"), "ok")
             return redirect(url_for("listing_page", listing_id=listing_id, new=1))
@@ -2119,7 +2187,8 @@ def events_on_date():
     return {"looking_label": t("picker_looking"),
             "events": [{"id": e["id"], "name": e["name"], "venue": e["venue"], "city": e["city"],
                         "category": t("cat_" + e["category"]), "time": e["door_time"] or "",
-                        "looking": looking_count(day, e["venue"], e["name"])} for e in rows]}
+                        "looking": looking_count(day, e["venue"], e["name"]),
+                        "face_max": money(e["face_value_max_cents"]) if e["face_value_max_cents"] else ""} for e in rows]}
 
 
 @app.route("/t/<int:listing_id>/price", methods=["POST"])
@@ -2650,6 +2719,11 @@ def admin():
                         LEFT JOIN users u ON u.id = r.reporter_id WHERE r.status='open' ORDER BY r.id""")
     waitlist = db.one("""SELECT COUNT(*) AS n, COALESCE(SUM(interest='sell'),0) AS sell, COALESCE(SUM(interest='organise'),0) AS organise,
                                 COALESCE(SUM(notified_at IS NULL),0) AS waiting FROM waitlist""")
+    review = db.all("""SELECT l.*, u.email AS seller_email, e.face_value_max_cents FROM listings l JOIN users u ON u.id = l.seller_id
+                       LEFT JOIN events e ON e.id = l.event_id WHERE l.status='review' ORDER BY l.id""")
+    proofs = {}
+    for p in db.all("SELECT * FROM proofs WHERE listing_id IN (SELECT id FROM listings WHERE status='review')"):
+        proofs.setdefault(p["listing_id"], []).append(p)
     preview_code = get_setting("preview_code")
     preview_link = base_url() + url_for("preview", code=preview_code) if preview_code else None
     chain = [p for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
@@ -2657,7 +2731,8 @@ def admin():
     used, used_bytes, total = disk_usage()
     disk = {"pct": round(used * 100), "used": used_bytes / 1e9, "total": total / 1e9, "warn": used >= DISK_ALERT}
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
-                           waitlist=waitlist, preview_link=preview_link, network=network, disk=disk)
+                           waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
+                           review=review, proofs=proofs)
 
 
 @app.route("/admin/backup")
@@ -2876,6 +2951,7 @@ def event_from_form(form):
         "ticket_url": form.get("ticket_url", "").strip()[:500] or None,
         "description": form.get("description", "").strip()[:600] or None,
         "source_url": form.get("source_url", "").strip()[:500] or None,
+        "face_value_max_cents": parse_money(form.get("face_value_max", "")) if form.get("face_value_max", "").strip() else None,
     }
     if not v["name"] or not v["venue"]:
         return v, "Name and venue are required."
@@ -2888,6 +2964,8 @@ def event_from_form(form):
             return v, "Times look like 23:00."
     if v["min_age"] and not v["min_age"].isdigit():
         return v, "Minimum age is a number, like 18."
+    if form.get("face_value_max", "").strip() and not v["face_value_max_cents"]:
+        return v, "The official ticket price looks like 24.50."
     for key in ("ticket_url", "source_url"):
         if v[key] and not v[key].startswith(("http://", "https://")):
             v[key] = "https://" + v[key]
@@ -2898,9 +2976,9 @@ def update_event(event_id, v):
     """Saves an edited event and keeps its listings and alerts pointing at it."""
     old = db.one("SELECT * FROM events WHERE id=?", event_id)
     db.run("""UPDATE events SET name=?, venue=?, city=?, category=?, event_date=?, door_time=?, end_time=?, min_age=?,
-              ticket_url=?, description=?, source_url=COALESCE(?, source_url) WHERE id=?""",
+              ticket_url=?, description=?, source_url=COALESCE(?, source_url), face_value_max_cents=? WHERE id=?""",
            v["name"], v["venue"], v["city"], v["category"], v["event_date"], v["door_time"], v["end_time"], v["min_age"],
-           v["ticket_url"], v["description"], v["source_url"], event_id)
+           v["ticket_url"], v["description"], v["source_url"], v["face_value_max_cents"], event_id)
     db.run("""UPDATE listings SET venue=?, event_name=?, event_date=?, city=?, category=?, start_time=? WHERE event_id=?""",
            v["venue"], v["name"], v["event_date"], v["city"], v["category"], v["door_time"], event_id)
     db.run("""UPDATE alerts SET venue=?, event_date=?, event_name=? WHERE event_date=? AND lower(venue)=lower(?)
@@ -2949,9 +3027,10 @@ def admin_event_save():
             flash("That event already exists.", "error")
             return redirect(url_for("admin_events") + "#form")
         event_id = db.run("""INSERT INTO events (name, venue, city, category, event_date, door_time, end_time, min_age,
-                             ticket_url, description, source_url, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                             ticket_url, description, source_url, created_by, face_value_max_cents)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                           v["name"], v["venue"], v["city"], v["category"], v["event_date"], v["door_time"], v["end_time"],
-                          v["min_age"], v["ticket_url"], v["description"], v["source_url"], g.user["id"])
+                          v["min_age"], v["ticket_url"], v["description"], v["source_url"], g.user["id"], v["face_value_max_cents"])
     poster_name = save_image(request.files.get("poster"))
     if poster_name:
         db.run("UPDATE events SET poster_file=? WHERE id=?", poster_name, event_id)
@@ -3007,7 +3086,8 @@ def admin_event_import_confirm():
         form = dict(e, category=request.form.get("category_%d" % i, e.get("category")),
                     venue=request.form.get("venue_%d" % i, e.get("venue")) or "",
                     source_url=request.form.get("url"), min_age="", door_time=e.get("door_time") or "",
-                    end_time=e.get("end_time") or "", ticket_url=e.get("ticket_url") or "", description=e.get("description") or "")
+                    end_time=e.get("end_time") or "", ticket_url=e.get("ticket_url") or "", description=e.get("description") or "",
+                    face_value_max=e.get("face_value_max") or "")
         v, error = event_from_form(form)
         if error or find_event(v["event_date"], v["venue"], v["name"]):
             continue
@@ -3015,9 +3095,9 @@ def admin_event_import_confirm():
         if e.get("address") and venue and not venue["address"]:
             db.run("UPDATE venues SET address=? WHERE id=?", e["address"], venue["id"])
         db.run("""INSERT INTO events (name, venue, city, category, event_date, door_time, end_time, ticket_url, description,
-                  source_url, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  source_url, created_by, face_value_max_cents) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                v["name"], v["venue"], v["city"], v["category"], v["event_date"], v["door_time"], v["end_time"],
-               v["ticket_url"], v["description"], v["source_url"], g.user["id"])
+               v["ticket_url"], v["description"], v["source_url"], g.user["id"], v["face_value_max_cents"])
         added += 1
     flash("Added %d events." % added, "ok")
     return redirect(url_for("admin_events"))
@@ -3301,6 +3381,44 @@ def admin_users():
     return render_template("admin_users.html", rows=rows, q=q, blocked=blocked, phones=phones, held=held)
 
 
+@app.route("/admin/listings/<int:listing_id>/<action>", methods=["POST"])
+@admin_required
+def admin_listing_review(listing_id, action):
+    """Approve or reject a listing that waited for a check (#25 face value, #29 unreadable code or app ticket)."""
+    l = db.one("SELECT * FROM listings WHERE id=? AND status='review'", listing_id)
+    if not l:
+        abort(404)
+    seller = db.one("SELECT * FROM users WHERE id=?", l["seller_id"])
+    if action == "approve":
+        db.run("UPDATE listings SET status='active', review_reason=NULL, face_checked=1 WHERE id=?", listing_id)
+        tell(seller["id"], t("mail_listing_live_subject", title=listing_title(l)), t("mail_listing_live_body", title=listing_title(l)),
+             url_for("listing_page", listing_id=listing_id))
+        notify_alerts(db.one("SELECT * FROM listings WHERE id=?", listing_id))
+        flash("Approved: the listing is live.", "ok")
+    elif action == "reject":
+        why = request.form.get("why", "").strip()[:500]
+        if not why:
+            flash("Write the reason: the seller gets it by email (EU rules).", "error")
+            return redirect(url_for("admin") + "#review")
+        db.run("UPDATE tickets SET status='void' WHERE listing_id=? AND status='available'", listing_id)
+        db.run("UPDATE listings SET status='removed' WHERE id=?", listing_id)
+        send_statement_of_reasons(seller, t("dsa_what_listing_refused", title=listing_title(l)), why)
+        flash("Rejected; the seller was told why.", "ok")
+    else:
+        abort(400)
+    return redirect(url_for("admin") + "#review")
+
+
+@app.route("/admin/proofs/<int:proof_id>")
+@admin_required
+def admin_proof(proof_id):
+    p = db.one("SELECT * FROM proofs WHERE id=?", proof_id)
+    if not p:
+        abort(404)
+    ext = p["file"].rsplit(".", 1)[-1]
+    return send_file(os.path.join(config.UPLOAD_DIR, "proofs", p["file"]), mimetype=FILE_TYPES[ext][1])
+
+
 @app.route("/admin/blocked-phones/remove", methods=["POST"])
 @admin_required
 def admin_unblock_phone():
@@ -3427,6 +3545,9 @@ def account_delete():
     db.run("""UPDATE messages SET kind='system', body='sys_message_removed', raw_body=NULL, flags=NULL
               WHERE sender_id=? AND kind='text'""", uid)
     db.run("UPDATE orders SET transfer_name=NULL, transfer_email=NULL, dispute_reason=NULL WHERE buyer_id=?", uid)
+    delete_proofs(db.all("""SELECT p.* FROM proofs p WHERE p.user_id=? AND NOT EXISTS (
+                              SELECT 1 FROM orders x WHERE (x.listing_id = p.listing_id OR x.id = p.order_id)
+                              AND x.status IN ('pending', 'paid', 'disputed', 'releasing'))""", uid))
     # Their ticket files (which often show their full name), for sales that are finished and tickets that never sold.
     for row in db.all("""SELECT DISTINCT t.file FROM tickets t JOIN listings l ON l.id = t.listing_id
                          LEFT JOIN orders o ON o.id = t.order_id

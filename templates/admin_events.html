@@ -97,6 +97,7 @@ We praten ook graag over officieel doorverkopen via Spare. Laat maar weten wat j
         <label class="field"><span class="label">Doors</span><input type="time" name="door_time" value="{{ edit.door_time if edit and edit.door_time else '' }}"></label>
         <label class="field"><span class="label">Ends</span><input type="time" name="end_time" value="{{ edit.end_time if edit and edit.end_time else '' }}"></label>
       </div>
+      <label class="field"><span class="label">Official ticket price (€, highest)</span><input type="text" inputmode="decimal" name="face_value_max" value="{{ '%.2f'|format(edit.face_value_max_cents / 100) if edit and edit.face_value_max_cents else '' }}" placeholder="24.50"><span class="hint">Sellers can't enter a higher face value. Without it, they upload proof and you check each listing.</span></label>
       <label class="field"><span class="label">Official ticket link</span><input type="url" name="ticket_url" value="{{ edit.ticket_url if edit and edit.ticket_url else '' }}" placeholder="https://"></label>
       <label class="field"><span class="label">Description or line-up</span><textarea name="description" rows="3" maxlength="600">{{ edit.description if edit and edit.description else '' }}</textarea></label>
       <div class="grid-2">

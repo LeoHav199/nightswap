@@ -47,6 +47,20 @@
       </div>
     {% else %}<p class="muted">Nothing reported.</p>{% endfor %}
   </section>
+  <section class="account-section" id="review">
+    <h2>Listings to check{% if review %} <span class="count">{{ review|length }}</span>{% endif %}</h2>
+    {% for l in review %}
+      <div class="panel admin-case">
+        <p><strong>{{ l.event_name or l.venue }}</strong> · {{ l.venue }} · {{ fmt_date(l.event_date) }} · <a href="{{ url_for('listing_page', listing_id=l.id) }}">listing</a> · seller {{ l.seller_email }}</p>
+        <p class="muted small">To check: <strong>{{ l.review_reason }}</strong> · face value {{ money(l.face_value_cents) }} · price {{ money(l.price_cents) }}{% if l.face_value_max_cents %} · official price {{ money(l.face_value_max_cents) }}{% endif %}</p>
+        <p class="small">{% for p in proofs.get(l.id, []) %}<a href="{{ url_for('admin_proof', proof_id=p.id) }}" target="_blank" rel="noopener">{{ p.kind }} proof</a>{% if not loop.last %} · {% endif %}{% else %}<span class="muted">No proof files.</span>{% endfor %}</p>
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_listing_review', listing_id=l.id, action='approve') }}">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Approve: put it on sale</button></form>
+          <form method="post" action="{{ url_for('admin_listing_review', listing_id=l.id, action='reject') }}">{{ m.csrf() }}<input type="text" name="why" placeholder="Reason (emailed to the seller)" required><button class="btn btn-ghost btn-sm">Reject</button></form>
+        </div>
+      </div>
+    {% else %}<p class="muted">Nothing to check.</p>{% endfor %}
+  </section>
   <section class="account-section">
     <h2 id="reports">Reported listings{% if reports %} <span class="count">{{ reports|length }}</span>{% endif %}</h2>
     {% for r in reports %}

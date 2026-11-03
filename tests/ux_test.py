@@ -1,7 +1,7 @@
 import io, os, re, sys, tempfile, json
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -21,7 +21,7 @@ D = (date.today() + timedelta(days=4)).isoformat()
 admin, seller, buyer, v = (app.test_client() for _ in range(4))
 login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); login(buyer, "b@test.nl", "Bo"); v.get("/")
 for n in ("Night A", "Night B"):
-    admin.post("/admin/events/save", data={"name": n, "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
+    admin.post("/admin/events/save", data={"face_value_max": "500", "name": n, "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 home = html(v.get("/"))
 ok("Be the first to sell" in home and "Coming up" in home and 'class="stub' not in home, "no tickets anywhere: friendly 'be the first' message + compact list, no empty cards")
 ok("All of the Netherlands" not in home and 'id="city"' not in home, "Rotterdam-only: no city picker / all-NL option")

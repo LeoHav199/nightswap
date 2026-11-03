@@ -684,15 +684,22 @@
     var manual = sell.querySelector("[data-manual]");
     var selected = picker.dataset.selected;
     function esc(v) { return String(v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    var faceProof = sell.querySelector("[data-face-proof]");
+    var faceHint = sell.querySelector("[data-face-hint]");
+    var faceHintText = faceHint ? faceHint.textContent : "";
     function syncManual() {
       var checked = sell.querySelector('input[name="event_id"]:checked');
       manual.hidden = !!(checked && checked.value !== "new");
+      // #25: with a known official price there's nothing to prove; otherwise the seller adds their order confirmation.
+      var max = checked && checked.dataset.faceMax;
+      if (faceProof) faceProof.hidden = !!max;
+      if (faceHint) faceHint.textContent = max ? sell.dataset.faceOfficial.replace("{max}", max) : faceHintText;
     }
     function load() {
       if (!dateInput.value) { list.innerHTML = ""; addNew.hidden = true; manual.hidden = true; return; }
       fetch(picker.dataset.api + "?date=" + dateInput.value).then(function (r) { return r.json(); }).then(function (data) {
         list.innerHTML = data.events.map(function (e) {
-          return '<label class="pick"><input type="radio" name="event_id" value="' + e.id + '"' + (String(e.id) === selected ? " checked" : "") + '>' +
+          return '<label class="pick"><input type="radio" name="event_id" value="' + e.id + '" data-face-max="' + esc(e.face_max) + '"' + (String(e.id) === selected ? " checked" : "") + '>' +
             '<span><strong>' + esc(e.name) + '</strong><small>' + esc(e.venue) + (e.city !== "Rotterdam" ? ", " + esc(e.city) : "") +
             ' · ' + esc(e.category) + (e.time ? " · " + esc(e.time) : "") +
             (e.looking ? ' · <b class="pick-looking">' + esc(data.looking_label.replace("{n}", e.looking)) + '</b>' : "") + '</small></span></label>';

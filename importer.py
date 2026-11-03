@@ -168,6 +168,12 @@ def extract(page_html, page_url=""):
             if isinstance(offers, list):
                 offers = offers[0] if offers else {}
             ticket_url = _text(offers.get("url") if isinstance(offers, dict) else "") or _text(obj.get("url")) or page_url
+            # #25: the official price (the highest one, so every ticket type fits under it)
+            price = (offers.get("highPrice") or offers.get("price")) if isinstance(offers, dict) else None
+            try:
+                face_value_max = "%.2f" % float(str(price).replace(",", ".")) if price not in (None, "") and float(str(price).replace(",", ".")) > 0 else ""
+            except ValueError:
+                face_value_max = ""
             if ticket_url and not ticket_url.startswith("http"):
                 ticket_url = urllib.parse.urljoin(page_url, ticket_url)
             if re.fullmatch(r"[A-Za-z]{2}|netherlands|nederland|the netherlands", city.strip(), re.I):
@@ -182,5 +188,6 @@ def extract(page_html, page_url=""):
                 "category": _guess_category(obj, name, door),
                 "ticket_url": ticket_url[:500] if ticket_url else None,
                 "description": _text(obj.get("description"))[:400] or None,
+                "face_value_max": face_value_max,
             })
     return sorted(found, key=lambda e: (e["event_date"], e["door_time"] or ""))

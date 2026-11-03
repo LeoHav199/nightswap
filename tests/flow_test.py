@@ -1,6 +1,6 @@
 import io, os, re, sys, tempfile
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
-import config
+import config; config.FACE_PROOF_REQUIRED = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0; config.FEE_MIN_CENTS = 100  # these tests were written for a flat €1 fee
 config.SELLER_FEE_PERCENT = 0; config.SELLER_FEE_MIN_CENTS = 0  # ...and no seller fee
