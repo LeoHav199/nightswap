@@ -46,7 +46,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all 357 checks against a throwaway database. Run it after every change.
+- Tests: `sh tests/run_all.sh` runs all 581 checks against a throwaway database. Run it after every change. `tests/hardening_test.py` covers the 33-item "Bulletproofing" review (#N in its messages); older test files switch off the newer safety checks (`config.FACE_PROOF_REQUIRED`, `NEW_SELLER_LIMITS`, `TICKET_CHECKS`), which must stay on in the code.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 
@@ -70,6 +70,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 
 ## Ideas already weighed
 - Spare buying early-bird tickets itself and reselling them: **rejected**. It breaks the face-value promise, organisers can void bulk-resold tickets, it competes with our own sellers, and we'd carry the inventory risk and legal grey zone.
+- First-hand tickets for organisers with Spare-issued rotating QR codes and a door scanner (the only full fix for double selling, review #33): planned in `docs/organiser-ticketing.md`, not built.
 - To fix the shortage of sellers instead (suggested, not built yet): first-hand ticket sales for student associations and small organisers (strongest), commission through official ticket-shop referral links, showing "X people are looking" to bring out sellers, reminders before the night, and official organiser allocations later.
 
 ## Still open
