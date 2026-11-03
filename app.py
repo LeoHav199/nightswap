@@ -699,7 +699,7 @@ def before():
 
     if "csrf" not in session:
         session["csrf"] = secrets.token_urlsafe(24)
-    if request.method == "POST" and request.endpoint not in ("stripe_webhook", "hourly_tasks"):
+    if request.method == "POST" and request.endpoint not in ("stripe_webhook", "hourly_tasks", "waitlist_leave"):
         sent = request.form.get("_csrf") or request.headers.get("X-CSRF-Token", "")
         if not hmac.compare_digest(sent, session["csrf"]):
             abort(400)
@@ -2541,9 +2541,11 @@ def waitlist_join():
     return redirect(url_for("index") + "#joined")
 
 
-@app.route("/waitlist/leave/<token>")
+@app.route("/waitlist/leave/<token>", methods=["GET", "POST"])
 def waitlist_leave(token):
     db.run("DELETE FROM waitlist WHERE token=?", token)
+    if request.method == "POST":  # one-click unsubscribe from a mail app (#17): no page, no session
+        return "Removed.", 200
     session.pop("waitlisted", None)
     flash(t("cs_left"), "ok")
     return redirect(url_for("index"))
@@ -2656,7 +2658,10 @@ def admin_waitlist_notify():
         lang = r["lang"] if r["lang"] in i18n.LANGS else "en"
         leave = base_url() + url_for("waitlist_leave", token=r["token"])
         body = i18n.t(lang, "mail_launch_body", url=base_url() + url_for("index"), leave=leave)
-        if notify.send_email(r["email"], i18n.t(lang, "mail_launch_subject"), body):
+        # #17: mail apps show an "unsubscribe" button for this; one click (RFC 8058) removes the address.
+        unsubscribe = {"List-Unsubscribe": "<%s>, <mailto:%s?subject=unsubscribe>" % (leave, config.SUPPORT_EMAIL),
+                       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"}
+        if notify.send_email(r["email"], i18n.t(lang, "mail_launch_subject"), body, headers=unsubscribe):
             db.run("UPDATE waitlist SET notified_at=? WHERE id=?", sqltime(utcnow()), r["id"])
             sent += 1
     left = db.one("SELECT COUNT(*) AS n FROM waitlist WHERE notified_at IS NULL")["n"]

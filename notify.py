@@ -71,8 +71,8 @@ def _logo_img():
             'style="vertical-align:-6px;margin-right:4px;border:0">' % html.escape(config.BASE_URL.rstrip("/"), quote=True))
 
 
-def send_email(to, subject, body, attachments=()):
-    """attachments: (filename, bytes) pairs, e.g. the nightly backup."""
+def send_email(to, subject, body, attachments=(), headers=None):
+    """attachments: (filename, bytes) pairs, e.g. the nightly backup. headers: extra ones, e.g. List-Unsubscribe."""
     if not config.SMTP_HOST:
         current_app.logger.warning("EMAIL (not sent, no SMTP configured) to=%s subject=%s\n%s", to, subject, body)
         return False
@@ -80,6 +80,9 @@ def send_email(to, subject, body, attachments=()):
     msg["From"] = config.MAIL_FROM
     msg["To"] = to
     msg["Subject"] = subject
+    msg["Reply-To"] = config.SUPPORT_EMAIL  # #17: replies reach hello@ (read in iCloud), whatever sends the mail
+    for name, value in (headers or {}).items():
+        msg[name] = value
     msg.set_content(body)
     msg.add_alternative(email_html(subject, body), subtype="html")
     for filename, data in attachments:

@@ -287,4 +287,32 @@ ok("Saved" in res.output and open(enc_path[:-4], "rb").read().startswith(b"PK"),
 ok(len(app.test_cli_runner().invoke(args=["backup-key"]).output.strip()) == 44, "#16 'flask --app app backup-key' prints a new key")
 config.DEV = dev_was; config.BACKUP_KEY = ""; MAIL_WORKS[0] = False
 
+# --- #17: replies reach hello@, and the launch email has a one-click unsubscribe
+import importlib.util
+spec = importlib.util.spec_from_file_location("notify_real", "notify.py"); real_notify = importlib.util.module_from_spec(spec); spec.loader.exec_module(real_notify)
+outbox = []
+class FakeSMTP:
+    def __init__(self, *a, **kw): pass
+    def __enter__(self): return self
+    def __exit__(self, *a): pass
+    def starttls(self): pass
+    def login(self, *a): pass
+    def send_message(self, msg): outbox.append(msg)
+real_notify.smtplib.SMTP = FakeSMTP; host_was = config.SMTP_HOST; config.SMTP_HOST = "smtp.example"
+with app.app_context(): real_notify.send_email("x@test.nl", "Hi", "Body")
+config.SMTP_HOST = host_was
+ok(outbox and outbox[0]["Reply-To"] == config.SUPPORT_EMAIL, "#17 every email has Reply-To: hello@sparetickets.eu")
+w = app.test_client(); w.get("/"); w.post("/waitlist", data={"email": "wait@test.nl", "_csrf": csrf(w)})
+headers_seen = []
+notify.send_email = lambda to, subject, body, attachments=(), headers=None, **kw: headers_seen.append((to, headers)) or True
+admin.post("/admin/waitlist/notify", data={"_csrf": csrf(admin)})
+notify.send_email = lambda to, subject, body, attachments=(), **kw: (SENT.append((to, subject, body)) or True) if MAIL_WORKS[0] else False
+h = dict(headers_seen).get("wait@test.nl") or {}
+ok("/waitlist/leave/" in h.get("List-Unsubscribe", "") and h.get("List-Unsubscribe-Post") == "List-Unsubscribe=One-Click",
+   "#17 the launch email has List-Unsubscribe headers")
+leave_path = re.search(r"<https?://[^/]+(/waitlist/leave/[^>]+)>", h["List-Unsubscribe"]).group(1)
+r = app.test_client().post(leave_path, data={"List-Unsubscribe": "One-Click"})
+with app.app_context(): gone = A.db.one("SELECT 1 FROM waitlist WHERE email='wait@test.nl'") is None
+ok(r.status_code == 200 and gone, "#17 a mail app's one-click unsubscribe (POST, no CSRF token) removes the address")
+
 print("FAILED:", fails or "none")
