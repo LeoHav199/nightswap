@@ -27,6 +27,8 @@ services:
         value: Europe/Amsterdam
       - key: SECRET_KEY
         generateValue: true
+      - key: BACKUP_KEY            # encrypts backups; make it with: flask --app app backup-key
+        sync: false
       - key: TASK_SECRET
         generateValue: true
       # Render asks for these when you create the service:

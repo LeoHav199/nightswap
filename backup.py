@@ -13,6 +13,32 @@ from datetime import datetime
 
 import config
 
+
+class NoKey(Exception):
+    """On the real site, backups are never stored or sent unencrypted."""
+
+
+def seal(data, name):
+    """#16: encrypts a backup zip with BACKUP_KEY (Fernet: AES with a check that it wasn't changed).
+    Without a key this only works in development, where the zip stays plain."""
+    if not config.BACKUP_KEY:
+        if config.DEV:
+            return data, name
+        raise NoKey()
+    from cryptography.fernet import Fernet
+    return Fernet(config.BACKUP_KEY.encode()).encrypt(data), name + ".enc"
+
+
+def unseal(data, key):
+    from cryptography.fernet import Fernet
+    return Fernet(key.encode()).decrypt(data)
+
+
+def new_key():
+    from cryptography.fernet import Fernet
+    return Fernet.generate_key().decode()
+
+
 KEEP = 3                         # database-only copies kept on the disk
 EMAIL_LIMIT = 15 * 1024 * 1024   # bigger than this and the uploads stay out of the email (the database always goes)
 
@@ -48,10 +74,12 @@ def keep_on_disk(data, name):
 
 
 def for_email():
-    """The zip for the nightly email: with uploads if it fits, otherwise the database alone."""
+    """The encrypted zip for the nightly email: with uploads if it fits, otherwise the database alone.
+    Raises NoKey on the real site when BACKUP_KEY isn't set."""
     disk_copy, disk_name, _ = make_zip(with_uploads=False)
-    keep_on_disk(disk_copy, disk_name)
+    keep_on_disk(*seal(disk_copy, disk_name))
     data, name, full = make_zip(with_uploads=True)
     if len(data) > EMAIL_LIMIT:
         data, name, full = make_zip(with_uploads=False)
+    data, name = seal(data, name)
     return data, name, full

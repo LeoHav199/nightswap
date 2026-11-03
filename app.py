@@ -568,11 +568,18 @@ def nightly_backup(force=False):
     day = today().isoformat()
     if not force and (datetime.now().hour != 3 or get_setting("last_backup_day") == day):
         return False
-    data, name, full = backup.for_email()
+    try:
+        data, name, full = backup.for_email()
+    except backup.NoKey:
+        notify.notify_admins("Spare: backup NOT made", "Tonight's backup wasn't made because BACKUP_KEY isn't set on Render, and "
+                             "Spare never sends or stores backups unencrypted. Ask Claude for the steps to set it.")
+        set_setting("last_backup_day", day)
+        return False
     size = "%.1f MB" % (len(data) / 1024 / 1024)
     note = ("Database and uploaded tickets/posters." if full else
             "Database only: the uploaded files were too big for email. Render's daily disk snapshots cover them.")
-    body = "Spare's nightly backup (%s, %s).\n\n%s\n\nKeep these emails. To restore, ask Claude to put this file back on the server." % (name, size, note)
+    body = ("Spare's nightly backup (%s, %s).\n\n%s\n\nIt's encrypted: it opens only with BACKUP_KEY (from your password manager), "
+            "using: flask --app app decrypt-backup <file>\n\nKeep these emails. To restore, ask Claude to put this file back on the server." % (name, size, note))
     for email in config.ADMIN_EMAILS:
         notify.send_email(email, "Spare backup %s" % day, body, attachments=[(name, data)])
     set_setting("last_backup_day", day)
@@ -2594,9 +2601,13 @@ def admin():
 @app.route("/admin/backup")
 @admin_required
 def admin_backup():
-    """Download a full backup now (database plus uploaded tickets and posters)."""
-    data, name, _ = backup.make_zip()
-    resp = app.response_class(data, mimetype="application/zip")
+    """Download a full backup now (database plus uploaded tickets and posters), encrypted with BACKUP_KEY."""
+    try:
+        data, name = backup.seal(*backup.make_zip()[:2])
+    except backup.NoKey:
+        flash("Set BACKUP_KEY on Render first: backups are never downloaded unencrypted.", "error")
+        return redirect(url_for("admin"))
+    resp = app.response_class(data, mimetype="application/octet-stream" if name.endswith(".enc") else "application/zip")
     resp.headers["Content-Disposition"] = 'attachment; filename="%s"' % name
     return resp
 
@@ -3375,6 +3386,25 @@ def test_email_command(to):
     if not ok:
         raise click.ClickException("Sending failed, see the error above.")
     click.echo("Sent to %s from %s" % (to, config.MAIL_FROM))
+
+
+@app.cli.command("backup-key")
+def backup_key_command():
+    """Print a new BACKUP_KEY. Put it on Render's Environment page and in a password manager."""
+    click.echo(backup.new_key())
+
+
+@app.cli.command("decrypt-backup")
+@click.argument("path")
+@click.option("--key", envvar="BACKUP_KEY", prompt="BACKUP_KEY", hide_input=True, help="defaults to BACKUP_KEY from .env")
+def decrypt_backup_command(path, key):
+    """Turn an encrypted backup (.zip.enc) back into a normal zip next to it."""
+    with open(path, "rb") as fh:
+        data = backup.unseal(fh.read(), key)
+    out = path[:-4] if path.endswith(".enc") else path + ".zip"
+    with open(out, "wb") as fh:
+        fh.write(data)
+    click.echo("Saved " + out)
 
 
 @app.cli.command("seed")

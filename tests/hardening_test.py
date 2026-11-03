@@ -259,4 +259,32 @@ ok(first and not second and any("75% full" in sub for to, sub, b in SENT), "#15 
 ok("75% full" in html(admin.get("/admin")), "#15 /admin shows the disk usage")
 A.shutil.disk_usage = real_usage; MAIL_WORKS[0] = False
 
+# --- #16: encrypted backups
+dev_was = config.DEV; config.DEV = False; config.BACKUP_KEY = ""
+try:
+    backup.seal(b"zip", "x.zip"); ok(False, "#16 the real site refuses unencrypted backups")
+except backup.NoKey:
+    ok(True, "#16 the real site refuses unencrypted backups")
+MAIL_WORKS[0] = True; SENT.clear()
+with app.test_request_context(): made = A.nightly_backup(force=True)
+ok(not made and any("backup NOT made" in sub for to, sub, b in SENT) and not any(sub.startswith("Spare backup 2") for to, sub, b in SENT),
+   "#16 without BACKUP_KEY the nightly backup isn't sent; the admins are told instead")
+key = backup.new_key(); config.BACKUP_KEY = key; SENT.clear()
+sent_files = []
+real_send = notify.send_email
+notify.send_email = lambda to, subject, body, attachments=(), **kw: sent_files.extend(attachments) or True
+with app.test_request_context(): made = A.nightly_backup(force=True)
+notify.send_email = real_send
+ok(made and sent_files and sent_files[0][0].endswith(".zip.enc") and not sent_files[0][1].startswith(b"PK"),
+   "#16 with BACKUP_KEY the emailed backup is encrypted (.zip.enc, not a readable zip)")
+ok(backup.unseal(sent_files[0][1], key).startswith(b"PK"), "#16 the key turns it back into the zip")
+ok(max(os.listdir(os.path.join(tmp, "backups")), key=lambda n: os.path.getmtime(os.path.join(tmp, "backups", n))).endswith(".enc"), "#16 the copies on the disk are encrypted too")
+r = admin.get("/admin/backup")
+ok(r.status_code == 200 and ".zip.enc" in r.headers["Content-Disposition"], "#16 'Download backup' gives the encrypted file")
+enc_path = os.path.join(tmp, sent_files[0][0]); open(enc_path, "wb").write(sent_files[0][1])
+res = app.test_cli_runner().invoke(args=["decrypt-backup", enc_path, "--key", key])
+ok("Saved" in res.output and open(enc_path[:-4], "rb").read().startswith(b"PK"), "#16 'flask --app app decrypt-backup <file>' writes the plain zip")
+ok(len(app.test_cli_runner().invoke(args=["backup-key"]).output.strip()) == 44, "#16 'flask --app app backup-key' prints a new key")
+config.DEV = dev_was; config.BACKUP_KEY = ""; MAIL_WORKS[0] = False
+
 print("FAILED:", fails or "none")
