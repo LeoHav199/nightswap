@@ -649,4 +649,5 @@ STRINGS = {
     "err_ticket_too_many_pages": "Dieses PDF hat mehr als {pages} Seiten. Lade nur die Seite(n) mit deinem Ticket hoch.",
     "ticket_file_gone": "Die Ticketdatei wurde {days} Tage nach dem Event gelöscht, wie in unserer Datenschutzerklärung beschrieben.",
     "sys_message_removed": "Nachricht entfernt: Der Absender hat sein Konto gelöscht.",
+    "vat": "USt-IdNr.",
 }

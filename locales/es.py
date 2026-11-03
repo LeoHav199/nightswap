@@ -649,4 +649,5 @@ STRINGS = {
     "err_ticket_too_many_pages": "Este PDF tiene más de {pages} páginas. Sube solo la(s) página(s) con tu entrada.",
     "ticket_file_gone": "El archivo de la entrada se borró {days} días después del evento, como indica nuestra política de privacidad.",
     "sys_message_removed": "Mensaje eliminado: el remitente borró su cuenta.",
+    "vat": "IVA",
 }

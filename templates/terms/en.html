@@ -1,0 +1,50 @@
+{% set cap = 'the face value' if price_cap == 100 else price_markup ~ '% above the face value' %}
+<h1>Terms</h1>
+<p class="muted">Last updated: November 2026</p>
+
+<h2>1. Who we are</h2>
+<p>Spare (sparetickets.eu) is run by {{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, VAT {{ company.vat }}. Contact: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. This email address is also our contact point for authorities and users under the EU Digital Services Act; you can write to us in English or Dutch.</p>
+
+<h2>2. What Spare does</h2>
+<p>Spare is a platform where people resell event tickets to each other. Spare doesn't sell tickets itself, doesn't organise events and isn't connected to the venues or organisers shown on the site. The sellers are private individuals, not businesses, so the consumer rights you have when buying from a business (such as a right of withdrawal or a legal guarantee) don't apply to the seller. Spare's own service to you is described in these terms.</p>
+
+<h2>3. Your account</h2>
+<p>You sign in with a code sent to your email address. Keep access to your email safe: anyone who can read it can sign in as you. One account per person. You can delete your account at any time under Account → Your data, unless you have a sale that hasn't been paid out yet.</p>
+
+<h2>4. Selling</h2>
+<ul>
+  <li>You must be 18 or older to sell.</li>
+  <li>Only sell tickets that are yours, that are valid, and that you don't offer anywhere else at the same time. Once a ticket sells on Spare, it's the buyer's: don't use it, sell it again or cancel it.</li>
+  <li>Your price can be at most {{ cap }}. The face value is what the ticket originally cost, including the organiser's own fees. We may ask for proof (such as the original order confirmation) and compare it with the organiser's prices; listings above the maximum are removed.</li>
+  <li>You follow the organiser's resale rules. Some organisers ban resale, put names on tickets or only allow transfers in their own app. If the ticket has a name on it, say so, and only sell it if the name can be changed.</li>
+  <li>Every uploaded ticket is checked against all tickets on Spare. A ticket that's already on Spare can't be listed again.</li>
+</ul>
+
+<h2>5. Buying and fees</h2>
+<p>Buyers pay the seller's price plus a service fee of {{ fee_label }} per ticket. Sellers pay a seller fee of {{ seller_fee_label }} per ticket, deducted from the payout. The sell form shows what you'll receive before you post. The buyer's service fee is the price of Spare's service: the safe payment, the checks on the ticket and help if something goes wrong.</p>
+<p>A ticket file is available right after payment. A ticket that lives in an app is transferred by the seller with the app's own transfer button, to the name and email address the buyer gives.</p>
+<p><strong>No right of withdrawal.</strong> Tickets are for an event on a specific date, and you get access to the ticket straight away at your request. That's why there's no 14-day right of withdrawal (cancellation period) for purchases on Spare.</p>
+
+<h2>6. Payment and payouts</h2>
+<p>Payments are processed by Stripe. The amount is held and paid out to the seller as soon as the buyer confirms on the day of the event that the ticket worked, and otherwise {{ payout_hours }} hours after the night of the event, unless the buyer reports a problem before then. For a ticket that lives in an app, nothing is paid out until the seller has transferred it. Sellers set up payouts once through Stripe; Stripe may ask for proof of identity.</p>
+
+<h2>7. Cancelled or moved events</h2>
+<p>If an event is cancelled, every buyer gets a full refund (ticket and service fee) and the seller isn't paid. If the date or time changes, we tell buyers and sellers; a buyer who can't make the new date can ask for a full refund before the payout, and the ticket goes back on sale.</p>
+
+<h2>8. Problems and disputes</h2>
+<p>If a ticket doesn't work, report it from your order before the seller is paid. The payout is then put on hold, and we tell the seller, who has 24 hours to respond in the order chat with any proof (for example a screenshot of the ticket in their account or of the transfer). A person at Spare looks at what both sides send and decides. If the ticket was invalid, already used, sold twice or never arrived, the buyer gets the full amount back and the seller isn't paid. If the seller was paid already, we may claim the money back from them.</p>
+
+<h2>9. Rules for everyone</h2>
+<p>Don't try to pay or deal outside Spare, share contact details in messages, harass other users, or list fake, stolen or copied tickets. Messages that try to arrange paying outside Spare aren't delivered.</p>
+
+<h2>10. Removing listings and blocking accounts</h2>
+<p>We may remove a listing or block an account that breaks these terms or the law, or when there's a serious risk of fraud. A person always makes that decision, and we email you what we did and why. If you disagree, reply to that email or write to <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a> within 6 months; we'll look at it again and answer you. You can also go to a court or a certified out-of-court dispute settlement body. Anyone can report a listing that seems illegal or against these terms with the "Report" link on the listing.</p>
+
+<h2>11. Liability</h2>
+<p>Spare is responsible for running the platform and the payments carefully. We're not responsible for the event itself (what happens at the door is up to the organiser), or for what sellers do beyond what our refund rules cover. Our liability is limited to the amount you paid for the order concerned, except where the law doesn't allow us to limit it, such as for intent or gross negligence.</p>
+
+<h2>12. Complaints and law</h2>
+<p>Complaints about Spare: email <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>; we answer within 14 days. Dutch law applies to these terms. If you live in another EU country, you keep the protection of your own country's mandatory consumer law. Disputes go to the competent court in the Netherlands, or the court where you live if you're a consumer.</p>
+
+<h2>13. Changes</h2>
+<p>We may change these terms. We'll tell you by email at least 15 days before a change that matters to you takes effect; orders you already placed follow the terms that applied then.</p>

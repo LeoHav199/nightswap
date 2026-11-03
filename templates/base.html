@@ -77,6 +77,7 @@
           <span>spare</span>
         </div>
         <p class="muted small">{{ t('footer_tagline') }}</p>
+        {% if company.complete %}<p class="muted small company-line">{{ company.name }} · {{ company.address }} · KvK {{ company.kvk }}{% if company.vat != '[VAT NUMBER]' %} · {{ t('vat') }} {{ company.vat }}{% endif %}</p>{% endif %}
       </div>
       <nav class="footer-links">
         <a href="{{ url_for('how') }}">{{ t('nav_how') }}</a>

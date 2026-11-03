@@ -58,9 +58,16 @@ def email_html(subject, body):
         '%s spare</td></tr>'
         '<tr><td style="padding:12px 28px 24px;color:#d6d4e4;font-size:15px;line-height:1.55">%s</td></tr>'
         '</table>'
-        '<p style="color:#77739a;font-size:12px;margin:16px 0 0">Spare · Rotterdam · <a href="mailto:%s" style="color:#77739a">%s</a></p>'
+        '<p style="color:#77739a;font-size:12px;margin:16px 0 0">%s · <a href="mailto:%s" style="color:#77739a">%s</a></p>'
         '</td></tr></table></body></html>'
-    ) % (_logo_img(), "".join(parts), config.SUPPORT_EMAIL, config.SUPPORT_EMAIL)
+    ) % (_logo_img(), "".join(parts), html.escape(company_line()), config.SUPPORT_EMAIL, config.SUPPORT_EMAIL)
+
+
+def company_line():
+    """#20: who runs Spare, in every email once the KvK details are set."""
+    if config.COMPANY_NAME and config.COMPANY_ADDRESS and config.KVK_NUMBER:
+        return "%s · %s · KvK %s" % (config.COMPANY_NAME, config.COMPANY_ADDRESS, config.KVK_NUMBER)
+    return "Spare · Rotterdam"
 
 
 def _logo_img():

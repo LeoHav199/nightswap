@@ -1,37 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ t('footer_terms') }} · Spare{% endblock %}
 {% block content %}
+{# One file per language. Payout and dispute texts must match release_payout, rate_order and report_problem. #}
 <div class="wrap prose">
-  {% if lang == 'nl' %}
-  <h1>Voorwaarden</h1>
-  <p class="muted">Laatst bijgewerkt: oktober 2026</p>
-  <h2>1. Wat Spare doet</h2>
-  <p>Spare is een platform waarop particulieren tickets voor evenementen aan elkaar doorverkopen. Spare is zelf geen verkoper of organisator van evenementen.</p>
-  <h2>2. Verkopen</h2>
-  <p>Je verkoopt alleen tickets die van jou zijn, die geldig zijn en die je niet ook ergens anders aanbiedt. Je prijs is maximaal {{ 'de nominale waarde' if price_cap == 100 else price_markup ~ '% boven de nominale waarde' }}. Je bent zelf verantwoordelijk voor het naleven van de voorwaarden van de organisator.</p>
-  <h2>3. Kopen en kosten</h2>
-  <p>Kopers betalen de prijs van de verkoper plus servicekosten van {{ fee_label }} per ticket. Verkopers betalen verkoperskosten van {{ seller_fee_label }} per ticket, die van de uitbetaling af gaan. Het formulier toont vooraf wat je ontvangt.</p>
-  <h2>4. Betaling en uitbetaling</h2>
-  <p>Betalingen worden verwerkt door Stripe. Het bedrag wordt vastgehouden en aan de verkoper uitbetaald zodra de koper op de dag van het evenement bevestigt dat het ticket werkte, en anders {{ payout_hours }} uur na de avond van het evenement, tenzij de koper vóór dat moment een probleem meldt. Bij een ticket dat in een app staat, wordt pas uitbetaald nadat de verkoper het heeft overgezet.</p>
-  <h2>5. Problemen en terugbetaling</h2>
-  <p>Werkt een ticket niet, dan meld je dat via je bestelling vóór de uitbetaling. Na onderzoek betalen we het volledige bedrag terug. Verkopers die ongeldige of dubbel verkochte tickets aanbieden, worden geblokkeerd en kunnen aansprakelijk worden gesteld.</p>
-  <h2>6. Contact</h2>
-  <p><a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a></p>
-  {% else %}
-  <h1>Terms</h1>
-  <p class="muted">Last updated: October 2026</p>
-  <h2>1. What Spare does</h2>
-  <p>Spare is a platform where individuals resell event tickets to each other. Spare itself does not sell tickets or organise events.</p>
-  <h2>2. Selling</h2>
-  <p>Only sell tickets that are yours, that are valid, and that you are not offering anywhere else. Your price can be at most {{ 'the face value' if price_cap == 100 else price_markup ~ '% above the face value' }}. You are responsible for following the organiser's terms.</p>
-  <h2>3. Buying and fees</h2>
-  <p>Buyers pay the seller's price plus a service fee of {{ fee_label }} per ticket. Sellers pay a seller fee of {{ seller_fee_label }} per ticket, deducted from the payout. The sell form shows what you'll receive before you post.</p>
-  <h2>4. Payment and payouts</h2>
-  <p>Payments are processed by Stripe. The amount is held and paid out to the seller as soon as the buyer confirms on the day of the event that the ticket worked, and otherwise {{ payout_hours }} hours after the night of the event, unless the buyer reports a problem before then. For a ticket that lives in an app, nothing is paid out until the seller has transferred it.</p>
-  <h2>5. Problems and refunds</h2>
-  <p>If a ticket doesn't work, report it from your order before the payout. After review we refund the full amount. Sellers who list invalid or double-sold tickets are blocked and may be held liable.</p>
-  <h2>6. Contact</h2>
-  <p><a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a></p>
-  {% endif %}
+  {% include "terms/" ~ (lang if lang in ('nl', 'fr', 'de', 'es') else 'en') ~ ".html" %}
 </div>
 {% endblock %}

@@ -362,4 +362,19 @@ ok("KvK 12345678" in html(visitor.get("/privacy")) and "Spare Tickets" in html(v
 config.KVK_NUMBER = config.COMPANY_NAME = ""
 ok("Autoriteit Persoonsgegevens" in html(nl.get("/privacy")) and "Grond:" in html(nl.get("/privacy")), "#19 the Dutch version too")
 
+# --- #20: the terms cover the business basics; company line in footer and emails
+terms = html(visitor.get("/terms"))
+for words, what in (("[KVK NUMBER]", "who runs Spare"), ("private individuals", "that sellers are private individuals"), ("18 or older", "the 18+ rule"),
+                    ("Cancelled or moved events", "cancelled and moved events"), ("A person at Spare looks at what both sides send", "how disputes are decided"),
+                    ("within 6 months", "how to object to a removal"), ("Our liability is limited", "liability"), ("No right of withdrawal", "the right of withdrawal"),
+                    ("Dutch law applies", "governing law"), ("Complaints about Spare", "complaints")):
+    ok(words in terms, "#20 the terms cover %s" % what)
+ok("Geen herroepingsrecht" in html(nl.get("/terms")), "#20 the Dutch terms too")
+ok("company-line" not in html(visitor.get("/")), "#20 no company line in the footer until the KvK details are set")
+config.COMPANY_NAME, config.COMPANY_ADDRESS, config.KVK_NUMBER = "Spare Tickets", "Coolsingel 1, Rotterdam", "12345678"
+ok("KvK 12345678" in html(visitor.get("/")), "#20 then the footer shows name, address and KvK number")
+with app.app_context(): ok("KvK 12345678" in real_notify.email_html("Hi", "Body"), "#20 ...and so does every email")
+config.COMPANY_NAME = config.COMPANY_ADDRESS = config.KVK_NUMBER = ""
+ok(os.path.exists("docs/legal-review.md"), "#20 the points for a lawyer are listed in docs/legal-review.md")
+
 print("FAILED:", fails or "none")
