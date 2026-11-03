@@ -38,7 +38,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=not config.DEV,
-    PERMANENT_SESSION_LIFETIME=timedelta(days=365),  # stay signed in for a year; each visit extends it
+    PERMANENT_SESSION_LIFETIME=timedelta(days=90),  # #11: signed in for 90 days, renewed on every visit
 )
 app.teardown_appcontext(db.close)
 if config.TRUST_PROXY:
@@ -636,8 +636,8 @@ def before():
         g.user = db.one("SELECT * FROM users WHERE id=?", uid)
         if not g.user:
             session.pop("uid", None)
-    if g.user and (g.user["blocked_at"] or g.user["deleted_at"]):
-        session.pop("uid", None)
+    if g.user and (g.user["blocked_at"] or g.user["deleted_at"] or session.get("sv", 0) != g.user["session_version"]):
+        fresh_session()  # blocked, deleted, or signed out everywhere (#11)
         g.user = None
     g.is_admin = bool(g.user and g.user["email"] in config.ADMIN_EMAILS)
 
@@ -2105,18 +2105,45 @@ def login_verify():
                 uid = user["id"]
                 if needs_name:
                     db.run("UPDATE users SET first_name=? WHERE id=?", name, uid)
-            nxt = session.pop("login_next", "/")
-            session.pop("login_email", None)
-            session["uid"] = uid
-            session.permanent = True
+            nxt = session.get("login_next", "/")
+            fresh_session(db.one("SELECT * FROM users WHERE id=?", uid))
             return redirect(safe_next(nxt))
     return render_template("login_verify.html", email=email, needs_name=needs_name, error=error)
 
 
+# Kept across sign-in and sign-out: which marketing link someone came from, and a friend's preview access.
+SESSION_KEEPS = ("source", "seen_sources", "preview")
+
+
+def fresh_session(user=None):
+    """#11: start a clean session, so nothing from before carries over; signs `user` in when given."""
+    keep = {k: session[k] for k in SESSION_KEEPS if k in session}
+    session.clear()
+    session.update(keep)
+    session["csrf"] = secrets.token_urlsafe(24)  # a new form token too
+    if user:
+        session["uid"], session["sv"] = user["id"], user["session_version"]
+        session.permanent = True
+
+
+def end_all_sessions(user_id):
+    """#11: signs the user out on every device (each session remembers the version it started with)."""
+    db.run("UPDATE users SET session_version = session_version + 1 WHERE id=?", user_id)
+
+
 @app.route("/logout", methods=["POST"])
 def logout():
-    session.pop("uid", None)
+    fresh_session()
     return redirect(url_for("index"))
+
+
+@app.route("/account/sign-out-everywhere", methods=["POST"])
+@login_required
+def sign_out_everywhere():
+    end_all_sessions(g.user["id"])
+    fresh_session()
+    flash(t("signed_out_everywhere"), "ok")
+    return redirect(url_for("login"))
 
 
 def send_phone_code(number, text):
@@ -2918,6 +2945,7 @@ def take_off_sale(listing_ids):
 
 def block_user(user_id, reason):
     db.run("UPDATE users SET blocked_at=?, blocked_reason=? WHERE id=?", sqltime(utcnow()), reason[:300] or None, user_id)
+    end_all_sessions(user_id)
     take_off_sale([r["id"] for r in db.all("SELECT id FROM listings WHERE seller_id=? AND status='active'", user_id)])
     for o in db.all("SELECT id FROM orders WHERE buyer_id=? AND status='pending'", user_id):
         db.run("UPDATE orders SET status='cancelled' WHERE id=?", o["id"])
@@ -3154,7 +3182,8 @@ def account_delete():
     db.run("DELETE FROM push_subs WHERE user_id=?", uid)
     db.run("DELETE FROM alerts WHERE user_id=?", uid)
     db.run("DELETE FROM codes WHERE target=?", g.user["email"])
-    session.pop("uid", None)
+    end_all_sessions(uid)
+    fresh_session()
     flash(t("account_deleted"), "ok")
     return redirect(url_for("index"))
 

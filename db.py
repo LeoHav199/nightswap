@@ -31,6 +31,7 @@ ADDED_COLUMNS = [
     ("waitlist", "source", "TEXT"),       # which marketing link brought them (?from=)
     ("users", "source", "TEXT"),
     ("users", "avatar", "TEXT"),
+    ("users", "session_version", "INTEGER NOT NULL DEFAULT 0"),  # #11: raising it signs the user out everywhere
     ("orders", "resell_reminded_at", "TEXT"),
     ("orders", "seller_fee_cents", "INTEGER NOT NULL DEFAULT 0"),
     # Tickets that live in an organiser's app (changing QR codes): sent with the app's own "transfer" button.

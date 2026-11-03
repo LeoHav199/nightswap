@@ -45,5 +45,10 @@
     <label class="check-row" data-vibrate-row hidden><input type="checkbox" name="vibrate"> <span>{{ t('vibrate_label') }}</span></label>
     <p class="muted small">{{ t('sounds_device') }}</p>
   </section>
+  <section class="panel settings-block">
+    <h2>{{ t('sessions_title') }}</h2>
+    <p class="muted">{{ t('sessions_hint') }}</p>
+    <form method="post" action="{{ url_for('sign_out_everywhere') }}" data-confirm="{{ t('sessions_confirm') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">{{ t('sessions_btn') }}</button></form>
+  </section>
 </div>
 {% endblock %}

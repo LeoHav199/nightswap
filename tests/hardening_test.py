@@ -130,4 +130,25 @@ with app.test_request_context("/", headers={"X-Forwarded-For": "6.6.6.6, 84.30.5
 app.wsgi_app = plain_wsgi; config.TRUST_PROXY = False
 ok("Network check" in html(admin.get("/admin")), "#10 /admin shows which IP Spare sees, to check the proxy setting")
 
+# --- #11: 90-day sign-ins that can be ended everywhere
+ok(app.permanent_session_lifetime.days == 90, "#11 sign-ins last 90 days (renewed on every visit)")
+phone1, laptop = app.test_client(), app.test_client()
+login(phone1, "two@test.nl", "Tw"); login(laptop, "two@test.nl", "Tw")
+ok(laptop.get("/account").status_code == 200, "#11 signed in on two devices")
+ok("Sign out everywhere" in html(phone1.get("/settings")), "#11 Settings has a 'Sign out everywhere' button")
+phone1.post("/account/sign-out-everywhere", data={"_csrf": csrf(phone1)})
+ok(laptop.get("/account").status_code == 302 and phone1.get("/account").status_code == 302, "#11 'Sign out everywhere' ends the session on every device")
+login(laptop, "two@test.nl", "Tw")
+ok(laptop.get("/account").status_code == 200, "#11 signing in again works")
+c = app.test_client(); c.get("/?from=flyer1")
+with c.session_transaction() as sess: sess["phone_pending"] = "0600000000"; sess["admin_ok_until"] = 9e12
+login(c, "fresh@test.nl", "Fr")
+with c.session_transaction() as sess: carried = [k for k in ("phone_pending", "admin_ok_until") if k in sess]
+ok(not carried, "#11 signing in starts a clean session (nothing from before carries over): %s" % carried)
+c.post("/logout", data={"_csrf": csrf(c)})
+with c.session_transaction() as sess: ok("uid" not in sess, "#11 logging out clears the session")
+with app.app_context(): blocked_uid = A.db.one("SELECT id FROM users WHERE email='two@test.nl'")["id"]
+with app.test_request_context(): A.block_user(blocked_uid, "test")
+ok(laptop.get("/account").status_code == 302, "#11 blocking someone signs them out everywhere")
+
 print("FAILED:", fails or "none")
