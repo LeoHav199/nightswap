@@ -25,11 +25,27 @@
     {% else %}<li class="muted" style="padding:14px 4px">Nobody found.</li>{% endfor %}
   </ul>
   {% endif %}
+  {% if held %}
+  <section class="account-section"><h2>Payouts held: same bank account as a blocked user</h2>
+    <ul class="table-list">
+      {% for u in held %}<li class="admin-event-row"><div class="tl-main"><strong>{{ u.email }}</strong><span class="muted small">since {{ u.bank_flagged_at[:16] }}</span></div>
+        <form method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='clear_bank_flag') }}" data-confirm="Pay {{ u.email }} out again?">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Clear the hold</button></form></li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
   <section class="account-section"><h2>Blocked</h2>
     <ul class="table-list">
       {% for u in blocked %}<li class="admin-event-row"><div class="tl-main"><strong>{{ u.email }}</strong><span class="muted small">{{ u.blocked_at[:16] }} · {{ u.blocked_reason or '' }}</span></div>
         <form method="post" action="{{ url_for('admin_user_action', user_id=u.id, action='unblock') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Unblock</button></form></li>
       {% else %}<li class="muted" style="padding:14px 4px">No blocked users.</li>{% endfor %}
+    </ul>
+  </section>
+  <section class="account-section"><h2>Blocked phone numbers</h2>
+    <p class="muted small">Numbers of blocked users can't be verified on another account.</p>
+    <ul class="table-list">
+      {% for p in phones %}<li class="admin-event-row"><div class="tl-main"><strong>{{ p.phone }}</strong><span class="muted small">since {{ p.created_at[:16] }}</span></div>
+        <form method="post" action="{{ url_for('admin_unblock_phone') }}" data-confirm="Allow {{ p.phone }} again?">{{ m.csrf() }}<input type="hidden" name="phone" value="{{ p.phone }}"><button class="btn btn-ghost btn-sm">Remove</button></form></li>
+      {% else %}<li class="muted" style="padding:14px 4px">None.</li>{% endfor %}
     </ul>
   </section>
 </div>

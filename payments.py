@@ -135,5 +135,17 @@ def payouts_ready(account_id):
     return bool(recipient) and recipient.capabilities.stripe_balance.stripe_transfers.status == "active"
 
 
+def bank_fingerprint(account_id):
+    """#24: Stripe's fingerprint of the seller's payout bank account (the same for the same IBAN across all of
+    Spare's sellers), or None when Stripe doesn't share it for this account."""
+    if not live() or not account_id:
+        return None
+    try:
+        accounts = _stripe().Account.list_external_accounts(account_id, object="bank_account", limit=1)
+        return accounts.data[0].fingerprint if accounts.data else None
+    except Exception:
+        return None
+
+
 def parse_webhook(payload, signature):
     return _stripe().Webhook.construct_event(payload, signature, config.STRIPE_WEBHOOK_SECRET)

@@ -470,6 +470,26 @@ def release_due_payouts():
     return released, waiting
 
 
+def bank_matches_blocked(seller):
+    """#24: a blocked seller who comes back with a new email and phone still gets paid to the same IBAN. Hold
+    payouts to a bank account that a blocked user also used, and tell the admins (once)."""
+    if seller["bank_flagged_at"]:
+        return True
+    fingerprint = payments.bank_fingerprint(seller["stripe_account_id"])
+    if fingerprint and fingerprint != seller["bank_fingerprint"]:
+        db.run("UPDATE users SET bank_fingerprint=? WHERE id=?", fingerprint, seller["id"])
+    if not fingerprint:
+        return False
+    twin = db.one("SELECT email FROM users WHERE bank_fingerprint=? AND blocked_at IS NOT NULL AND id != ?", fingerprint, seller["id"])
+    if not twin:
+        return False
+    db.run("UPDATE users SET bank_flagged_at=? WHERE id=?", sqltime(utcnow()), seller["id"])
+    notify.notify_admins("Spare: payouts held for %s" % seller["email"],
+                         "%s is paid out to the same bank account as blocked user %s. Their payouts are on hold.\n\n"
+                         "Check them at %s and block them, or clear the hold there." % (seller["email"], twin["email"], base_url() + url_for("admin_users", q=seller["email"])))
+    return True
+
+
 def release_payout(order):
     """Sends one order's money to its seller. False when it has to wait (seller blocked or payouts not set up)."""
     seller = db.one("SELECT * FROM users WHERE id=?", order["seller_id"])
@@ -485,6 +505,8 @@ def release_payout(order):
             db.run("UPDATE users SET payouts_ready=1 WHERE id=?", seller["id"])
     if not ready:
         return False
+    if bank_matches_blocked(seller):
+        return False  # #24: same bank account as a blocked user; the admins were told
     ref = payments.transfer_to_seller(order, seller)
     db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?",
            sqltime(utcnow()), ref, order["id"])
@@ -2245,8 +2267,17 @@ def sign_out_everywhere():
     return redirect(url_for("login"))
 
 
+def phone_problem(number):
+    """#24: one verified number per account, and never the number of a blocked user."""
+    if db.one("SELECT 1 FROM blocked_phones WHERE phone=?", number):
+        return t("err_phone_blocked", email=config.SUPPORT_EMAIL)
+    if db.one("SELECT 1 FROM users WHERE phone=? AND phone_verified_at IS NOT NULL AND id != ? AND deleted_at IS NULL", number, g.user["id"]):
+        return t("err_phone_taken", email=config.SUPPORT_EMAIL)
+    return None
+
+
 def send_phone_code(number, text):
-    """Texts the code, or emails it to the signed-in user while SMS isn't set up (beta)."""
+    """Texts the code. Without SMS (development only, see phone()) it's emailed to the signed-in user."""
     if config.SMS_ENABLED:
         return notify.send_sms(number, text)
     return notify.send_email(g.user["email"], text, text)
@@ -2258,10 +2289,16 @@ def phone():
     nxt = safe_next(request.values.get("next"), url_for("account"))
     error = None
     raw = request.values.get("phone", g.user["phone"] or "")
+    if not config.DEV and not config.SMS_ENABLED:
+        # #24: on the real site a phone number only counts when it's checked by text message.
+        return render_template("phone.html", phone=raw, next=nxt, error=None, sms_needed=True)
     if request.method == "POST":
         number = normalise_phone(raw)
+        problem = phone_problem(number) if number else None
         if not number:
             error = t("err_phone")
+        elif problem:
+            error = problem
         elif rate_limited("sms-user", 5, 60, g.user["id"]) or rate_limited("sms-ip", 10, 60):
             error = t("err_too_many_tries")
         else:
@@ -2285,7 +2322,10 @@ def phone_verify():
     error = None
     if request.method == "POST":
         code = re.sub(r"\D", "", request.form.get("code", ""))
-        if check_code("phone", number, code):
+        problem = phone_problem(number)
+        if problem:
+            error = problem
+        elif check_code("phone", number, code):
             db.run("UPDATE users SET phone=?, phone_verified_at=? WHERE id=?", number, sqltime(utcnow()), g.user["id"])
             session.pop("phone_pending", None)
             flash(t("phone_ok"), "ok")
@@ -3066,6 +3106,9 @@ def send_statement_of_reasons(user, what, why):
 def block_user(user_id, reason):
     db.run("UPDATE users SET blocked_at=?, blocked_reason=? WHERE id=?", sqltime(utcnow()), reason[:300] or None, user_id)
     end_all_sessions(user_id)
+    blocked = db.one("SELECT phone, phone_verified_at FROM users WHERE id=?", user_id)
+    if blocked and blocked["phone"] and blocked["phone_verified_at"]:  # #24
+        db.run("INSERT OR IGNORE INTO blocked_phones (phone, user_id) VALUES (?, ?)", blocked["phone"], user_id)
     take_off_sale([r["id"] for r in db.all("SELECT id FROM listings WHERE seller_id=? AND status='active'", user_id)])
     for o in db.all("SELECT id FROM orders WHERE buyer_id=? AND status='pending'", user_id):
         db.run("UPDATE orders SET status='cancelled' WHERE id=?", o["id"])
@@ -3253,7 +3296,17 @@ def admin_users():
                          FROM users u WHERE lower(u.email) LIKE ? OR lower(COALESCE(u.first_name, '')) LIKE ?
                            OR COALESCE(u.phone, '') LIKE ? ORDER BY u.id DESC LIMIT 50""", like, like, like)
     blocked = db.all("SELECT * FROM users WHERE blocked_at IS NOT NULL ORDER BY blocked_at DESC LIMIT 50")
-    return render_template("admin_users.html", rows=rows, q=q, blocked=blocked)
+    phones = db.all("SELECT * FROM blocked_phones ORDER BY created_at DESC LIMIT 100")
+    held = db.all("SELECT * FROM users WHERE bank_flagged_at IS NOT NULL ORDER BY bank_flagged_at DESC")
+    return render_template("admin_users.html", rows=rows, q=q, blocked=blocked, phones=phones, held=held)
+
+
+@app.route("/admin/blocked-phones/remove", methods=["POST"])
+@admin_required
+def admin_unblock_phone():
+    db.run("DELETE FROM blocked_phones WHERE phone=?", request.form.get("phone", ""))
+    flash("That number can be verified again.", "ok")
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/users/<int:user_id>/<action>", methods=["POST"])
@@ -3272,7 +3325,10 @@ def admin_user_action(user_id, action):
         flash("Blocked %s. Their listings are off sale and their payouts are on hold." % u["email"], "ok")
     elif action == "unblock":
         db.run("UPDATE users SET blocked_at=NULL, blocked_reason=NULL WHERE id=?", user_id)
-        flash("Unblocked %s." % u["email"], "ok")
+        flash("Unblocked %s. Their phone number stays blocked until you remove it below." % u["email"], "ok")
+    elif action == "clear_bank_flag":
+        db.run("UPDATE users SET bank_flagged_at=NULL WHERE id=?", user_id)
+        flash("Payouts to %s are no longer held." % u["email"], "ok")
     else:
         abort(400)
     return redirect(request.referrer or url_for("admin_users"))

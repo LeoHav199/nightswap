@@ -268,3 +268,10 @@ CREATE TABLE IF NOT EXISTS source_visits (
   visits INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (source, day)
 );
+
+-- #24: phone numbers of blocked users can't be verified again (a new email isn't a new person)
+CREATE TABLE IF NOT EXISTS blocked_phones (
+  phone      TEXT PRIMARY KEY,
+  user_id    INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

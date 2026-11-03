@@ -3,6 +3,13 @@
 {% block title %}{{ t('phone_title') }} · Spare{% endblock %}
 {% block content %}
 <div class="wrap auth">
+  {% if sms_needed %}
+  <div class="panel form">
+    <h1>{{ t('phone_title') }}</h1>
+    <p>{{ t('phone_sms_soon') }}</p>
+    <a class="btn btn-ghost btn-block" href="{{ url_for('index') }}">{{ t('phone_back') }}</a>
+  </div>
+  {% else %}
   <form class="panel form" method="post" data-once>
     {{ m.csrf() }}
     <input type="hidden" name="next" value="{{ next }}">
@@ -15,5 +22,6 @@
     </label>
     <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('send_code') }}</button>
   </form>
+  {% endif %}
 </div>
 {% endblock %}

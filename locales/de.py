@@ -663,4 +663,8 @@ STRINGS = {
     "not_affiliated": "Spare ist nicht mit dieser Location oder diesem Veranstalter verbunden. Tickets werden von anderen Leuten weiterverkauft: Prüf die Weiterverkaufsregeln des Events.",
     "official_shop": "Offizieller Ticketshop",
     "private_seller_note": "Verkauft von einer Privatperson, nicht von einem Unternehmen: Verbraucherrechte gegenüber Shops gelten nicht gegenüber dem Verkäufer. Die Erstattungsregeln von Spare schon.",
+    "err_phone_taken": "Diese Nummer ist schon auf einem anderen Konto bestätigt. Eine Nummer pro Person: Schreib an {email}, wenn sie dir gehört.",
+    "err_phone_blocked": "Diese Nummer kann auf Spare nicht verwendet werden. Schreib an {email}, wenn du glaubst, dass das ein Fehler ist.",
+    "phone_sms_soon": "Verkaufen geht bald los: Wir schalten SMS-Codes zur Prüfung von Telefonnummern ein. Kaufen funktioniert ganz normal.",
+    "phone_back": "Zurück zu den Tickets",
 }

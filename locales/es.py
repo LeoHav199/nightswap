@@ -663,4 +663,8 @@ STRINGS = {
     "not_affiliated": "Spare no está vinculado a este local ni al organizador. Las entradas las revenden otras personas: revisa las normas de reventa del evento.",
     "official_shop": "Tienda oficial de entradas",
     "private_seller_note": "Lo vende un particular, no una empresa: los derechos de consumidor de las tiendas no se aplican al vendedor. Las normas de reembolso de Spare, sí.",
+    "err_phone_taken": "Este número ya está verificado en otra cuenta. Un número por persona: escribe a {email} si es tuyo.",
+    "err_phone_blocked": "Este número no se puede usar en Spare. Escribe a {email} si crees que es un error.",
+    "phone_sms_soon": "La venta abre pronto: estamos activando códigos por SMS para comprobar los teléfonos. Comprar funciona con normalidad.",
+    "phone_back": "Volver a las entradas",
 }

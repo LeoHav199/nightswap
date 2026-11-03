@@ -32,6 +32,8 @@ ADDED_COLUMNS = [
     ("users", "source", "TEXT"),
     ("users", "avatar", "TEXT"),
     ("users", "session_version", "INTEGER NOT NULL DEFAULT 0"),  # #11: raising it signs the user out everywhere
+    ("users", "bank_fingerprint", "TEXT"),      # #24: Stripe's fingerprint of the payout bank account
+    ("users", "bank_flagged_at", "TEXT"),       # payouts held: same bank account as a blocked user
     ("users", "totp_secret", "TEXT"),           # #23: admins' authenticator-app secret, encrypted (totp.seal)
     ("users", "totp_last_step", "INTEGER"),     # the last code used, so it can't be used twice
     ("users", "totp_recovery", "TEXT"),         # JSON list of hashes of unused recovery codes

@@ -17,6 +17,7 @@ def csrf(c):
     with c.session_transaction() as s: return s["csrf"]
 def html(r): return r.get_data(as_text=True)
 def login(c, email, name):
+    with app.app_context(): A.db.run("DELETE FROM hits WHERE key LIKE 'login%' OR key LIKE 'verify%'")  # many test sign-ins
     c.get("/"); r = c.post("/login", data={"email": email, "_csrf": csrf(c)}, follow_redirects=True)
     c.post("/login/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "first_name": name, "_csrf": csrf(c)})
 def verify_phone(c, phone):
@@ -443,5 +444,53 @@ res = app.test_cli_runner().invoke(args=["reset-admin-2fa", "admin@example.com"]
 with app.app_context(): ok("Reset" in res.output and A.db.one("SELECT totp_secret FROM users WHERE email='admin@example.com'")["totp_secret"] is None,
                            "#23 'flask --app app reset-admin-2fa <email>' unlinks it if everything is lost")
 config.ADMIN_SECOND_FACTOR = False; MAIL_WORKS[0] = False
+login(admin, "admin@example.com", "Ad")  # the reset above signed this admin out everywhere
+
+# --- #24: real phone checks, one number per account, blocked numbers stay out
+other = app.test_client(); login(other, "other@test.nl", "Ot")
+r = other.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(other)}, follow_redirects=True)
+ok("already verified on another account" in html(r), "#24 a number verified on another account is refused")
+with app.app_context(): sam_id = A.db.one("SELECT id FROM users WHERE email='s@test.nl'")["id"]
+sneaky = app.test_client(); login(sneaky, "sneaky@test.nl", "Sn")
+r = sneaky.post("/account/phone", data={"phone": "0622222222", "_csrf": csrf(sneaky)}, follow_redirects=True)
+code = re.search(r"code is (\d{6})", html(r)).group(1)
+with app.app_context(): A.db.run("INSERT INTO blocked_phones (phone, user_id) VALUES (?, 0)", "+31622222222")
+r = sneaky.post("/account/phone/verify", data={"code": code, "_csrf": csrf(sneaky)})
+with app.app_context(): ok(A.db.one("SELECT phone_verified_at FROM users WHERE email='sneaky@test.nl'")["phone_verified_at"] is None,
+                           "#24 a blocked user's number can't be verified again (checked when the code is entered too)")
+with app.app_context(): A.db.run("DELETE FROM blocked_phones")
+with app.test_request_context(): A.block_user(sam_id, "test")
+with app.app_context(): ok(A.db.one("SELECT 1 FROM blocked_phones WHERE phone='+31611111111'") is not None, "#24 blocking a user blocks their verified number")
+ok("+31611111111" in html(admin.get("/admin/users")), "#24 /admin/users lists blocked numbers")
+admin.post("/admin/blocked-phones/remove", data={"phone": "+31611111111", "_csrf": csrf(admin)})
+with app.app_context():
+    ok(A.db.one("SELECT 1 FROM blocked_phones WHERE phone='+31611111111'") is None, "#24 ...and an admin can remove one")
+    A.db.run("UPDATE users SET blocked_at=NULL WHERE id=?", sam_id)
+fresh_phone = app.test_client(); login(fresh_phone, "nosms@test.nl", "No")
+dev_was, key_was = config.DEV, config.STRIPE_SECRET_KEY
+config.DEV, config.STRIPE_SECRET_KEY = False, "sk_live_x"  # the real site with live payments (no test-mode lock)
+page = html(fresh_phone.get("/account/phone"))
+r = fresh_phone.post("/account/phone", data={"phone": "0633333333", "_csrf": csrf(fresh_phone)})
+config.DEV, config.STRIPE_SECRET_KEY = dev_was, key_was
+ok("Selling opens soon" in page and 'name="phone"' not in page and r.status_code == 200, "#24 on the real site without SMS, numbers can't be verified (no email fallback)")
+# A seller paid to the same bank account as a blocked user
+import payments
+fp_of = {"acct_blocked": "fp_same", "acct_new": "fp_same"}
+real_fp, real_live, real_transfer = payments.bank_fingerprint, payments.live, payments.transfer_to_seller
+payments.bank_fingerprint = lambda acct: fp_of.get(acct); payments.live = lambda: True
+payments.transfer_to_seller = lambda order, seller: "tr_x"
+MAIL_WORKS[0] = True; SENT.clear()
+with app.app_context():
+    A.db.run("UPDATE users SET stripe_account_id='acct_blocked', bank_fingerprint='fp_same', blocked_at='2026-01-01' WHERE email='sneaky@test.nl'")
+    A.db.run("UPDATE users SET stripe_account_id='acct_new', payouts_ready=1, bank_fingerprint=NULL WHERE email='other@test.nl'")
+    newbie = A.db.one("SELECT * FROM users WHERE email='other@test.nl'")
+with app.test_request_context(): held = A.bank_matches_blocked(newbie)
+ok(held and any("payouts held" in sub for to, sub, b in SENT), "#24 a payout to a blocked user's bank account is held and the admins are told")
+with app.app_context(): newbie = A.db.one("SELECT * FROM users WHERE email='other@test.nl'")
+SENT.clear()
+with app.test_request_context(): ok(A.bank_matches_blocked(newbie) and not SENT, "#24 ...and it stays held without repeat emails")
+admin.post("/admin/users/%d/clear_bank_flag" % newbie["id"], data={"_csrf": csrf(admin)})
+with app.app_context(): ok(A.db.one("SELECT bank_flagged_at FROM users WHERE id=?", newbie["id"])["bank_flagged_at"] is None, "#24 an admin can clear the hold")
+payments.bank_fingerprint, payments.live, payments.transfer_to_seller = real_fp, real_live, real_transfer; MAIL_WORKS[0] = False
 
 print("FAILED:", fails or "none")
