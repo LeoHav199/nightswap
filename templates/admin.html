@@ -89,14 +89,35 @@
     {% else %}<p class="muted">Nothing flagged.</p>{% endfor %}
   </section>
 
-  <section class="account-section">
+  {% if chargebacks %}
+  <section class="account-section" id="chargebacks">
+    <h2>Chargebacks <span class="count">{{ chargebacks|length }}</span></h2>
+    <p class="muted small">The buyer's bank pulled the payment back. Answer each one with evidence in the Stripe dashboard (Payments → Disputes).</p>
+    <ul class="table-list">
+      {% for o in chargebacks %}
+      <li><a href="{{ url_for('order_page', public_id=o.public_id) }}">
+        <span class="tl-main"><strong>{{ o.event_name or o.venue }}</strong><span class="muted small">{{ o.buyer_email }} ← {{ o.seller_email }} · {{ o.chargeback_at[:16] }}{% if o.chargeback_status %} · closed: {{ o.chargeback_status }}{% endif %}{% if o.reversal_ref %} · payout taken back{% endif %}</span></span>
+        {{ m.status_tag(o.status) }}<span class="tl-amount">{{ money(o.total_cents) }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+  <section class="account-section" id="recent">
     <h2>Recent orders</h2>
     <ul class="table-list">
       {% for o in recent %}
       <li><a href="{{ url_for('order_page', public_id=o.public_id) }}">
         <span class="tl-main"><strong>{{ o.event_name or o.venue }}</strong><span class="muted small">{{ o.buyer_email }} ← {{ o.seller_email }} · payout {{ o.payout_due_at or '–' }}</span></span>
         {{ m.status_tag(o.status) }}<span class="tl-amount">{{ money(o.total_cents) }}</span>
-      </a></li>
+      </a>
+      {% if o.status == 'released' %}
+        <details class="after-payout"><summary class="small">Refund after payout…</summary>
+          <form method="post" action="{{ url_for('admin_order', public_id=o.public_id, action='refund_after_payout') }}" data-confirm="Take the payout back from the seller, refund the buyer in full and block the seller?">{{ m.csrf() }}
+            <input type="text" name="why" placeholder="Reason (emailed to the seller)" required><button class="btn btn-accent btn-sm">Refund, take payout back, block seller</button></form>
+        </details>
+      {% endif %}
+      </li>
       {% endfor %}
     </ul>
   </section>

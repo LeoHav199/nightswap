@@ -1386,8 +1386,11 @@ def buy(listing_id):
     success = base_url() + url_for("order_page", public_id=public_id) + "?session_id={CHECKOUT_SESSION_ID}"
     cancel = base_url() + url_for("cancel_order", public_id=public_id)
     title = listing_title(l) + " – " + fmt_date(l["event_date"], "long")
+    # #27: a first purchase is paid by iDEAL only (a card payment can be charged back after the seller is paid)
+    first_time = not db.one("SELECT 1 FROM orders WHERE buyer_id=? AND status IN ('paid', 'released', 'releasing') AND id != ?",
+                            g.user["id"], order_id)
     try:
-        session_id, pay_url = payments.create_checkout(order, title, g.user["email"], success, cancel)
+        session_id, pay_url = payments.create_checkout(order, title, g.user["email"], success, cancel, ideal_only=first_time)
     except Exception:
         app.logger.exception("Stripe checkout failed")
         db.run("UPDATE orders SET status='cancelled' WHERE id=?", order_id)
@@ -1657,7 +1660,56 @@ def stripe_webhook():
     elif event["type"] == "checkout.session.expired":
         db.run("UPDATE orders SET status='expired' WHERE payment_ref=? AND status='pending'", obj["id"])
         release_unpaid()
+    elif event["type"] in ("charge.dispute.created", "charge.dispute.closed", "charge.refunded"):
+        order = db.one("SELECT * FROM orders WHERE payment_intent=?", obj.get("payment_intent")) if obj.get("payment_intent") else None
+        if order:
+            handle_stripe_money_event(event["type"], order, obj)
     return "", 200
+
+
+def take_back_payout(order):
+    """#27: reverse a seller's payout. Returns the reversal id, or None (and tells the admins) if Stripe refused."""
+    try:
+        ref = payments.reverse_transfer(order)
+    except Exception as exc:
+        app.logger.exception("Transfer reversal failed")
+        notify.notify_admins("Spare: couldn't take back a payout (%s)" % order["public_id"],
+                             "Stripe refused to reverse the seller's payout for order %s: %s\n\nCheck it in the Stripe dashboard." % (order["public_id"], exc))
+        return None
+    db.run("UPDATE orders SET reversal_ref=? WHERE id=?", ref, order["id"])
+    return ref
+
+
+def handle_stripe_money_event(kind, order, obj):
+    """#27: chargebacks and refunds made outside Spare. Spare is liable for losses on its sellers' accounts, so a
+    chargeback holds the payout, or takes it back if it was already sent."""
+    admin_link = base_url() + url_for("admin") + "#chargebacks"
+    if kind == "charge.dispute.created":
+        db.run("UPDATE orders SET chargeback_at=? WHERE id=?", sqltime(utcnow()), order["id"])
+        if order["status"] == "paid":
+            db.run("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=?", "Chargeback by the buyer's bank", order["id"])
+            what = "The payout is on hold."
+        elif order["status"] in ("released", "releasing"):
+            what = "The seller was already paid; " + ("the payout was taken back." if take_back_payout(order) else "taking it back FAILED.")
+        else:
+            what = "Order status: %s." % order["status"]
+        notify.notify_admins("Spare: chargeback on order %s" % order["public_id"],
+                             "The buyer's bank opened a dispute (%s, %s). %s\n\nRespond with evidence in the Stripe dashboard (Payments → Disputes).\n%s"
+                             % (obj.get("reason", "?"), money(obj.get("amount") or 0), what, admin_link))
+    elif kind == "charge.dispute.closed":
+        db.run("UPDATE orders SET chargeback_status=? WHERE id=?", obj.get("status"), order["id"])
+        notify.notify_admins("Spare: chargeback closed (%s): %s" % (order["public_id"], obj.get("status")),
+                             "The bank's dispute on order %s closed with status '%s'.\n%s" % (order["public_id"], obj.get("status"), admin_link))
+    elif kind == "charge.refunded" and order["status"] not in ("refunded", "refunding"):
+        # Refunded in the Stripe dashboard rather than on Spare: bring Spare in line.
+        was = order["status"]
+        db.run("UPDATE orders SET status='refunded' WHERE id=?", order["id"])
+        db.run("UPDATE tickets SET status='void' WHERE order_id=?", order["id"])
+        note = ""
+        if was in ("released", "releasing"):
+            note = " The seller was already paid; " + ("the payout was taken back." if take_back_payout(order) else "taking it back FAILED.")
+        notify.notify_admins("Spare: order %s refunded in Stripe" % order["public_id"],
+                             "Order %s was refunded from the Stripe dashboard; Spare marked it refunded.%s\n%s" % (order["public_id"], note, admin_link))
 
 
 # --------------------------------------------------------------------------
@@ -2725,6 +2777,7 @@ def admin():
            JOIN users b ON b.id=o.buyer_id JOIN users s ON s.id=o.seller_id """
     disputed = db.all(q + "WHERE o.status='disputed' ORDER BY o.id")
     recent = db.all(q + "WHERE o.status IN ('paid','released','refunded') ORDER BY o.id DESC LIMIT 50")
+    chargebacks = db.all(q + "WHERE o.chargeback_at IS NOT NULL ORDER BY o.chargeback_at DESC LIMIT 50")
     stats = db.one(
         """SELECT COUNT(*) AS n, COALESCE(SUM(fee_cents + seller_fee_cents),0) AS fees, COALESCE(SUM(total_cents),0) AS volume
            FROM orders WHERE status IN ('paid','released')"""
@@ -2753,7 +2806,7 @@ def admin():
     disk = {"pct": round(used * 100), "used": used_bytes / 1e9, "total": total / 1e9, "warn": used >= DISK_ALERT}
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
                            waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
-                           review=review, proofs=proofs)
+                           review=review, proofs=proofs, chargebacks=chargebacks)
 
 
 @app.route("/admin/backup")
@@ -3622,6 +3675,30 @@ def admin_order(public_id, action):
                order["id"], order["listing_id"])
         db.run("UPDATE listings SET status='removed' WHERE id=?", order["listing_id"])
         flash("Refunded %s" % money(order["total_cents"]), "ok")
+    elif action == "refund_after_payout" and order["status"] == "released":
+        # #27: the ticket turned out to be fake after the seller was paid: take the payout back, refund the buyer,
+        # void the tickets and block the seller.
+        why = request.form.get("why", "").strip()[:500]
+        if not why:
+            flash("Write the reason: the seller gets it by email (EU rules).", "error")
+            return redirect(url_for("admin") + "#recent")
+        if not db.count("UPDATE orders SET status='refunding' WHERE id=? AND status='released'", order["id"]):
+            return redirect(url_for("admin"))
+        reversed_ok = take_back_payout(order)
+        try:
+            payments.refund(order)
+        except Exception:
+            db.run("UPDATE orders SET status='released' WHERE id=?", order["id"])
+            raise
+        db.run("UPDATE orders SET status='refunded' WHERE id=?", order["id"])
+        db.run("UPDATE tickets SET status='void' WHERE order_id=? OR (listing_id=? AND status='available')", order["id"], order["listing_id"])
+        db.run("UPDATE listings SET status='removed' WHERE id=?", order["listing_id"])
+        seller = db.one("SELECT * FROM users WHERE id=?", order["seller_id"])
+        if not seller["blocked_at"]:
+            block_user(seller["id"], "Refunded after payout: %s" % why)
+            send_statement_of_reasons(seller, t("dsa_what_account"), why)
+        flash("Refunded %s to the buyer%s; seller blocked." % (money(order["total_cents"]),
+              "" if reversed_ok else " (taking back the payout FAILED: check Stripe)"), "ok")
     elif action == "keep" and order["status"] == "disputed":
         db.run("UPDATE orders SET status='paid' WHERE id=?", order["id"])
         flash("Dispute closed, seller will be paid on the payout date.", "ok")

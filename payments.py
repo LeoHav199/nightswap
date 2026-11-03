@@ -28,8 +28,9 @@ def _stripe():
     return stripe
 
 
-def create_checkout(order, title, buyer_email, success_url, cancel_url):
-    """Returns (session_id, redirect_url). success_url must contain {CHECKOUT_SESSION_ID}."""
+def create_checkout(order, title, buyer_email, success_url, cancel_url, ideal_only=False):
+    """Returns (session_id, redirect_url). success_url must contain {CHECKOUT_SESSION_ID}.
+    ideal_only (#27): first-time buyers pay by iDEAL, which can't be charged back like a card."""
     stripe = _stripe()
     items = [{
         "price_data": {"currency": "eur", "unit_amount": order["price_cents"], "product_data": {"name": title}},
@@ -41,8 +42,10 @@ def create_checkout(order, title, buyer_email, success_url, cancel_url):
                            "product_data": {"name": "Spare service fee"}},
             "quantity": 1,
         })
+    extra = {"payment_method_types": ["ideal"]} if ideal_only else {}
     session = stripe.checkout.Session.create(
         mode="payment",  # payment methods (iDEAL, card) are chosen in Dashboard → Settings → Payment methods
+        **extra,
         customer_email=buyer_email,
         line_items=items,
         metadata={"order": order["public_id"]},
@@ -88,6 +91,13 @@ def transfer_to_seller(order, seller):
         idempotency_key="payout-" + order["public_id"],  # #26: a retry can never pay the seller twice
     )
     return transfer.id
+
+
+def reverse_transfer(order):
+    """#27: takes a seller's payout back (the money returns from their Stripe balance to Spare's)."""
+    if not live() or not order["transfer_ref"] or not order["transfer_ref"].startswith("tr_"):
+        return "test-reversal"
+    return _stripe().Transfer.create_reversal(order["transfer_ref"], idempotency_key="reversal-" + order["public_id"]).id
 
 
 def find_transfer(order):

@@ -594,4 +594,58 @@ payments.transfer_to_seller, payments.find_transfer, payments.refund = real_tran
 pay_src = open("payments.py", encoding="utf-8").read()
 ok('idempotency_key="payout-"' in pay_src and 'idempotency_key="refund-"' in pay_src, "#26 Stripe transfers and refunds carry an idempotency key per order")
 
+# --- #27: chargebacks and refunds from Stripe; refund after payout; iDEAL for first-time buyers
+import stripe
+reversals = []
+real_parse, real_reverse, real_refund, key_was = payments.parse_webhook, payments.reverse_transfer, payments.refund, config.STRIPE_SECRET_KEY
+payments.reverse_transfer = lambda order: reversals.append(order["public_id"]) or "trr_1"
+payments.refund = lambda order: "re_x"
+def webhook(kind, obj):
+    ev = stripe.Event.construct_from({"id": "evt_x", "type": kind, "data": {"object": obj}}, "sk_test_x")
+    config.STRIPE_SECRET_KEY = "sk_test_x"; payments.parse_webhook = lambda payload, sig: ev
+    r = app.test_client().post("/webhooks/stripe", data=b"{}", headers={"Stripe-Signature": "t=1,v1=x"})
+    config.STRIPE_SECRET_KEY = key_was; payments.parse_webhook = real_parse
+    return r
+MAIL_WORKS[0] = True; SENT.clear()
+held = paid_order()
+with app.app_context(): A.db.run("UPDATE orders SET payment_intent='pi_held' WHERE id=?", held["id"])
+r = webhook("charge.dispute.created", {"id": "dp_1", "object": "dispute", "payment_intent": "pi_held", "amount": 2700, "reason": "fraudulent"})
+ok(r.status_code == 200 and order_now(held)["status"] == "disputed" and order_now(held)["chargeback_at"], "#27 a chargeback before payout holds the payout")
+ok(any("chargeback on order" in sub for to, sub, b in SENT), "#27 ...and the admins are told")
+gone = paid_order()
+with app.app_context(): A.db.run("UPDATE orders SET payment_intent='pi_gone', status='released', transfer_ref='tr_9' WHERE id=?", gone["id"])
+webhook("charge.dispute.created", {"id": "dp_2", "object": "dispute", "payment_intent": "pi_gone", "amount": 2700, "reason": "fraudulent"})
+ok(gone["public_id"] in reversals and order_now(gone)["reversal_ref"] == "trr_1", "#27 a chargeback after payout takes the seller's payout back")
+webhook("charge.dispute.closed", {"id": "dp_2", "object": "dispute", "payment_intent": "pi_gone", "status": "lost"})
+ok(order_now(gone)["chargeback_status"] == "lost", "#27 the outcome of the chargeback is recorded")
+ok("Chargebacks" in html(admin.get("/admin")), "#27 /admin lists chargebacks")
+dash = paid_order()
+with app.app_context(): A.db.run("UPDATE orders SET payment_intent='pi_dash', status='released', transfer_ref='tr_8' WHERE id=?", dash["id"])
+webhook("charge.refunded", {"id": "ch_1", "object": "charge", "payment_intent": "pi_dash"})
+ok(order_now(dash)["status"] == "refunded" and dash["public_id"] in reversals, "#27 a refund made in the Stripe dashboard is mirrored and the payout taken back")
+fake = paid_order()
+with app.app_context(): A.db.run("UPDATE orders SET status='released', transfer_ref='tr_7' WHERE id=?", fake["id"])
+admin.post("/admin/orders/%s/refund_after_payout" % fake["public_id"], data={"why": "", "_csrf": csrf(admin)})
+ok(order_now(fake)["status"] == "released", "#27 refund after payout needs a reason")
+SENT.clear()
+admin.post("/admin/orders/%s/refund_after_payout" % fake["public_id"], data={"why": "The ticket was a copy.", "_csrf": csrf(admin)})
+with app.app_context(): s3 = A.db.one("SELECT * FROM users WHERE email='s3@test.nl'")
+ok(order_now(fake)["status"] == "refunded" and fake["public_id"] in reversals and s3["blocked_at"], "#27 an admin can refund after payout: payout taken back, buyer refunded, seller blocked")
+ok(any(to == "s3@test.nl" and "The ticket was a copy." in b for to, sub, b in SENT), "#27 ...and the seller is told why")
+payments.reverse_transfer, payments.refund = real_reverse, real_refund; MAIL_WORKS[0] = False
+with app.app_context(): A.db.run("UPDATE users SET blocked_at=NULL WHERE email='s3@test.nl'"); A.db.run("DELETE FROM blocked_phones")
+login(seller3, "s3@test.nl", "Sy")  # blocking signed them out
+# iDEAL only for a first purchase
+seen = []
+real_checkout, real_live = payments.create_checkout, payments.live
+payments.create_checkout = lambda order, title, email, ok_url, cancel_url, ideal_only=False: seen.append(ideal_only) or ("cs_x", "https://checkout.stripe.com/x")
+payments.live = lambda: True
+newbuyer = app.test_client(); login(newbuyer, "first@test.nl", "Fi")
+r = sell3(priced, "25"); l_first = int(re.search(r"/t/(\d+)", r.location).group(1))
+newbuyer.post("/t/%d/buy" % l_first, data={"_csrf": csrf(newbuyer)})
+r = sell3(priced, "25"); l_again = int(re.search(r"/t/(\d+)", r.location).group(1))
+buyer.post("/t/%d/buy" % l_again, data={"_csrf": csrf(buyer)})
+payments.create_checkout, payments.live = real_checkout, real_live
+ok(seen == [True, False], "#27 a first-time buyer pays by iDEAL only; someone who bought before can also use a card")
+
 print("FAILED:", fails or "none")
