@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Dispute {{ o.public_id }} · Admin · Spare{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Dispute {{ o.public_id }}</h1>
+    <p class="muted">{{ l.event_name or l.venue }} · {{ l.venue }} · {{ fmt_date(l.event_date) }} · {{ money(o.total_cents) }} · {{ m.status_tag(o.status) }}</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}#disputes">← Admin</a>
+</div>
+<div class="wrap account">
+  <section class="account-section">
+    <h2>Buyer: {{ o.dispute_kind or 'other' }}</h2>
+    <blockquote>{{ o.dispute_reason }}</blockquote>
+    <p class="muted small">Reported {{ (o.disputed_at or '')[:16] }}</p>
+    <h2>Seller's side</h2>
+    {% if o.seller_reply %}<blockquote>{{ o.seller_reply }}</blockquote><p class="muted small">Replied {{ o.seller_replied_at[:16] }}</p>
+    {% else %}<p class="muted">No reply yet.{% if o.dispute_kind in ('door_rejected', 'already_scanned') %} Without a reply within 24 hours of the report, the buyer is refunded automatically.{% endif %}</p>{% endif %}
+    {% if o.dispute_decision %}<p><strong>Decision:</strong> {{ o.dispute_decision }}</p>{% endif %}
+  </section>
+  <section class="account-section">
+    <h2>Evidence</h2>
+    <ul class="table-list">
+      {% for p in proofs %}<li><a href="{{ url_for('admin_proof', proof_id=p.id) }}" target="_blank" rel="noopener"><span class="tl-main"><strong>{{ p.kind }}</strong><span class="muted small">{{ p.created_at[:16] }}</span></span></a></li>
+      {% else %}<li class="muted" style="padding:14px 4px">No photos or proof files.</li>{% endfor %}
+      {% for tk in tickets %}{% if tk.file %}<li><a href="{{ url_for('admin_ticket_file', ticket_id=tk.id) }}" target="_blank" rel="noopener"><span class="tl-main"><strong>Ticket file</strong><span class="muted small">code: {{ tk.code_text or 'not readable' }}{% if tk.code_format %} ({{ tk.code_format }}){% endif %}</span></span></a></li>{% endif %}{% endfor %}
+    </ul>
+    <h2>Was this ticket on Spare before?</h2>
+    {% if history %}
+      <ul class="table-list">{% for h in history %}<li class="admin-event-row"><div class="tl-main"><strong>Same {{ 'code' if h.match == 'code_hash' else 'file' }}</strong><span class="muted small">listing <a href="{{ url_for('listing_page', listing_id=h.listing_id) }}">{{ h.listing_id }}</a> by {{ h.email }} · ticket {{ h.status }} · {{ h.created_at[:16] }}</span></div></li>{% endfor %}</ul>
+    {% else %}<p class="muted">No other listing had this code or file.</p>{% endif %}
+  </section>
+  <section class="account-section">
+    <h2>The people</h2>
+    {% for role, p in (('Buyer', buyer), ('Seller', seller)) %}
+      {% set u, st = p %}
+      <p><strong>{{ role }}:</strong> {{ u.first_name }} · {{ u.email }} · {{ u.phone or 'no phone' }} · since {{ u.created_at[:10] }}{% if u.blocked_at %} · <span class="tag tag-disputed">blocked</span>{% endif %}<br>
+      <span class="muted small">{{ st.sales }} sales · {{ st.buys }} purchases · {{ st.disputes }} disputes · {{ st.ups }} 👍 / {{ st.downs }} 👎 as seller</span></p>
+    {% endfor %}
+  </section>
+  <section class="account-section">
+    <h2>Chat</h2>
+    <ul class="table-list">
+      {% for msg in chat %}<li class="admin-event-row"><div class="tl-main"><strong>{{ msg.first_name or 'Spare' }}</strong><span class="muted small">{{ msg.created_at[:16] }}{% if msg.flags %} · flags: {{ msg.flags }}{% endif %}</span><span>{{ t(msg.body) if msg.kind in ('system', 'question') else (msg.raw_body or msg.body) }}</span></div></li>
+      {% else %}<li class="muted" style="padding:14px 4px">No messages.</li>{% endfor %}
+    </ul>
+  </section>
+  {% if o.status == 'disputed' %}
+  <section class="account-section">
+    <h2>Decide</h2>
+    <p class="muted small">Your reason is emailed to both the buyer and the seller.</p>
+    {% for action, label, cls, confirm in (('refund', 'Refund the buyer', 'btn-accent', 'Refund the buyer in full?'), ('refund_block', 'Refund and block the seller', 'btn-accent', 'Refund the buyer and block the seller?'), ('keep', 'Keep: pay the seller', 'btn-ghost', 'Close the dispute and pay the seller?')) %}
+      <form class="admin-actions" method="post" action="{{ url_for('admin_dispute_decide', public_id=o.public_id, action=action) }}" data-confirm="{{ confirm }}">{{ m.csrf() }}
+        <input type="text" name="why" placeholder="Reason (emailed to both)" required><button class="btn {{ cls }} btn-sm">{{ label }}</button></form>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -44,6 +44,11 @@ ADDED_COLUMNS = [
     ("listings", "transfer_app", "TEXT"),                       # key from config.TRANSFER_APPS
     ("listings", "name_on_ticket", "TEXT"),
     ("orders", "releasing_at", "TEXT"),
+    ("orders", "dispute_kind", "TEXT"),          # #32: door_rejected | already_scanned | wrong_event | never_received | other
+    ("orders", "disputed_at", "TEXT"),
+    ("orders", "seller_reply", "TEXT"),          # the seller's side, within DISPUTE_REPLY_HOURS
+    ("orders", "seller_replied_at", "TEXT"),
+    ("orders", "dispute_decision", "TEXT"),      # what the admin decided and why
     ("orders", "buyer_reminders", "INTEGER NOT NULL DEFAULT 0"),  # #31: "did the app ticket arrive?" reminders sent
     ("orders", "buyer_reminded_at", "TEXT"),
     ("orders", "chargeback_at", "TEXT"),        # #27: the buyer's bank opened a dispute (chargeback)

@@ -804,4 +804,46 @@ buyer.post("/orders/%s/not-received" % a3["public_id"], data={"_csrf": csrf(buye
 ok(order_now(a3)["status"] == "disputed", "#31 'It didn't arrive' opens a dispute straight away")
 MAIL_WORKS[0] = False; config.TICKET_CHECKS = False
 
+# --- #32: disputes with evidence, the seller's side, one admin page, automatic refund when the seller is silent
+MAIL_WORKS[0] = True
+d1 = paid_order()
+page = html(buyer.get("/orders/%s" % d1["public_id"]))
+ok("Refused at the door" in page and 'name="photos"' in page, "#32 the report form asks what happened and takes photos")
+buyer.post("/orders/%s/report" % d1["public_id"], data={"kind": "already_scanned", "reason": "The scanner said already used at 23:40",
+           "photos": [(io.BytesIO(ticket_png(901)), "scanner.png"), (io.BytesIO(ticket_png(902)), "queue.png")], "_csrf": csrf(buyer)},
+           content_type="multipart/form-data")
+d1 = order_now(d1)
+with app.app_context(): bphotos = A.db.all("SELECT * FROM proofs WHERE order_id=? AND kind='dispute_buyer'", d1["id"])
+ok(d1["status"] == "disputed" and d1["dispute_kind"] == "already_scanned" and len(bphotos) == 2, "#32 the report stores what happened and the buyer's photos")
+sp = html(seller3.get("/orders/%s" % d1["public_id"]))
+ok('action="/orders/%s/dispute-reply"' % d1["public_id"] in sp and "within 24 hours" in sp, "#32 the seller can give their side within 24 hours")
+seller3.post("/orders/%s/dispute-reply" % d1["public_id"], data={"reply": "I sent it via the app, see the screenshot", "photos": (io.BytesIO(ticket_png(903)), "mine.png"),
+             "_csrf": csrf(seller3)}, content_type="multipart/form-data")
+d1 = order_now(d1)
+ok(d1["seller_reply"] and d1["seller_replied_at"], "#32 the seller's side is stored")
+dp = html(admin.get("/admin/disputes/%s" % d1["public_id"]))
+ok("already_scanned" in dp and "I sent it via the app" in dp and "dispute_buyer" in dp and "dispute_seller" in dp and "Was this ticket on Spare before" in dp
+   and "sales" in dp, "#32 one admin page shows both sides, the photos, the ticket's history and both people's records")
+admin.post("/admin/disputes/%s/refund" % d1["public_id"], data={"why": "", "_csrf": csrf(admin)})
+ok(order_now(d1)["status"] == "disputed", "#32 a decision needs a reason")
+SENT.clear()
+admin.post("/admin/disputes/%s/keep" % d1["public_id"], data={"why": "The seller's screenshot shows the transfer to the buyer.", "_csrf": csrf(admin)})
+ok(order_now(d1)["status"] == "paid", "#32 'keep' closes the dispute and the seller is paid as normal")
+both = {to for to, sub, b in SENT if "Decision about" in sub and "transfer to the buyer" in b}
+ok(both == {"b@test.nl", "s3@test.nl"}, "#32 both sides get the decision and the reason")
+d2 = paid_order()
+buyer.post("/orders/%s/report" % d2["public_id"], data={"kind": "door_rejected", "reason": "Refused at the door, invalid code", "_csrf": csrf(buyer)},
+           content_type="multipart/form-data")
+d3 = paid_order()
+buyer.post("/orders/%s/report" % d3["public_id"], data={"kind": "other", "reason": "The seller was rude in the chat", "_csrf": csrf(buyer)},
+           content_type="multipart/form-data")
+with app.app_context():
+    for o in (d2, d3): A.db.run("UPDATE orders SET disputed_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(hours=25)), o["id"])
+real_refund = payments.refund; payments.refund = lambda order: "re_auto"
+with app.test_request_context(): n = A.auto_refund_silent_disputes()
+payments.refund = real_refund
+ok(n == 1 and order_now(d2)["status"] == "refunded" and order_now(d3)["status"] == "disputed",
+   "#32 rejected at the door + no reply in 24 hours: refunded automatically (other problems wait for an admin)")
+MAIL_WORKS[0] = False
+
 print("FAILED:", fails or "none")

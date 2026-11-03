@@ -113,6 +113,20 @@
       {% elif order.status == 'disputed' %}
         <h1>{{ t('order_seller_disputed_title') }}</h1>
         <p class="lead">{{ t('order_seller_disputed_body') }}</p>
+        {% if order.seller_replied_at %}
+          <div class="notice"><p>{{ t('dispute_reply_sent') }}</p></div>
+        {% else %}
+          <form class="form dispute-reply" id="reply" method="post" action="{{ url_for('dispute_reply', public_id=order.public_id) }}" enctype="multipart/form-data" data-once>
+            {{ m.csrf() }}
+            <p class="muted small">{{ t('dispute_reply_hint', hours=reply_hours) }}</p>
+            <label class="field"><span class="label">{{ t('dispute_reply_label') }}</span>
+              <textarea name="reply" rows="4" minlength="10" maxlength="1000" required></textarea></label>
+            <label class="field"><span class="label">{{ t('dispute_photos', n=max_photos) }} <span class="optional">{{ t('optional') }}</span></span>
+              <span class="file-drop file-drop-sm"><input type="file" name="photos" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" multiple data-file data-many="{{ t('n_files') }}">
+                <span class="file-drop-text" data-file-label>{{ t('dispute_photos_cta') }}</span></span></label>
+            <button class="btn btn-accent" type="submit">{{ t('dispute_reply_send') }}</button>
+          </form>
+        {% endif %}
       {% elif order.status == 'released' %}
         <h1>{{ t('order_seller_released_title') }}</h1>
         <p class="lead">{{ t('order_seller_released_body', amount=money(payout_for(order))) }}</p>
@@ -174,12 +188,23 @@
     {% if can_report %}
       <details class="report" id="report" {{ 'open' if request.args.get('report') }}>
         <summary>{{ t('report_problem') }}</summary>
-        <form class="form" method="post" action="{{ url_for('report_problem', public_id=order.public_id) }}" data-once>
+        <form class="form" method="post" action="{{ url_for('report_problem', public_id=order.public_id) }}" enctype="multipart/form-data" data-once>
           {{ m.csrf() }}
-          <p class="muted small">{{ t('report_hint', date=fmt_date(payout_due.date(), 'long')) }}</p>
+          <p class="muted small">{{ t('report_hint_any') }}</p>
+          <fieldset class="field">
+            <legend class="label">{{ t('dispute_kind_q') }}</legend>
+            <div class="cat-options">
+              {% for k in dispute_kinds %}<label class="cat-option"><input type="radio" name="kind" value="{{ k }}" required {{ 'checked' if loop.first }}><span>{{ t('dispute_kind_' ~ k) }}</span></label>{% endfor %}
+            </div>
+          </fieldset>
           <label class="field">
             <span class="label">{{ t('report_what') }}</span>
             <textarea name="reason" rows="4" minlength="10" maxlength="1000" required></textarea>
+          </label>
+          <label class="field">
+            <span class="label">{{ t('dispute_photos', n=max_photos) }} <span class="optional">{{ t('optional') }}</span></span>
+            <span class="file-drop file-drop-sm"><input type="file" name="photos" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" multiple data-file data-many="{{ t('n_files') }}">
+              <span class="file-drop-text" data-file-label>{{ t('dispute_photos_cta') }}</span></span>
           </label>
           <button class="btn btn-ghost" type="submit">{{ t('report_send') }}</button>
         </form>

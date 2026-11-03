@@ -1552,7 +1552,8 @@ def order_page(public_id):
     offline = is_buyer and order["status"] in PAID_STATES and not (g.get("test_lock") and not g.is_admin)
     resp = app.make_response(render_template(
         "order.html", offline=offline,
-        transfer_proofs=db.all("SELECT * FROM proofs WHERE order_id=? AND kind='transfer'", order["id"]), file_gone=listing["delivery"] == "file" and not files and order["status"] in PAID_STATES,
+        transfer_proofs=db.all("SELECT * FROM proofs WHERE order_id=? AND kind='transfer'", order["id"]),
+        dispute_kinds=DISPUTE_KINDS, max_photos=MAX_DISPUTE_PHOTOS, reply_hours=DISPUTE_REPLY_HOURS, file_gone=listing["delivery"] == "file" and not files and order["status"] in PAID_STATES,
         file_days=TICKET_FILE_DAYS, order=order, l=listing, buyer=buyer, seller=seller, payout_due=due, files=files,
         wallet_tickets=wallet_tickets, just_paid=just_paid and order["status"] in PAID_STATES,
         qr_codes=[(tk["id"], qr_svg(tk["code_text"])) for tk in db.all("SELECT * FROM tickets WHERE order_id=? ORDER BY id", order["id"])
@@ -1641,12 +1642,18 @@ def order_calendar(public_id):
 DISPUTE_REPLY_HOURS = 24  # the seller's time to answer a problem report in the order chat
 
 
-def open_dispute(order, reason):
-    """Holds the payout and tells the admins and the seller (#12), who can answer in the order chat."""
-    if not db.count("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=? AND status='paid'", reason, order["id"]):
+DISPUTE_KINDS = ("door_rejected", "already_scanned", "wrong_event", "never_received", "other")
+AUTO_REFUND_KINDS = ("door_rejected", "already_scanned")  # refunded automatically if the seller doesn't answer in 24h
+MAX_DISPUTE_PHOTOS = 3
+
+
+def open_dispute(order, reason, kind="other"):
+    """Holds the payout and tells the admins and the seller (#12, #32), who has 24 hours to give their side."""
+    if not db.count("UPDATE orders SET status='disputed', dispute_reason=?, dispute_kind=?, disputed_at=? WHERE id=? AND status='paid'",
+                    reason, kind, sqltime(utcnow()), order["id"]):
         return False
     notify.notify_admins("Spare: problem reported (%s)" % order["public_id"],
-                         "%s\n\n%s" % (reason, base_url() + url_for("admin")))
+                         "%s: %s\n\n%s" % (kind, reason, base_url() + url_for("admin_dispute", public_id=order["public_id"])))
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
     add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_disputed")
     tell(order["seller_id"], t("mail_dispute_seller_subject", title=listing_title(listing)),
@@ -1661,10 +1668,18 @@ def report_problem(public_id):
     if order["buyer_id"] != g.user["id"] or order["status"] != "paid":
         abort(400)  # #30: possible until the money has actually gone to the seller, even after a 👍
     reason = request.form.get("reason", "").strip()[:1000]
+    kind = request.form.get("kind") if request.form.get("kind") in DISPUTE_KINDS else "other"
+    errors = {}
+    photos = [read_proof(f, errors, "dispute_photo", required=False) for f in request.files.getlist("photos")[:MAX_DISPUTE_PHOTOS]]
     if len(reason) < 10:
         flash(t("err_report_short"), "error")
-        return redirect(url_for("order_page", public_id=public_id))
-    open_dispute(order, reason)
+        return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
+    if errors:
+        flash(errors["dispute_photo"], "error")
+        return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
+    if open_dispute(order, reason, kind):
+        for photo in filter(None, photos):
+            save_proof(photo, "dispute_buyer", order_id=order["id"])
     flash(t("report_sent"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
 
@@ -1746,6 +1761,108 @@ def mark_received(public_id):
     return redirect(url_for("order_page", public_id=public_id))
 
 
+@app.route("/orders/<public_id>/dispute-reply", methods=["POST"])
+@login_required
+def dispute_reply(public_id):
+    """#32: the seller's side of a reported problem: text and up to 3 photos, within 24 hours."""
+    order = get_order_for_user(public_id)
+    if order["seller_id"] != g.user["id"] or order["status"] != "disputed" or order["seller_replied_at"]:
+        abort(400)
+    text = request.form.get("reply", "").strip()[:1000]
+    errors = {}
+    photos = [read_proof(f, errors, "dispute_photo", required=False) for f in request.files.getlist("photos")[:MAX_DISPUTE_PHOTOS]]
+    if len(text) < 10 or errors:
+        flash(errors.get("dispute_photo") or t("err_report_short"), "error")
+        return redirect(url_for("order_page", public_id=public_id) + "#reply")
+    db.run("UPDATE orders SET seller_reply=?, seller_replied_at=? WHERE id=?", text, sqltime(utcnow()), order["id"])
+    for photo in filter(None, photos):
+        save_proof(photo, "dispute_seller", order_id=order["id"])
+    notify.notify_admins("Spare: seller replied (%s)" % public_id, "%s\n\n%s" % (text, base_url() + url_for("admin_dispute", public_id=public_id)))
+    flash(t("dispute_reply_sent"), "ok")
+    return redirect(url_for("order_page", public_id=public_id))
+
+
+def auto_refund_silent_disputes():
+    """#32: rejected at the door or already scanned, and the seller didn't answer within 24 hours: refund the buyer."""
+    done = 0
+    cutoff = sqltime(utcnow() - timedelta(hours=DISPUTE_REPLY_HOURS))
+    for o in db.all("""SELECT * FROM orders WHERE status='disputed' AND seller_replied_at IS NULL AND disputed_at < ?
+                       AND dispute_kind IN ('door_rejected', 'already_scanned')""", cutoff):
+        if refund_order(o, "refund_dispute_auto"):
+            db.run("UPDATE orders SET dispute_decision=? WHERE id=?", "Refunded automatically: the seller didn't answer within 24 hours.", o["id"])
+            done += 1
+    return done
+
+
+@app.route("/admin/disputes/<public_id>")
+@admin_required
+def admin_dispute(public_id):
+    """#32: everything needed to decide a dispute on one page."""
+    o = db.one("SELECT * FROM orders WHERE public_id=?", public_id)
+    if not o:
+        abort(404)
+    listing = db.one("SELECT * FROM listings WHERE id=?", o["listing_id"])
+    tickets = db.all("SELECT * FROM tickets WHERE order_id=?", o["id"])
+    history = []  # was this code or file on Spare before?
+    for tk in tickets:
+        for column in ("code_hash", "file_hash"):
+            if tk[column]:
+                for other in db.all("""SELECT t.id, t.status, l.id AS listing_id, l.seller_id, u.email, l.created_at FROM tickets t
+                                       JOIN listings l ON l.id = t.listing_id JOIN users u ON u.id = l.seller_id
+                                       WHERE t.%s = ? AND t.id != ?""" % column, tk[column], tk["id"]):
+                    history.append(dict(other, match=column))
+    def person(uid):
+        u = db.one("SELECT * FROM users WHERE id=?", uid)
+        stats = db.one("""SELECT (SELECT COUNT(*) FROM orders WHERE seller_id=? AND status IN ('paid','released','releasing','disputed')) AS sales,
+                                 (SELECT COUNT(*) FROM orders WHERE buyer_id=? AND status IN ('paid','released','releasing','disputed')) AS buys,
+                                 (SELECT COUNT(*) FROM orders WHERE (seller_id=? OR buyer_id=?) AND disputed_at IS NOT NULL) AS disputes,
+                                 (SELECT COUNT(*) FROM orders WHERE seller_id=? AND rating='up') AS ups,
+                                 (SELECT COUNT(*) FROM orders WHERE seller_id=? AND rating='down') AS downs""", uid, uid, uid, uid, uid, uid)
+        return u, stats
+    th = db.one("SELECT * FROM threads WHERE order_id=?", o["id"]) or get_thread(listing, o["buyer_id"], create=False)
+    chat = db.all("SELECT m.*, u.first_name FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.thread_id=? ORDER BY m.id", th["id"]) if th else []
+    return render_template("admin_dispute.html", o=o, l=listing, tickets=tickets, history=history,
+                           buyer=person(o["buyer_id"]), seller=person(o["seller_id"]), chat=chat,
+                           proofs=db.all("SELECT * FROM proofs WHERE order_id=? OR listing_id=? ORDER BY id", o["id"], o["listing_id"]))
+
+
+@app.route("/admin/disputes/<public_id>/<action>", methods=["POST"])
+@admin_required
+def admin_dispute_decide(public_id, action):
+    """#32: refund the buyer, refund and block the seller, or keep (pay the seller). The reason goes to both sides."""
+    o = db.one("SELECT * FROM orders WHERE public_id=?", public_id)
+    why = request.form.get("why", "").strip()[:500]
+    if not o or action not in ("refund", "refund_block", "keep"):
+        abort(404)
+    if not why:
+        flash("Write a short reason: both sides get it by email.", "error")
+        return redirect(url_for("admin_dispute", public_id=public_id))
+    if o["status"] != "disputed":
+        flash("This order isn't disputed any more (%s)." % o["status"], "error")
+        return redirect(url_for("admin_dispute", public_id=public_id))
+    listing = db.one("SELECT * FROM listings WHERE id=?", o["listing_id"])
+    title = listing_title(listing)
+    if action == "keep":
+        db.run("UPDATE orders SET status='paid', dispute_decision=? WHERE id=? AND status='disputed'", why, o["id"])
+        decision = t("dispute_kept")
+    else:
+        if not refund_order(o, "refund_dispute"):
+            return redirect(url_for("admin_dispute", public_id=public_id))
+        db.run("UPDATE orders SET dispute_decision=? WHERE id=?", why, o["id"])
+        decision = t("dispute_refunded")
+        if action == "refund_block":
+            db.run("UPDATE tickets SET status='void' WHERE listing_id=? AND status='available'", o["listing_id"])
+            db.run("UPDATE listings SET status='removed' WHERE id=?", o["listing_id"])
+            seller = db.one("SELECT * FROM users WHERE id=?", o["seller_id"])
+            block_user(seller["id"], "Dispute %s: %s" % (public_id, why))
+            send_statement_of_reasons(seller, t("dsa_what_account"), why)
+    path = url_for("order_page", public_id=public_id)
+    for uid in (o["buyer_id"], o["seller_id"]):
+        tell(uid, t("mail_dispute_decided_subject", title=title), t("mail_dispute_decided_body", title=title, decision=decision, why=why), path)
+    flash("Decided. Both sides were emailed.", "ok")
+    return redirect(url_for("admin") + "#disputes")
+
+
 @app.route("/orders/<public_id>/not-received", methods=["POST"])
 @login_required
 def mark_not_received(public_id):
@@ -1754,7 +1871,7 @@ def mark_not_received(public_id):
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
     if order["buyer_id"] != g.user["id"] or listing["delivery"] != "transfer" or order["status"] != "paid" or order["received_at"]:
         abort(400)
-    open_dispute(order, "The ticket never arrived in %s." % app_name(listing["transfer_app"]))
+    open_dispute(order, "The ticket never arrived in %s." % app_name(listing["transfer_app"]), "never_received")
     flash(t("report_sent"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
 
@@ -3907,6 +4024,7 @@ def hourly_tasks():
     if not config.TASK_SECRET or not hmac.compare_digest(sent, config.TASK_SECRET):
         abort(404)
     release_stuck_payouts()
+    auto_refund_silent_disputes()
     released, waiting = release_due_payouts()
     nudged, asked = send_reminders()
     resell = send_resell_reminders()

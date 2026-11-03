@@ -34,16 +34,14 @@
     </div>
   </section>
   <section class="account-section">
-    <h2>Reported problems</h2>
+    <h2 id="disputes">Reported problems</h2>
     {% for o in disputed %}
       <div class="panel admin-case">
         <p><strong>{{ o.event_name or o.venue }}</strong> · {{ o.venue }} · {{ fmt_date(o.event_date) }} · {{ money(o.total_cents) }} · <a href="{{ url_for('order_page', public_id=o.public_id) }}">{{ o.public_id }}</a></p>
         <p class="muted small">Buyer {{ o.buyer_email }} {{ o.buyer_phone or '' }} · Seller {{ o.seller_email }} {{ o.seller_phone or '' }}</p>
-        <blockquote>{{ o.dispute_reason }}</blockquote>
-        <div class="admin-actions">
-          <form method="post" action="{{ url_for('admin_order', public_id=o.public_id, action='refund') }}" data-confirm="Refund the buyer?">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Refund buyer</button></form>
-          <form method="post" action="{{ url_for('admin_order', public_id=o.public_id, action='keep') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Close, pay seller</button></form>
-        </div>
+        <blockquote>{{ o.dispute_kind or 'other' }}: {{ o.dispute_reason }}</blockquote>
+        <p class="muted small">{% if o.seller_replied_at %}Seller replied {{ o.seller_replied_at[:16] }}{% elif o.disputed_at %}No reply from the seller yet (since {{ o.disputed_at[:16] }}){% endif %}</p>
+        <div class="admin-actions"><a class="btn btn-accent btn-sm" href="{{ url_for('admin_dispute', public_id=o.public_id) }}">Open the dispute</a></div>
       </div>
     {% else %}<p class="muted">Nothing reported.</p>{% endfor %}
   </section>
