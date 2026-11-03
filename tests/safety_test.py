@@ -47,7 +47,7 @@ ok(admin.get("/admin").status_code == 200, "correct text code opens the admin ar
 phone(seller, "0611111111")
 admin.post("/admin/events/save", data={"name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": D, "door_time": "23:00", "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Big Night'")
-sell = lambda data, **kw: seller.post("/sell", data=dict({"event_id": str(ev["id"]), "face_value": "20", "price": "20", "_csrf": csrf(seller),
+sell = lambda data, **kw: seller.post("/sell", data=dict({"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "_csrf": csrf(seller),
                                        "ticket": (io.BytesIO(b"%PDF-1.4 " + os.urandom(6)), "t.pdf")}, **data), content_type="multipart/form-data")
 ok("18 or older" in html(sell({})), "selling needs the 18+ confirmation")
 r = sell({"adult": "yes"})
@@ -96,7 +96,7 @@ ok("This event is cancelled" in ep, "event page says it's cancelled")
 ok("Big Night" not in html(visitor.get("/api/events?date=%s" % NEW)), "cancelled events can't be picked when selling")
 seller2 = app.test_client(); login(seller2, "s2@test.nl", "Sue"); phone(seller2, "0622222222")
 with app.app_context(): before = A.db.one("SELECT COUNT(*) AS n FROM listings")["n"]
-r = seller2.post("/sell", data={"event_id": "new", "venue": "Maassilo", "event_name": "Big Night", "event_date": NEW, "category": "club",
+r = seller2.post("/sell", data={"name_on_ticket": "no", "event_id": "new", "venue": "Maassilo", "event_name": "Big Night", "event_date": NEW, "category": "club",
     "face_value": "20", "price": "20", "adult": "yes", "ticket": (io.BytesIO(b"%PDF-1.4 sneaky"), "t.pdf"), "_csrf": csrf(seller2)}, content_type="multipart/form-data")
 with app.app_context(): after = A.db.one("SELECT COUNT(*) AS n FROM listings")["n"]
 ok(before == after and "isn" in html(r), "re-adding a cancelled event by hand is refused (no listing created)")
@@ -104,7 +104,7 @@ ok(before == after and "isn" in html(r), "re-adding a cancelled event by hand is
 # ---- Block a user
 admin.post("/admin/events/save", data={"name": "Other Night", "venue": "Toffler", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev2 = A.db.one("SELECT * FROM events WHERE name='Other Night'")
-r = seller.post("/sell", data={"event_id": str(ev2["id"]), "face_value": "20", "price": "20", "_csrf": csrf(seller),
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev2["id"]), "face_value": "20", "price": "20", "_csrf": csrf(seller),
                                "ticket": (io.BytesIO(b"%PDF-1.4 other"), "t.pdf")}, content_type="multipart/form-data")
 ok("Sam" in html(admin.get("/admin/users?q=s@test")), "admin finds users by email")
 with app.app_context(): sid = A.db.one("SELECT id FROM users WHERE email='s@test.nl'")["id"]

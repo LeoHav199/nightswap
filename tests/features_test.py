@@ -42,7 +42,7 @@ def ok(cond, msg):
     if not cond: fails.append(msg)
 D = (date.today() + timedelta(days=5)).isoformat()
 def sell(c, files, price="18", face="20", name="QR Night", day=D, venue="Perron"):
-    return c.post("/sell", data={"venue": venue, "event_date": day, "face_value": face, "price": price, "event_name": name,
+    return c.post("/sell", data={"name_on_ticket": "no", "venue": venue, "event_date": day, "face_value": face, "price": price, "event_name": name,
         "adult": "yes", "ticket": [(io.BytesIO(d), n) for d, n in files], "_csrf": csrf(c)}, content_type="multipart/form-data")
 
 seller, buyer, other = app.test_client(), app.test_client(), app.test_client()

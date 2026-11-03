@@ -57,9 +57,9 @@ seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})",
 D = (date.today() + timedelta(days=3)).isoformat()
 form = lambda **kw: dict({"venue": "__other", "other_venue": "Het Sieraad", "event_date": D, "face_value": "20", "price": "20",
                           "event_name": "Gala", "category": "student", "_csrf": csrf(seller)}, **kw)
-r = seller.post("/sell", data=dict(form(), adult="yes", ticket=(io.BytesIO(png(qr="T-GALA-1")), "t.png")), content_type="multipart/form-data")
+r = seller.post("/sell", data=dict(form(), name_on_ticket="no", adult="yes", ticket=(io.BytesIO(png(qr="T-GALA-1")), "t.png")), content_type="multipart/form-data")
 ok("Which city is it in?" in html(r), "an unknown venue needs a city")
-r = seller.post("/sell", data=dict(form(city="Amsterdam", start_time="21:30"), adult="yes", ticket=(io.BytesIO(png(qr="T-GALA-1")), "t.png")), content_type="multipart/form-data")
+r = seller.post("/sell", data=dict(form(city="Amsterdam", start_time="21:30"), name_on_ticket="no", adult="yes", ticket=(io.BytesIO(png(qr="T-GALA-1")), "t.png")), content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 with app.app_context():
     l = A.db.one("SELECT * FROM listings WHERE id=?", lid)

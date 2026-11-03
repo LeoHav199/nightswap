@@ -41,6 +41,7 @@
       </dl>
       {% if e.description %}<p class="event-desc">{{ e.description }}</p>{% endif %}
     {% endif %}
+    <p class="muted small not-affiliated">{{ t('not_affiliated') }}{% if e and e.ticket_url %} <a href="{{ e.ticket_url }}" target="_blank" rel="noopener nofollow">{{ t('official_shop') }}</a>{% endif %}</p>
     {% if starts_at and not past %}<p class="countdown-line"><span class="countdown" data-countdown="{{ starts_at }}" data-label="{{ t('starts_in') }}" data-started="{{ t('started') }}"></span></p>{% endif %}
 
     <div class="event-actions">

@@ -37,6 +37,7 @@ ADDED_COLUMNS = [
     # Tickets that live in an organiser's app (changing QR codes): sent with the app's own "transfer" button.
     ("listings", "delivery", "TEXT NOT NULL DEFAULT 'file'"),   # file | transfer
     ("listings", "transfer_app", "TEXT"),                       # key from config.TRANSFER_APPS
+    ("listings", "name_on_ticket", "TEXT"),                     # #21: no | changeable | unsure (NULL on older listings)
     ("orders", "transfer_name", "TEXT"),                        # who the buyer is in that app
     ("orders", "transfer_email", "TEXT"),
     ("orders", "transferred_at", "TEXT"),                       # seller says it's sent

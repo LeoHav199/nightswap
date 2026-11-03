@@ -37,7 +37,7 @@ admin.post("/admin/events/save", data={"name": "Big Night", "venue": "Maassilo",
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Big Night'")
 pdf = b"%PDF-1.4 the one and only ticket"
 def sell(c, data=pdf):
-    return c.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+    return c.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                   "ticket": (io.BytesIO(data), "t.pdf"), "_csrf": csrf(c)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", sell(seller).location).group(1))
 r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); pub = r.location.split("/")[2]

@@ -1248,6 +1248,7 @@ def listing_page(listing_id):
         max_price=max_price(l["face_value_cents"]), suggestions=suggestions,
         just_listed=request.args.get("new") == "1", questions=QUICK_QUESTIONS,
         venue=get_venue(l["venue"], l["city"]),
+        event=db.one("SELECT * FROM events WHERE id=?", l["event_id"]) if l["event_id"] else None,
     )
 
 
@@ -1910,6 +1911,9 @@ def read_ticket_files(uploads, errors):
     return result
 
 
+NAME_ANSWERS = ("no", "changeable", "unsure")  # "fixed" (a name that can't be changed) is refused
+
+
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
@@ -1981,6 +1985,13 @@ def sell():
         elif face is not None and price > max_price(face):
             errors["price"] = t("err_price_cap", max=money(max_price(face)))
 
+        # #21: names on tickets are why buyers get turned away at the door. A name that can't be changed: don't list.
+        name_on_ticket = form.get("name_on_ticket")
+        if name_on_ticket == "fixed":
+            errors["name_on_ticket"] = t("err_name_fixed")
+        elif name_on_ticket not in NAME_ANSWERS:
+            errors["name_on_ticket"] = t("err_name_question")
+
         delivery = "transfer" if form.get("delivery") == "transfer" else "file"
         transfer_app = transfer_qty = None
         if delivery == "transfer":
@@ -2043,10 +2054,10 @@ def sell():
                     chosen = find_event(event_date.isoformat(), venue, event_name)
             listing_id = db.run(
                 """INSERT INTO listings (seller_id, venue, event_name, event_date, face_value_cents, price_cents,
-                   poster_file, sold_together, category, city, start_time, event_id, delivery, transfer_app)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   poster_file, sold_together, category, city, start_time, event_id, delivery, transfer_app, name_on_ticket)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 g.user["id"], venue, event_name, event_date.isoformat(), face, price, poster_file, sold_together,
-                category, city, start_time or None, chosen["id"] if chosen else None, delivery, transfer_app,
+                category, city, start_time or None, chosen["id"] if chosen else None, delivery, transfer_app, name_on_ticket,
             )
             for _ in range(transfer_qty or 0):  # app tickets: one row per ticket, no file
                 db.run("INSERT INTO tickets (listing_id, file, file_hash) VALUES (?, '', ?)",

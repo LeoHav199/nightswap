@@ -132,7 +132,17 @@
       </div>
       <p class="hint">{{ t('transfer_sell_hint') }}</p>
     </div>
-    <p class="name-note"><strong>{{ t('name_note_title') }}</strong> {{ t('name_note_body') }}</p>
+    {% set nm = form.get('name_on_ticket', '') %}
+    <fieldset class="field name-question">
+      <legend class="label">{{ t('name_q') }}</legend>
+      <div class="cat-options">
+        {% for k in ('no', 'changeable', 'fixed', 'unsure') %}
+          <label class="cat-option"><input type="radio" name="name_on_ticket" value="{{ k }}" {{ 'checked' if nm == k }} required><span>{{ t('name_a_' ~ k) }}</span></label>
+        {% endfor %}
+      </div>
+      <span class="hint">{{ t('name_note_body') }}</span>
+      {{ m.field_error(errors, 'name_on_ticket') }}
+    </fieldset>
 
     <details class="extra" {{ 'open' if errors.get('poster') }}>
       <summary>{{ t('add_poster') }} <span class="optional">{{ t('optional') }}</span></summary>

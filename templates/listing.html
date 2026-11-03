@@ -109,6 +109,8 @@
       </form>
       <p class="pay-methods">{{ t('pay_methods') }}</p>
       {% if not user %}<p class="muted small center">{{ t('login_to_buy') }}</p>{% endif %}
+      {% if l.name_on_ticket %}<p class="name-answer small"><strong>{{ t('q_name') }}</strong> {{ t('name_shown_' ~ l.name_on_ticket) }}</p>{% endif %}
+      <p class="muted small">{{ t('private_seller_note') }}</p>
       <ul class="assurances">
         <li>{{ t('assure_instant') }}</li>
         <li>{{ t('assure_refund', date=fmt_date(report_until.date(), 'long')) }}</li>
@@ -144,4 +146,5 @@
     <button class="btn btn-accent btn-lg" type="submit" form="buyform">{{ t('buy_now') }}</button>
   </div>
 {% endif %}
+<div class="wrap"><p class="muted small not-affiliated">{{ t('not_affiliated') }}{% if event and event.ticket_url %} <a href="{{ event.ticket_url }}" target="_blank" rel="noopener nofollow">{{ t('official_shop') }}</a>{% endif %}</p></div>
 {% endblock %}

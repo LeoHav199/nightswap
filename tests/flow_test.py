@@ -36,7 +36,7 @@ r = seller.post("/account/phone/verify", data={"code": code, "_csrf": csrf(selle
 ok(r.location.endswith("/sell"), "phone verified, back to sell")
 pdf = b"%PDF-1.4 unique test ticket"
 def post(face, price, data=pdf):
-    return seller.post("/sell", data={"venue": "Perron", "event_date": "2026-11-07", "face_value": face, "price": price,
+    return seller.post("/sell", data={"name_on_ticket": "no", "venue": "Perron", "event_date": "2026-11-07", "face_value": face, "price": price,
         "event_name": "Test Night", "adult": "yes", "ticket": (io.BytesIO(data), "t.pdf"), "poster": (io.BytesIO(b"\x89PNG fake poster"), "p.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 r = post("20", "25"); ok("maximum for this ticket is €24" in r.get_data(as_text=True), "price cap enforced (face value + 20%)")
 ok(A.max_price(2000) == 2400 and A.max_price(1550) == 1860, "sellers may ask up to 20% above face value")

@@ -43,7 +43,7 @@ ok(api["events"] and api["events"][0]["name"] == "Exchange Halloween", "picker l
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 ok("Exchange Halloween" in html(seller.get("/sell?event=%d" % ev["id"])), "sell page preselects the event")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "25", "price": "22", "adult": "yes", "ticket": (io.BytesIO(b"%PDF-1.4 x1"), "t.pdf"),
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "25", "price": "22", "adult": "yes", "ticket": (io.BytesIO(b"%PDF-1.4 x1"), "t.pdf"),
     "_csrf": csrf(seller)}, content_type="multipart/form-data")
 ok(r.status_code == 302 and "/t/" in r.location, "selling with only event + price + file works")
 with app.app_context():
@@ -52,7 +52,7 @@ ok(l["event_id"] == ev["id"] and l["venue"] == "Maassilo" and l["category"] == "
 ok("€23" in html(visitor.get("/")), "event card now shows the price")
 
 # Seller adds an event that isn't listed
-r = seller.post("/sell", data={"event_id": "new", "venue": "__other", "other_venue": "Het Sieraad", "city": "Amsterdam", "event_date": D,
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": "new", "venue": "__other", "other_venue": "Het Sieraad", "city": "Amsterdam", "event_date": D,
     "event_name": "Gala Night", "category": "student", "face_value": "30", "price": "30", "adult": "yes", "ticket": (io.BytesIO(b"%PDF-1.4 x2"), "t.pdf"),
     "_csrf": csrf(seller)}, content_type="multipart/form-data")
 with app.app_context(): new = A.db.one("SELECT * FROM events WHERE name='Gala Night'")

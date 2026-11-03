@@ -88,6 +88,6 @@ home = html(visitor.get("/"))
 ok("googleapis" not in home and "gstatic" not in home and "/static/css/fonts.css" in home, "fonts come from Spare itself, not Google")
 ok(visitor.get("/static/css/fonts.css").status_code == 200 and visitor.get("/static/fonts/instrument-sans-latin-e190a6.woff2").status_code == 200,
    "the font files are served")
-ok("Name on your ticket?" in html(seller.get("/sell")), "the sell form explains changing the name on personal tickets")
+ok("Is there a name on this ticket?" in html(seller.get("/sell")) and "change the name to the buyer" in html(seller.get("/sell")), "the sell form explains changing the name on personal tickets")
 
 print("FAILED:", fails or "none")

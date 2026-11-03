@@ -35,7 +35,7 @@ verify_phone(seller, "0611111111"); verify_phone(admin, "0699999999")
 D = (date.today() + timedelta(days=3)).isoformat()
 admin.post("/admin/events/save", data={"name": "Guard Night", "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Guard Night'")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard"), "g.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); pub = r.location.split("/")[2]
@@ -154,7 +154,7 @@ ok(laptop.get("/account").status_code == 302, "#11 blocking someone signs them o
 # --- #12: sellers hear about complaints; blocks and removals come with reasons
 MAIL_WORKS[0] = True; SENT.clear()
 # The Guard Night ticket is already sold: list another one to dispute
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard two"), "g2.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid2 = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = buyer.post("/t/%d/buy" % lid2, data={"_csrf": csrf(buyer)}); pub2 = r.location.split("/")[2]
@@ -163,7 +163,7 @@ buyer.post("/orders/%s/report" % pub2, data={"reason": "The QR code was already 
 mail = [b for to, sub, b in SENT if to == "s@test.nl" and "Problem reported" in sub]
 ok(mail and "within 24 hours" in mail[0] and "/orders/%s" % pub2 in mail[0], "#12 the seller gets an email about the problem, with 24 hours to reply in the chat")
 with app.app_context(): ok(A.db.one("SELECT 1 FROM messages WHERE kind='system' AND body='sys_disputed'") is not None, "#12 the order chat notes the report")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard three"), "g3.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid3 = int(re.search(r"/t/(\d+)", r.location).group(1))
 buyer.post("/t/%d/report" % lid3, data={"reason": "fake", "details": "looks fake", "_csrf": csrf(buyer)})
@@ -217,7 +217,7 @@ def pdf_with(pages, w=595, h=842):
 ok(ticketcodes.check(pdf_with(11), "pdf") == "too_many_pages" and ticketcodes.check(pdf_with(2), "pdf") is None, "#14 PDFs with more than 10 pages are refused")
 sizes = [img.shape for img in ticketcodes._images(pdf_with(1, 14400, 14400), "pdf")]
 ok(sizes and sizes[0][0] * sizes[0][1] <= ticketcodes.MAX_PIXELS, "#14 a giant PDF page is rendered at a lower scale, never above 25 million pixels")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(bomb), "bomb.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 ok(r.status_code == 200 and "too large to check" in html(r), "#14 the seller sees a clear error")
 
@@ -240,7 +240,7 @@ ok(n >= 1 and not os.path.exists(path1) and after1["file"] == "" and after1["fil
 ok(after2["file"] == t2["file"] and os.path.exists(os.path.join(config.UPLOAD_DIR, t2["file"])), "#15 a ticket with an open dispute keeps its file")
 r = buyer.get("/orders/%s/tickets/%d" % (pub, t1["id"]))
 ok(r.status_code == 302 and "deleted 14 days after the event" in html(buyer.get("/orders/%s" % pub)), "#15 the order page explains the file is gone, politely")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard"), "again.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 ok(r.status_code == 200, "#15 the duplicate check still recognises the deleted ticket")
 ok(backup.KEEP == 3, "#15 3 backup copies on the disk")
@@ -319,7 +319,7 @@ ok(r.status_code == 200 and gone, "#17 a mail app's one-click unsubscribe (POST,
 dele = app.test_client(); dele.get("/?from=flyer1"); login(dele, "gone@test.nl", "Gwen"); verify_phone(dele, "0655555555")
 with app.app_context(): A.db.run("UPDATE users SET avatar='cat' WHERE email='gone@test.nl'")
 dele.post("/waitlist", data={"email": "gone@test.nl", "_csrf": csrf(dele)})
-r = dele.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = dele.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                              "ticket": (io.BytesIO(b"%PDF-1.4 Gwen Vermeer ticket"), "gwen.pdf"), "_csrf": csrf(dele)}, content_type="multipart/form-data")
 glid = int(re.search(r"/t/(\d+)", r.location).group(1))
 buyer.post("/t/%d/ask" % glid, data={"question": "q_name", "_csrf": csrf(buyer)})
@@ -332,7 +332,7 @@ with app.app_context():
     A.db.run("UPDATE orders SET status='released' WHERE public_id=?", gpub)
     gfile = A.db.one("SELECT file FROM tickets WHERE listing_id=?", glid)["file"]
 # Gwen also bought an app ticket, giving her ticket-app name and email
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer",
                                "transfer_app": "ticketmaster", "transfer_qty": "1", "_csrf": csrf(seller)})
 alid = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = dele.post("/t/%d/buy" % alid, data={"qty": "1", "transfer_name": "Gwen Vermeer", "transfer_email": "gwen.tm@example.com", "_csrf": csrf(dele)})
@@ -384,5 +384,23 @@ for lang, terms_word, priv_word in (("fr", "Pas de droit de rétractation", "Aut
     tp, pp = html(c.get("/terms")), html(c.get("/privacy"))
     ok(terms_word in tp and "No right of withdrawal" not in tp and priv_word in pp and "What we collect" not in pp,
        "#5 terms and privacy are translated into %s" % lang)
+
+# --- #21: not looking official, and names on tickets
+with app.app_context(): A.db.run("UPDATE events SET ticket_url='https://shop.example.com/guard' WHERE id=?", ev["id"])
+ep = html(visitor.get("/event?venue=Maassilo&date=%s&name=Guard+Night" % D))
+ok("connected to this venue or organiser" in ep and "https://shop.example.com/guard" in ep, "#21 the event page says Spare isn't the venue's, linking the official shop")
+sp = html(seller.get("/sell?event=%d" % ev["id"]))
+ok("Is there a name on this ticket?" in sp and 'name="name_on_ticket" value="fixed"' in sp, "#21 the sell form asks whether there's a name on the ticket")
+base = {"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes", "delivery": "transfer", "transfer_app": "ticketmaster", "transfer_qty": "1"}
+r = seller.post("/sell", data=dict(base, _csrf=csrf(seller)))
+ok(r.status_code == 200 and "Tell buyers whether there" in html(r), "#21 the answer is required")
+r = seller.post("/sell", data=dict(base, name_on_ticket="fixed", _csrf=csrf(seller)))
+ok(r.status_code == 200 and "so it can&#39;t be sold on Spare" in html(r), "#21 a name that can't be changed can't be listed")
+r = seller.post("/sell", data=dict(base, name_on_ticket="changeable", _csrf=csrf(seller)))
+nlid = int(re.search(r"/t/(\d+)", r.location).group(1))
+lp = html(buyer.get("/t/%d" % nlid))
+ok("the organiser allows name changes, says the seller" in lp, "#21 buyers see the seller's answer")
+ok("connected to this venue" in lp and "Sold by a private person" in lp, "#21 the listing page has the not-affiliated and private-seller lines")
+with app.app_context(): ok(A.db.one("SELECT name_on_ticket FROM listings WHERE id=?", nlid)["name_on_ticket"] == "changeable", "#21 the answer is stored on the listing")
 
 print("FAILED:", fails or "none")

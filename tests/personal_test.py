@@ -49,7 +49,7 @@ admin.post("/admin/events/save", data={"name": "Tonight Rave", "venue": "Maassil
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Tonight Rave'")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
     "ticket": (io.BytesIO(b"%PDF-1.4 tonight"), "a.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 def sold(n):
@@ -109,7 +109,7 @@ ok([e["looking"] for e in api["events"] if e["name"] == "Demand Night"] == [3] a
 ok("3 people are looking for a ticket for this night. Yours will likely sell fast" in html(seller.get("/sell?event=%d" % dn["id"])),
    "sell form with this event chosen says people are looking")
 ok("3 looking" in html(visitor.get("/")), "event cards say '3 looking'")
-seller.post("/sell", data={"event_id": str(dn["id"]), "face_value": "20", "price": "20", "adult": "yes",
+seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(dn["id"]), "face_value": "20", "price": "20", "adult": "yes",
     "ticket": (io.BytesIO(b"%PDF-1.4 demand"), "d.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 page = html(visitor.get(url))
 ok("3 people are looking for a ticket for this night." in page and "nobody is selling" not in page, "once a ticket is listed, the banner just shows demand")

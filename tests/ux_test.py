@@ -29,7 +29,7 @@ ok(html(v.get("/?city=all")).count("Night A") >= 1 and "All of the Netherlands" 
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Night A'")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
     "ticket": (io.BytesIO(b"%PDF-1.4 a"), "a.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 home = html(v.get("/"))

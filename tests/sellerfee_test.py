@@ -44,7 +44,7 @@ with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Fee Nigh
 sell_page = html(seller.get("/sell?event=%d" % ev["id"]))
 ok('data-seller-pct="5.0"' in sell_page and 'data-seller-min="100"' in sell_page and "5% (min. €1)" in sell_page,
    "the sell form knows the seller fee, to show 'you receive' live")
-r = seller.post("/sell", data={"event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
+r = seller.post("/sell", data={"name_on_ticket": "no", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
     "ticket": (io.BytesIO(b"%PDF-1.4 fee"), "f.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 ok("receive €19 per ticket" in html(seller.get("/t/%d" % lid)), "the seller's listing says they'll receive €19")
