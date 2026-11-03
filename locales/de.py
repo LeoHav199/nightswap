@@ -629,4 +629,6 @@ STRINGS = {
     "mail_bought_transfer": "Der Verkäufer schickt dein Ticket jetzt an {email} in {app}. Wir sagen dir Bescheid, sobald es unterwegs ist.",
     "mail_transfer_reminder_subject": "Vergiss nicht, das Ticket für {title} zu übertragen",
     "mail_transfer_reminder_body": "Hi {name},\n\ndu hast dein Ticket für {title} verkauft, es aber noch nicht als übertragen markiert. Öffne {app}, übertrage es an {tname} ({temail}) und tippe dann auf \"Ich habe es übertragen\":\n\n{url}\n\nDu bekommst dein Geld, sobald es übertragen ist.\n\nSpare",
+    "test_lock_bar": "Testmodus: keine echten Tickets einstellen oder kaufen. Zahlungen sind noch nicht echt.",
+    "err_test_lock": "Spare ist noch nicht für echte Tickets geöffnet. Verkaufen geht, sobald Zahlungen live sind.",
 }

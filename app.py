@@ -618,7 +618,10 @@ def before():
 
     track_source()
 
-    g.coming_soon = coming_soon_on()
+    # #22: on the real site with Stripe still in test mode, nobody may trade real tickets: anyone could pay with
+    # Stripe's public test card. Behave as if coming-soon mode is on for everyone except admins and preview links.
+    g.test_lock = not config.DEV and payments.is_test_mode()
+    g.coming_soon = coming_soon_on() or g.test_lock
     preview = session.get("preview")
     g.sees_site = not g.coming_soon or g.is_admin or bool(preview and preview == get_setting("preview_code"))
     if not g.sees_site and request.endpoint not in OPEN_WHILE_COMING_SOON:
@@ -703,7 +706,7 @@ def template_globals():
         "payout_hours": config.PAYOUT_DELAY_HOURS,
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
-        "coming_soon": g.get("coming_soon"),
+        "coming_soon": g.get("coming_soon"), "test_lock": g.get("test_lock"),
         "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
         "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
@@ -1305,7 +1308,7 @@ def order_page(public_id):
 @login_required
 def download_ticket(public_id, ticket_id):
     order = get_order_for_user(public_id)
-    if order["status"] not in PAID_STATES:
+    if order["status"] not in PAID_STATES or (g.get("test_lock") and not g.is_admin):
         abort(404)
     ticket = db.one("SELECT * FROM tickets WHERE id=? AND order_id=?", ticket_id, order["id"])
     if not ticket:
@@ -1779,6 +1782,9 @@ def read_ticket_files(uploads, errors):
 @app.route("/sell", methods=["GET", "POST"])
 @login_required
 def sell():
+    if g.get("test_lock") and not g.is_admin:
+        flash(t("err_test_lock"), "error")
+        return redirect(url_for("index"))
     if not g.user["phone_verified_at"]:
         return redirect(url_for("phone", next=url_for("sell")))
 

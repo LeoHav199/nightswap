@@ -629,4 +629,6 @@ STRINGS = {
     "mail_bought_transfer": "Le vendeur va maintenant envoyer ton billet à {email} sur {app}. On te prévient dès qu'il est en route.",
     "mail_transfer_reminder_subject": "N'oublie pas de transférer le billet pour {title}",
     "mail_transfer_reminder_body": "Salut {name},\n\nTu as vendu ton billet pour {title}, mais tu ne l'as pas encore indiqué comme transféré. Ouvre {app}, transfère-le à {tname} ({temail}), puis touche \"Je l'ai transféré\" :\n\n{url}\n\nTu es payé une fois le billet transféré.\n\nSpare",
+    "test_lock_bar": "Mode test : ne mets pas en vente et n'achète pas de vrais billets. Les paiements ne sont pas encore réels.",
+    "err_test_lock": "Spare n'est pas encore ouvert aux vrais billets. La vente ouvrira quand les paiements seront actifs.",
 }

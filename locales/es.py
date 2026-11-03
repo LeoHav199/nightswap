@@ -629,4 +629,6 @@ STRINGS = {
     "mail_bought_transfer": "El vendedor enviará ahora tu entrada a {email} en {app}. Te avisaremos cuando esté en camino.",
     "mail_transfer_reminder_subject": "No olvides transferir la entrada para {title}",
     "mail_transfer_reminder_body": "Hola, {name}:\n\nHas vendido tu entrada para {title}, pero aún no la has marcado como transferida. Abre {app}, transfiérela a {tname} ({temail}) y toca \"Ya la he transferido\":\n\n{url}\n\nCobras cuando esté transferida.\n\nSpare",
+    "test_lock_bar": "Modo de prueba: no publiques ni compres entradas reales. Los pagos aún no son reales.",
+    "err_test_lock": "Spare aún no está abierto a entradas reales. La venta se abrirá cuando los pagos estén activos.",
 }
