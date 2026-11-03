@@ -121,5 +121,31 @@ def codes(data, ext):
     return out
 
 
+PHASH_SIZE = 16          # #29: average hash of a 16x16 grayscale thumbnail = 256 bits
+PHASH_MATCH = 6          # at most this many different bits counts as the same picture (re-saved, resized, recompressed)
+
+
+def phash(data, ext):
+    """Perceptual hash of an image (or a PDF's first page) as 64 hex characters, or None. Unlike a file hash it
+    survives re-saving, resizing and recompression, so a re-saved screenshot of a listed ticket is still caught."""
+    import numpy as np
+    import cv2
+    try:
+        img = next(iter(_images(data, ext)), None)
+    except Exception:
+        img = None
+    if img is None:
+        return None
+    small = cv2.resize(img, (PHASH_SIZE, PHASH_SIZE), interpolation=cv2.INTER_AREA).astype(np.float32)
+    if small.std() < 2:  # an (almost) blank picture: every blank picture would match every other
+        return None
+    bits = (small > small.mean()).flatten()
+    return "%064x" % int("".join("1" if b else "0" for b in bits), 2)
+
+
+def phash_distance(a, b):
+    return bin(int(a, 16) ^ int(b, 16)).count("1")
+
+
 def code_hash(text):
     return hashlib.sha256(text.strip().encode()).hexdigest()

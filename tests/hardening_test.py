@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
-config.NEW_SELLER_LIMITS = False  # switched on in the #28 section only
+config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # switched on in the #28 and #29 sections only
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
 import notify; SENT = []; MAIL_WORKS = [False]
@@ -686,5 +686,51 @@ buyer.post("/orders/%s/rate" % npub, data={"rating": "up", "_csrf": csrf(buyer)}
 with app.app_context(): no = A.db.one("SELECT * FROM orders WHERE public_id=?", npub)
 ok(no["status"] == "paid", "#28 a 👍 doesn't pay a new seller early")
 config.NEW_SELLER_LIMITS = False
+
+# --- #29: unreadable codes, re-saved pictures and app tickets
+config.TICKET_CHECKS = True
+from PIL import Image, ImageDraw
+import qrcode
+def ticket_png(seed, qr=None, scale=1.0, fmt="PNG"):
+    rnd = __import__("random").Random(seed)
+    img = Image.new("RGB", (600, 900), "white"); d = ImageDraw.Draw(img)
+    for _ in range(60):  # a busy, ticket-like picture
+        x, y = rnd.randrange(600), rnd.randrange(900)
+        d.rectangle([x, y, x + rnd.randrange(20, 160), y + rnd.randrange(10, 80)], fill=tuple(rnd.randrange(256) for _ in range(3)))
+    if qr: img.paste(qrcode.make(qr).convert("RGB").resize((300, 300)), (150, 520))
+    if scale != 1.0: img = img.resize((int(600 * scale), int(900 * scale)))
+    b = io.BytesIO(); img.save(b, fmt, quality=80) if fmt == "JPEG" else img.save(b, fmt); return b.getvalue()
+seller4 = app.test_client(); login(seller4, "s4@test.nl", "Sol"); verify_phone(seller4, "0677777777")
+def sell4(files, extra=None):
+    data = {"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(priced["id"]), "face_value": "25", "price": "25",
+            "adult": "yes", "ticket": files, "_csrf": csrf(seller4)}
+    data.update(extra or {})
+    return seller4.post("/sell", data=data, content_type="multipart/form-data")
+r = sell4((io.BytesIO(ticket_png(1)), "nocode.png"))
+ok(r.status_code == 200 and "couldn&#39;t read the QR code" in html(r) and 'name="code_review"' in html(r),
+   "#29 a ticket without a readable code isn't published: the seller is asked for a clearer file or a manual check")
+r = sell4((io.BytesIO(ticket_png(1)), "nocode.png"), {"code_review": "yes"})
+with app.app_context(): cl = A.db.one("SELECT * FROM listings WHERE seller_id=(SELECT id FROM users WHERE email='s4@test.nl') ORDER BY id DESC")
+ok(cl["status"] == "review" and "code" in cl["review_reason"], "#29 ...sent for a manual check, it waits in the admin queue")
+ok("ticket file 1" in html(admin.get("/admin")), "#29 the admin queue links the ticket file")
+r = sell4((io.BytesIO(ticket_png(1, scale=0.8, fmt="JPEG")), "resaved.jpg"), {"code_review": "yes"})
+ok(r.status_code == 200 and "already" in html(r).lower(), "#29 a re-saved, resized copy of that picture is refused (perceptual hash)")
+r = sell4((io.BytesIO(ticket_png(2, qr="TM-2026-AAA")), "a.png"))
+ok(r.status_code == 302, "#29 a ticket with a readable code goes through")
+r = sell4((io.BytesIO(ticket_png(2, qr="TM-2026-BBB")), "b.png"))
+ok(r.status_code == 302, "#29 a different ticket from the same template (different code) isn't mistaken for a copy")
+app_base = {"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(priced["id"]), "face_value": "25", "price": "25", "adult": "yes",
+            "delivery": "transfer", "transfer_app": "ticketmaster", "transfer_qty": "1"}
+r = seller4.post("/sell", data=dict(app_base, _csrf=csrf(seller4)), content_type="multipart/form-data")
+ok(r.status_code == 200 and "screenshot from the ticket app" in html(r), "#29 an app ticket needs a screenshot from the app and the order confirmation")
+r = seller4.post("/sell", data=dict(app_base, app_screenshot=(io.BytesIO(ticket_png(7)), "app.png"),
+                                     app_order=(io.BytesIO(b"%PDF-1.4 order"), "order.pdf"), _csrf=csrf(seller4)), content_type="multipart/form-data")
+ok(r.status_code == 302, "#29 ...with both, it's listed")
+with app.app_context(): kinds = sorted(p["kind"] for p in A.db.all("SELECT kind FROM proofs WHERE listing_id=(SELECT MAX(id) FROM listings)"))
+ok(kinds == ["app_order", "app_screenshot"], "#29 both are kept privately for Spare's team")
+r = seller4.post("/sell", data=dict(app_base, app_screenshot=(io.BytesIO(ticket_png(7, scale=0.9, fmt="JPEG")), "same.jpg"),
+                                     app_order=(io.BytesIO(b"%PDF-1.4 order2"), "order2.pdf"), _csrf=csrf(seller4)), content_type="multipart/form-data")
+ok(r.status_code == 200, "#29 the same app screenshot can't be used for a second listing")
+config.TICKET_CHECKS = False
 
 print("FAILED:", fails or "none")

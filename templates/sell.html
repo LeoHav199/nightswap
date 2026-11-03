@@ -124,6 +124,12 @@
       <span class="hint">{{ t('ticket_file_hint_multi', n=max_tickets) }}</span>
       {{ m.field_error(errors, 'ticket') }}
     </label>
+    {% if errors.get('code_review_offer') %}
+      <div class="notice code-tips">
+        <p>{{ t('code_tips') }}</p>
+        <label class="consent"><input type="checkbox" name="code_review" value="yes"><span>{{ t('code_review_ok') }}</span></label>
+      </div>
+    {% endif %}
 
     <div class="transfer-box" data-delivery-transfer {{ 'hidden' if delivery != 'transfer' }}>
       <div class="grid-2">
@@ -141,6 +147,19 @@
         </label>
       </div>
       <p class="hint">{{ t('transfer_sell_hint') }}</p>
+      <label class="field">
+        <span class="label">{{ t('app_screenshot_label') }}</span>
+        <span class="file-drop file-drop-sm"><input type="file" name="app_screenshot" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" data-file>
+          <span class="file-drop-text" data-file-label>{{ t('app_screenshot_cta') }}</span></span>
+        {{ m.field_error(errors, 'app_screenshot') }}
+      </label>
+      <label class="field">
+        <span class="label">{{ t('app_order_label') }}</span>
+        <span class="file-drop file-drop-sm"><input type="file" name="app_order" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" data-file>
+          <span class="file-drop-text" data-file-label>{{ t('app_order_cta') }}</span></span>
+        {{ m.field_error(errors, 'app_order') }}
+      </label>
+      <p class="hint">{{ t('app_proof_hint') }}</p>
     </div>
     {% set nm = form.get('name_on_ticket', '') %}
     <fieldset class="field name-question">

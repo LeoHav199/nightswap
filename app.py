@@ -1045,6 +1045,25 @@ def already_listed(column, value):
     return not (last["buyer_id"] == g.user["id"] and last["order_status"] in ("paid", "released"))
 
 
+def similar_picture_listed(phash, codes):
+    """#29: True when a picture that looks the same (perceptual hash) is on Spare, as a ticket or an app-ticket
+    screenshot. Two pictures whose codes could both be read and differ are different tickets, however alike they look."""
+    if not phash:
+        return False
+    own_codes = {c[0] for c in codes}
+    candidates = db.all("""SELECT t.phash, t.code_hash FROM tickets t WHERE t.phash IS NOT NULL AND t.status != 'void'
+                           UNION ALL SELECT p.phash, NULL FROM proofs p WHERE p.kind = 'app_screenshot' AND p.phash IS NOT NULL""")
+    for row in candidates:
+        if ticketcodes.phash_distance(phash, row["phash"]) > ticketcodes.PHASH_MATCH:
+            continue
+        if own_codes and row["code_hash"] and row["code_hash"] not in own_codes:
+            continue  # both readable, different codes: a different ticket from the same template
+        if row["code_hash"] and row["code_hash"] in own_codes and not already_listed("code_hash", row["code_hash"]):
+            continue  # the same ticket, but this person may sell it on (they bought it here)
+        return True
+    return False
+
+
 def looking_count(event_date, venue, name):
     """How many people asked to be told when a ticket for this night appears ("Notify me")."""
     return db.one("""SELECT COUNT(*) AS n FROM alerts WHERE event_date=? AND lower(venue)=lower(?) AND lower(event_name)=lower(?)""",
@@ -2072,8 +2091,9 @@ def read_ticket_files(uploads, errors):
         if problem:  # #14: refuse files that would take more memory to read than the server has
             errors["ticket"] = t("err_ticket_" + problem, pages=ticketcodes.MAX_PDF_PAGES)
             return None
+        ext = "jpg" if ext == "jpeg" else ext
         codes = [(ticketcodes.code_hash(text), text, kind) for text, kind in ticketcodes.codes(data, ext)]
-        result.append((data, "jpg" if ext == "jpeg" else ext, codes))
+        result.append((data, ext, codes))
     return result
 
 
@@ -2188,6 +2208,15 @@ def sell():
         else:
             files = read_ticket_files(request.files.getlist("ticket"), errors)
 
+        # #29: app tickets have nothing to check automatically, so the seller shows them: a screenshot from the
+        # ticket app (event, date, ticket holder) and the order confirmation. Kept private for Spare's team.
+        app_shot = app_order = None
+        if delivery == "transfer" and config.TICKET_CHECKS:
+            app_shot = read_proof(request.files.get("app_screenshot"), errors, "app_screenshot")
+            app_order = read_proof(request.files.get("app_order"), errors, "app_order")
+            if app_shot and similar_picture_listed(ticketcodes.phash(*app_shot), []):
+                errors["app_screenshot"] = t("err_ticket_duplicate")
+
         poster_upload = request.files.get("poster")
         poster_data = poster_ext = None
         if poster_upload and poster_upload.filename:
@@ -2210,6 +2239,13 @@ def sell():
                 errors["ticket"] = t("err_code_duplicate")
             elif sum(max(1, len(codes)) for _, _, codes in files) > config.MAX_TICKETS_PER_LISTING:
                 errors["ticket"] = t("err_too_many", n=config.MAX_TICKETS_PER_LISTING)
+            elif config.TICKET_CHECKS and any(similar_picture_listed(ticketcodes.phash(data, ext), codes) for data, ext, codes in files):
+                errors["ticket"] = t("err_ticket_duplicate")  # #29: a re-saved, resized or cropped copy of a listed ticket
+            elif config.TICKET_CHECKS and any(not codes for _, _, codes in files) and form.get("code_review") != "yes":
+                # #29: without a readable code, the duplicate check only sees the file. Ask for a clearer file,
+                # or let an admin look at it before it goes on sale.
+                errors["ticket"] = t("err_no_code")
+                errors["code_review_offer"] = True
 
         new_seller = is_new_seller(g.user["id"])
         if not errors and new_seller:
@@ -2242,6 +2278,8 @@ def sell():
                            event_name, venue, city, category, event_date.isoformat(), start_time or None, g.user["id"])
                     chosen = find_event(event_date.isoformat(), venue, event_name)
             review = ["face"] if face_proof else []
+            if config.TICKET_CHECKS and files and any(not codes for _, _, codes in files):
+                review.append("code")
             # #28: a seller's listings only go on sale once Stripe's payout setup (with its identity check) is done.
             draft = config.NEW_SELLER_LIMITS and not g.user["payouts_ready"]
             listing_id = db.run(
@@ -2256,6 +2294,9 @@ def sell():
             db.run("UPDATE listings SET no_double_sell_at=? WHERE id=?", sqltime(utcnow()), listing_id)
             if face_proof:
                 save_proof(face_proof, "face", listing_id=listing_id)
+            if app_shot:
+                save_proof(app_shot, "app_screenshot", listing_id=listing_id, phash=ticketcodes.phash(*app_shot))
+                save_proof(app_order, "app_order", listing_id=listing_id)
             for _ in range(transfer_qty or 0):  # app tickets: one row per ticket, no file
                 db.run("INSERT INTO tickets (listing_id, file, file_hash) VALUES (?, '', ?)",
                        listing_id, "transfer:" + secrets.token_hex(12))
@@ -2264,9 +2305,10 @@ def sell():
                 filename = "%s.%s" % (secrets.token_hex(16), ext)
                 with open(os.path.join(config.UPLOAD_DIR, filename), "wb") as fh:
                     fh.write(data)
+                picture = ticketcodes.phash(data, ext)
                 for code_hash_, code_text, code_format in (codes or [(None, None, None)]):
-                    db.run("""INSERT INTO tickets (listing_id, file, file_hash, code_hash, code_text, code_format)
-                              VALUES (?, ?, ?, ?, ?, ?)""", listing_id, filename, digest, code_hash_, code_text, code_format)
+                    db.run("""INSERT INTO tickets (listing_id, file, file_hash, code_hash, code_text, code_format, phash)
+                              VALUES (?, ?, ?, ?, ?, ?, ?)""", listing_id, filename, digest, code_hash_, code_text, code_format, picture)
             if draft:
                 flash(t("listed_draft"), "ok")
                 return redirect(url_for("payouts_setup"))
@@ -2845,6 +2887,10 @@ def admin():
     proofs = {}
     for p in db.all("SELECT * FROM proofs WHERE listing_id IN (SELECT id FROM listings WHERE status='review')"):
         proofs.setdefault(p["listing_id"], []).append(p)
+    review_files = {}
+    for tk in db.all("""SELECT MIN(id) AS id, listing_id FROM tickets WHERE file != ''
+                        AND listing_id IN (SELECT id FROM listings WHERE status='review') GROUP BY listing_id, file"""):
+        review_files.setdefault(tk["listing_id"], []).append(tk["id"])
     preview_code = get_setting("preview_code")
     preview_link = base_url() + url_for("preview", code=preview_code) if preview_code else None
     chain = [p for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
@@ -2853,7 +2899,7 @@ def admin():
     disk = {"pct": round(used * 100), "used": used_bytes / 1e9, "total": total / 1e9, "warn": used >= DISK_ALERT}
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
                            waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
-                           review=review, proofs=proofs, chargebacks=chargebacks)
+                           review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files)
 
 
 @app.route("/admin/backup")
@@ -3545,6 +3591,16 @@ def admin_listing_review(listing_id, action):
     else:
         abort(400)
     return redirect(url_for("admin") + "#review")
+
+
+@app.route("/admin/tickets/<int:ticket_id>/file")
+@admin_required
+def admin_ticket_file(ticket_id):
+    tk = db.one("SELECT * FROM tickets WHERE id=?", ticket_id)
+    if not tk or not tk["file"]:
+        abort(404)
+    ext = tk["file"].rsplit(".", 1)[-1]
+    return send_file(os.path.join(config.UPLOAD_DIR, tk["file"]), mimetype=FILE_TYPES[ext][1])
 
 
 @app.route("/admin/proofs/<int:proof_id>")
