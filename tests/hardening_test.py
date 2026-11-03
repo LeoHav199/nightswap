@@ -94,4 +94,40 @@ config.SMS_ENABLED = False
 # --- #7: the duplicate check is described as what it is
 ok("checked against all tickets on Spare" in how and "can only be listed once" not in how, "#7 the duplicate promise says what's checked")
 
+# --- #9: browser security headers
+r = visitor.get("/")
+csp = r.headers.get("Content-Security-Policy", "")
+ok("script-src 'self'" in csp and "unsafe-inline" not in csp.split("script-src")[1].split(";")[0] and "frame-ancestors 'none'" in csp,
+   "#9 a Content-Security-Policy allows only our own scripts")
+ok("https://*.stripe.com" in csp.split("form-action")[1], "#9 forms may still lead on to Stripe Checkout and payout setup")
+ok("camera=()" in r.headers.get("Permissions-Policy", ""), "#9 a Permissions-Policy switches off camera, microphone, location and payment")
+ok("Strict-Transport-Security" not in r.headers, "#9 no HSTS in development")
+dev_was = config.DEV; config.DEV = False
+ok("max-age=31536000" in app.test_client().get("/robots.txt").headers.get("Strict-Transport-Security", ""), "#9 HSTS on the real site")
+config.DEV = dev_was
+import glob
+inline = [f for f in glob.glob("templates/**/*.html", recursive=True)
+          if re.search(r"<script(?![^>]*\b(src=|type=\"application/ld\+json\"))", open(f, encoding="utf-8").read())
+          or re.search(r"\son[a-z]+=\"", open(f, encoding="utf-8").read())]
+ok(not inline, "#9 no template has inline scripts or onclick-style handlers (they'd be blocked): %s" % inline)
+
+# --- #10: a forged X-Forwarded-For can't dodge the rate limits
+from werkzeug.middleware.proxy_fix import ProxyFix
+plain_wsgi = app.wsgi_app; config.TRUST_PROXY = True
+app.wsgi_app = ProxyFix(plain_wsgi, x_for=1, x_proto=1, x_host=1)
+c = app.test_client(); c.get("/")
+limited = False
+for i in range(12):
+    # The visitor makes up a new address each time; Render's proxy (10.0.0.5) appends the real one.
+    r = c.post("/login", data={"email": "spam%d@test.nl" % i, "_csrf": csrf(c)},
+               headers={"X-Forwarded-For": "1.2.3.%d, 81.204.12.7" % i}, environ_base={"REMOTE_ADDR": "10.0.0.5"})
+    limited = limited or "Too many" in html(r)
+ok(limited, "#10 a new fake X-Forwarded-For on every request still hits the sign-in limit")
+with app.test_request_context("/", headers={"X-Forwarded-For": "6.6.6.6, 84.30.5.9, 10.1.1.1"}, environ_base={"REMOTE_ADDR": "10.0.0.5"}):
+    from flask import request as rq
+    rq.environ["REMOTE_ADDR"] = "10.1.1.1"  # what ProxyFix gives when there's one proxy more than TRUST_PROXY_HOPS
+    ok(A.client_ip() == "84.30.5.9", "#10 with one proxy too many, it falls back to the visitor's address, not the proxy's or a fake one")
+app.wsgi_app = plain_wsgi; config.TRUST_PROXY = False
+ok("Network check" in html(admin.get("/admin")), "#10 /admin shows which IP Spare sees, to check the proxy setting")
+
 print("FAILED:", fails or "none")

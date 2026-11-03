@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import hmac
+import ipaddress
 import io
 import json
 import os
@@ -43,7 +44,7 @@ app.teardown_appcontext(db.close)
 if config.TRUST_PROXY:
     # Behind a host's proxy or a tunnel: take the visitor's https address from the forwarded headers.
     from werkzeug.middleware.proxy_fix import ProxyFix
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=config.PROXY_HOPS, x_proto=1, x_host=1)
 config.check_production()
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -220,9 +221,25 @@ def student_school(email):
 
 
 def client_ip():
-    if config.TRUST_PROXY:
-        return (request.headers.get("X-Forwarded-For", "").split(",")[0].strip()) or request.remote_addr or "?"
-    return request.remote_addr or "?"
+    """#10: the visitor's IP for rate limits. ProxyFix reads it from the right-hand end of X-Forwarded-For, which only
+    our host's proxies write; the left-hand end can be faked by the visitor, so it's never trusted."""
+    ip = request.remote_addr or "?"
+    if config.TRUST_PROXY and proxy_address(ip):
+        # TRUST_PROXY_HOPS is too low and this is one of the host's own proxies. Sharing its address would lock
+        # everyone out of signing in, so fall back to the next entry the proxies wrote (logged, see Network check).
+        chain = [p.strip() for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
+        for candidate in reversed(chain[:-config.PROXY_HOPS] if len(chain) > config.PROXY_HOPS else chain[:1]):
+            if not proxy_address(candidate):
+                return candidate
+    return ip
+
+
+def proxy_address(ip):
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return a.is_private or a.is_loopback or a in ipaddress.ip_network("100.64.0.0/10")
 
 
 def rate_limited(action, limit, minutes, who=None):
@@ -643,11 +660,23 @@ def before():
         return redirect(url_for("index"))
 
 
+CSP = "; ".join([
+    "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:",
+    "font-src 'self'", "connect-src 'self'", "worker-src 'self'", "manifest-src 'self'", "object-src 'none'",
+    "base-uri 'self'", "frame-ancestors 'none'", "form-action 'self' https://*.stripe.com",
+])
+
+
 @app.after_request
 def security_headers(resp):
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    # #9: scripts only from our own files (no inline scripts or onclick=...); forms may also lead on to Stripe.
+    resp.headers.setdefault("Content-Security-Policy", CSP)
+    resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+    if not config.DEV:
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return resp
 
 
@@ -2455,8 +2484,10 @@ def admin():
                                 COALESCE(SUM(notified_at IS NULL),0) AS waiting FROM waitlist""")
     preview_code = get_setting("preview_code")
     preview_link = base_url() + url_for("preview", code=preview_code) if preview_code else None
+    chain = [p for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
+    network = {"ip": client_ip(), "entries": len(chain), "hops": config.PROXY_HOPS, "proxy": config.TRUST_PROXY}
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
-                           waitlist=waitlist, preview_link=preview_link)
+                           waitlist=waitlist, preview_link=preview_link, network=network)
 
 
 @app.route("/admin/backup")

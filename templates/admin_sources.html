@@ -21,7 +21,7 @@
       {% if r.qr %}<a class="src-qr" href="{{ url_for('admin_source_qr', slug=r.slug) }}" title="Download QR code for printing">{{ r.qr|safe }}</a>{% endif %}
       <div class="tl-main">
         <strong>{{ r.label or r.slug }}{% if not r.label %} <span class="tag">no name</span>{% endif %}</strong>
-        <input type="text" value="{{ r.link }}" readonly onclick="this.select()" aria-label="Link">
+        <input type="text" value="{{ r.link }}" readonly data-select-all aria-label="Link">
         <span class="small"><strong>{{ r.visits }}</strong> visits · <strong>{{ r.signups }}</strong> sign-ups{% if r.rate is not none %} ({{ r.rate }}%){% endif %} · {{ r.sell }} want to sell · {{ r.organise }} organise{% if r.accounts %} · {{ r.accounts }} accounts{% endif %}</span>
       </div>
       <div class="src-actions">

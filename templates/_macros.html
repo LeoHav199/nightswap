@@ -5,7 +5,7 @@
 {% set img = url_for('poster', name=poster_file) if poster_file else (url_for('poster', name=photo) if photo else art) %}
 <div class="poster poster-{{ size }} {{ 'has-img' if img }} {{ 'is-photo' if photo and not poster_file }} {{ 'is-art' if art and not poster_file and not photo }}"
      style="--venue: {{ colour }};{% if vt %} view-transition-name: {{ vt }};{% endif %}">
-  {% if img %}<img src="{{ img }}" alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')">{% endif %}
+  {% if img %}<img src="{{ img }}" alt="" loading="lazy" decoding="async" data-fade>{% endif %}
   {% if not poster_file %}
     <div class="poster-date"><span>{{ fmt_date(day, 'dow') }}</span><strong>{{ day[8:10]|int }}</strong><span>{{ fmt_date(day, 'mon') }}</span></div>
     <div class="poster-name">{{ name or venue }}</div>

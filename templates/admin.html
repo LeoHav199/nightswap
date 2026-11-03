@@ -18,7 +18,7 @@
         <p class="muted small">{{ waitlist.n }} on the waitlist · {{ waitlist.sell }} want to sell · {{ waitlist.organise }} organise events · <a href="{{ url_for('admin_waitlist') }}">See the list</a> · <a href="{{ url_for('admin_sources') }}">Which links work</a></p>
         {% if preview_link %}
           <p class="muted small">Preview link for friends (lets them use the full site in test mode):</p>
-          <p><input type="text" value="{{ preview_link }}" readonly onclick="this.select()" aria-label="Preview link"></p>
+          <p><input type="text" value="{{ preview_link }}" readonly data-select-all aria-label="Preview link"></p>
         {% endif %}
         <div class="admin-actions">
           <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Open Spare to everyone?">{{ m.csrf() }}<input type="hidden" name="action" value="open"><button class="btn btn-accent btn-sm">Open the site to everyone</button></form>
@@ -83,6 +83,10 @@
       </a></li>
       {% endfor %}
     </ul>
+  </section>
+  <section class="account-section" id="network">
+    <h2>Network check</h2>
+    <p class="muted small">Spare sees your IP address as <strong>{{ network.ip }}</strong>{% if network.proxy %} ({{ network.entries }} address{{ 'es' if network.entries != 1 }} forwarded, TRUST_PROXY_HOPS = {{ network.hops }}){% endif %}. It should match what a site like whatismyipaddress.com shows. If it doesn't, sign-in limits may be shared between visitors: tell Claude.</p>
   </section>
 </div>
 {% endblock %}

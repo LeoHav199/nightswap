@@ -105,6 +105,7 @@ STUDENT_DOMAINS = {
 SUPPORT_EMAIL = env("SUPPORT_EMAIL", "hello@sparetickets.eu")
 ADMIN_SECOND_FACTOR = env("ADMIN_SECOND_FACTOR", "1") != "0"   # admins confirm a text code every 12 hours
 TRUST_PROXY = env("TRUST_PROXY", "0") == "1"                     # set to 1 behind Render/Fly so client IPs are read correctly
+PROXY_HOPS = int(env("TRUST_PROXY_HOPS", "1"))  # how many proxies add to X-Forwarded-For; check /admin → Network check
 
 # Integrations ---------------------------------------------------------------
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")

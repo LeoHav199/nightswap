@@ -1,6 +1,16 @@
 (function () {
   "use strict";
 
+  // Fade in posters once loaded (no inline onload handlers: the Content-Security-Policy forbids them).
+  function faded(img) { img.classList.add("loaded"); }
+  document.querySelectorAll("img[data-fade]").forEach(function (img) { if (img.complete && img.naturalWidth) faded(img); });
+  document.addEventListener("load", function (e) {
+    if (e.target.tagName === "IMG" && e.target.hasAttribute("data-fade")) faded(e.target);
+  }, true);
+  document.querySelectorAll("input[data-select-all]").forEach(function (el) {
+    el.addEventListener("click", function () { el.select(); });
+  });
+
   // Filters: apply as soon as a dropdown or date changes.
   document.querySelectorAll("form[data-autosubmit]").forEach(function (form) {
     form.querySelectorAll("select, input[type=date]").forEach(function (el) {
