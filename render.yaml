@@ -23,6 +23,8 @@ services:
         value: /var/data
       - key: TRUST_PROXY
         value: "1"
+      - key: TRUST_PROXY_HOPS      # Cloudflare + Render's proxy: the visitor is 2 steps back (checked 4 Nov 2026, /admin → Network check)
+        value: "2"
       - key: TZ                    # local time for 'tonight', reminders and the date: Rotterdam, not UTC
         value: Europe/Amsterdam
       - key: SECRET_KEY
