@@ -2711,7 +2711,7 @@ def phone_problem(number):
 
 
 def send_phone_code(number, text):
-    """Texts the code. Without SMS (development only, see phone()) it's emailed to the signed-in user."""
+    """Texts the code, or emails it to the signed-in user while SMS isn't set up (see config.SMS_REQUIRED)."""
     if config.SMS_ENABLED:
         return notify.send_sms(number, text)
     return notify.send_email(g.user["email"], text, text)
@@ -2723,8 +2723,9 @@ def phone():
     nxt = safe_next(request.values.get("next"), url_for("account"))
     error = None
     raw = request.values.get("phone", g.user["phone"] or "")
-    if not config.DEV and not config.SMS_ENABLED:
-        # #24: on the real site a phone number only counts when it's checked by text message.
+    if config.SMS_REQUIRED and not config.SMS_ENABLED and not config.DEV:
+        # Optional (#24): require real text messages on the live site. Off for now: a new seller's first ticket
+        # only goes on sale after Stripe's ID check (#28), so the code is emailed until Twilio is set up.
         return render_template("phone.html", phone=raw, next=nxt, error=None, sms_needed=True)
     if request.method == "POST":
         number = normalise_phone(raw)

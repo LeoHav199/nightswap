@@ -473,7 +473,11 @@ config.DEV, config.STRIPE_SECRET_KEY = False, "sk_live_x"  # the real site with 
 page = html(fresh_phone.get("/account/phone"))
 r = fresh_phone.post("/account/phone", data={"phone": "0633333333", "_csrf": csrf(fresh_phone)})
 config.DEV, config.STRIPE_SECRET_KEY = dev_was, key_was
-ok("Selling opens soon" in page and 'name="phone"' not in page and r.status_code == 200, "#24 on the real site without SMS, numbers can't be verified (no email fallback)")
+ok('name="phone"' in page and r.status_code == 302 and "/account/phone/verify" in r.location,
+   "#24 on the real site without Twilio, the phone code is emailed (Leo's choice: Stripe's ID check covers identity)")
+config.SMS_REQUIRED = True; config.DEV = False; config.STRIPE_SECRET_KEY = "sk_live_x"
+ok("Selling opens soon" in html(fresh_phone.get("/account/phone")), "#24 with SMS_REQUIRED on, no Twilio means no verifying (the switch for later)")
+config.SMS_REQUIRED = False; config.DEV, config.STRIPE_SECRET_KEY = dev_was, key_was
 # A seller paid to the same bank account as a blocked user
 import payments
 fp_of = {"acct_blocked": "fp_same", "acct_new": "fp_same"}

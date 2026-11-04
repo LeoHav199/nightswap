@@ -57,6 +57,8 @@ PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price 
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
 # Safety checks from the "Bulletproofing" review. Always on; only older tests that check other things switch them off.
 FACE_PROOF_REQUIRED = True   # #25: no official price known → proof of the price and an admin check before going live
+SMS_REQUIRED = False         # True: on the live site, phones can only be verified by text (needs Twilio). Leo chose
+                             # emailed codes until Spare has volume (4 Nov 2026); Stripe's ID check covers identity.
 TICKET_CHECKS = True         # #29: unreadable codes go to an admin, re-saved pictures are caught, app tickets need screenshots
 NEW_SELLER_LIMITS = True     # #28: limits below for sellers with fewer than NEW_SELLER_SALES paid-out sales
 NEW_SELLER_SALES = 2
