@@ -89,6 +89,7 @@
         <a href="{{ url_for('privacy') }}">{{ t('footer_privacy') }}</a>
         <a href="{{ url_for('credits') }}">{{ t('photo_credits') }}</a>
         <a href="mailto:hello@sparetickets.eu">{{ t('footer_contact') }}</a>
+        {% if instagram %}<a href="https://www.instagram.com/{{ instagram }}/" target="_blank" rel="noopener">Instagram</a>{% endif %}
       </nav>
     </div>
   </footer>

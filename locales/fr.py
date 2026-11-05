@@ -573,6 +573,7 @@ STRINGS = {
     "help_fast": "Des questions ? Spare est géré par deux étudiants de l'université Erasmus, et on répond vite :",
     "mail_signoff": "L'équipe Spare, deux étudiants de l'université Erasmus de Rotterdam",
     "footer_company": "Mentions légales",
+    "about_instagram": "Tu peux aussi nous écrire en DM sur Instagram.",
     "report_warning": "On vérifie auprès de l'organisateur si ton billet a été scanné. En cas de faux signalement, le vendeur garde l'argent et ton compte est bloqué.",
     "photo_needed_door": "obligatoire si on t'a refusé l'entrée",
     "err_door_photo": "Ajoute une photo pour un problème à l'entrée, par exemple l'écran du scanner ou le message du personnel.",

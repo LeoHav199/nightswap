@@ -573,6 +573,7 @@ STRINGS = {
     "help_fast": "Fragen? Spare wird von zwei Studierenden der Erasmus-Universität betrieben, und wir antworten schnell:",
     "mail_signoff": "Das Spare-Team, zwei Studierende der Erasmus-Universität Rotterdam",
     "footer_company": "Impressum",
+    "about_instagram": "Du kannst uns auch auf Instagram eine DM schicken.",
     "report_warning": "Wir prüfen beim Veranstalter, ob dein Ticket gescannt wurde. Bei einer falschen Meldung behält der Verkäufer das Geld und dein Konto wird gesperrt.",
     "photo_needed_door": "Pflicht, wenn du am Eingang abgewiesen wurdest",
     "err_door_photo": "Füge bei einem Problem am Eingang ein Foto hinzu, zum Beispiel vom Bildschirm des Scanners oder von der Nachricht des Personals.",

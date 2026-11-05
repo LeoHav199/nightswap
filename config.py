@@ -129,6 +129,7 @@ STUDENT_DOMAINS = {
 }
 
 SUPPORT_EMAIL = env("SUPPORT_EMAIL", "hello@sparetickets.eu")
+INSTAGRAM = env("NIGHTSWAP_INSTAGRAM", "sparetickets.eu")  # Spare's own (anonymous) account, linked in the footer and on /about; "" hides it
 # Who runs Spare, shown in the footer, emails, terms and privacy policy (#19, #20). Fill in after the KvK registration;
 # until then the pages show [placeholders].
 COMPANY_NAME = env("COMPANY_NAME", "Spare vof")  # Leo and Ilyas's general partnership (vof), 50/50 since 5 Nov 2026

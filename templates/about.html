@@ -22,8 +22,11 @@
   </section>
   <section class="panel">
     <h2>{{ t('about_contact_title') }}</h2>
-    <p>{{ t('about_contact', email='hello@sparetickets.eu') }}</p>
-    <a class="btn btn-accent" href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>
+    <p>{{ t('about_contact', email='hello@sparetickets.eu') }}{% if instagram %} {{ t('about_instagram') }}{% endif %}</p>
+    <div class="share-row">
+      <a class="btn btn-accent" href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>
+      {% if instagram %}<a class="btn btn-ghost" href="https://www.instagram.com/{{ instagram }}/" target="_blank" rel="noopener">@{{ instagram }}</a>{% endif %}
+    </div>
   </section>
 </div>
 {% endblock %}

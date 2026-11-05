@@ -1060,7 +1060,7 @@ def template_globals():
         "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
         "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
-        "company": company(),
+        "company": company(), "instagram": config.INSTAGRAM,
     }
 
 

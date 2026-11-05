@@ -51,4 +51,10 @@ ok("Lombardkade" not in html(c.get("/")) and "Lombardkade" not in html(c.get("/a
 config.KVK_NUMBER = ""
 ok("Checking a problem with the organiser" in html(c.get("/privacy")), "the privacy policy says what's shared with an organiser in a dispute")
 
+# Spare's own Instagram, in the footer (also on the coming-soon page) and on About
+c = app.test_client()
+ok('href="https://www.instagram.com/sparetickets.eu/"' in html(c.get("/how-it-works")), "the footer links to Spare's Instagram")
+ab = html(c.get("/about"))
+ok("@sparetickets.eu" in ab and "DM on Instagram" in ab, "the About page offers Instagram DMs next to email")
+
 print("\n%d failed" % len(fails))
