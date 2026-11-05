@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Käufer</dt><dd>{{ fee }} pro Ticket</dd></div>
       <div><dt>Verkäufer</dt><dd>{{ seller_fee_label }} pro Ticket, von der Auszahlung abgezogen</dd></div>
-      <div><dt>Höchstpreis</dt><dd>{{ 'Deine Wahl' if price_free else ('Originalpreis' if price_cap == 100 else 'Originalpreis + ' ~ price_markup ~ '%') }}</dd></div>
+      <div><dt>Höchstpreis</dt><dd>{{ 'Deine Wahl' if price_free else ('2 × Originalpreis' if price_cap == 200 else 'Originalpreis' if price_cap == 100 else 'Originalpreis + ' ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">Keine versteckten Kosten. Käufer sehen in der Liste den Gesamtpreis inklusive Servicegebühr, Verkäufer sehen vorher genau, was sie bekommen.</p>
   </section>

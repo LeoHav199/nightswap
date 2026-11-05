@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Compradores</dt><dd>{{ fee }} por entrada</dd></div>
       <div><dt>Vendedores</dt><dd>{{ seller_fee_label }} por entrada, descontado del pago</dd></div>
-      <div><dt>Precio máximo</dt><dd>{{ 'Lo eliges tú' if price_free else ('Precio original' if price_cap == 100 else 'Precio original + ' ~ price_markup ~ '%') }}</dd></div>
+      <div><dt>Precio máximo</dt><dd>{{ 'Lo eliges tú' if price_free else ('2 × precio original' if price_cap == 200 else 'Precio original' if price_cap == 100 else 'Precio original + ' ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">Sin costes ocultos. Los compradores ven en la lista el precio total con gastos incluidos, y los vendedores ven exactamente lo que recibirán antes de publicar.</p>
   </section>

@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Kopers</dt><dd>{{ fee }} per ticket</dd></div>
       <div><dt>Verkopers</dt><dd>{{ seller_fee_label }} per ticket, van de uitbetaling af</dd></div>
-      <div><dt>Maximale prijs</dt><dd>{{ 'Je eigen keuze' if price_free else ('Nominale waarde' if price_cap == 100 else 'Nominale waarde + ' ~ price_markup ~ '%') }}</dd></div>
+      <div><dt>Maximale prijs</dt><dd>{{ 'Je eigen keuze' if price_free else ('2 × nominale waarde' if price_cap == 200 else 'Nominale waarde' if price_cap == 100 else 'Nominale waarde + ' ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">Geen verborgen kosten. Kopers zien in de lijst de totaalprijs inclusief servicekosten, verkopers zien vooraf precies wat ze ontvangen.</p>
   </section>

@@ -78,6 +78,8 @@ class _Keep(dict):
 
 
 def t(lang, key, **kwargs):
+    if kwargs.get("pct") == 100 and key.endswith("_pct") and key[:-4] + "_double" in STRINGS["en"]:
+        key = key[:-4] + "_double"  # a 100% cap reads better as "never more than double the face value"
     text = STRINGS.get(lang, STRINGS["en"]).get(key) or STRINGS["en"].get(key, key)
     return text.format_map(_Keep(kwargs)) if kwargs else text
 
@@ -104,6 +106,7 @@ STRINGS = {
         "hero_title": "Tickets for tonight, Rotterdam.",
         "hero_sub": "Made for students in Rotterdam. Never above face value.",
         "hero_sub_pct": "Made for students in Rotterdam. Never more than {pct}% above face value.",
+        "hero_sub_double": "Made for students in Rotterdam. Never more than double the face value.",
         "search": "Search",
         "search_placeholder": "Club or event",
         "venue": "Venue",
@@ -123,6 +126,7 @@ STRINGS = {
         "trust_cap_title": "Never above face value",
         "trust_cap_body": "Sellers can't charge more than they paid. No scalpers, no inflated prices.",
         "trust_cap_body_pct": "Sellers can charge at most {pct}% above the face value. No scalpers, no crazy prices.",
+        "trust_cap_body_double": "Sellers can charge at most double the face value. No scalpers, no crazy prices.",
         "trust_hold_title": "Payment held until after the night",
         "trust_hold_body": "The seller is paid {hours} hours after the event. If your ticket doesn't work, you get a full refund.",
         "trust_verified_title": "Verified sellers",
@@ -167,6 +171,7 @@ STRINGS = {
         "your_price": "Your price",
         "price_hint": "Up to the face value",
         "price_hint_pct": "Up to {pct}% above the face value",
+        "price_hint_double": "Up to double the face value",
         "ticket_file": "Ticket",
         "ticket_file_cta": "Choose PDF or image",
         "ticket_file_hint": "PDF, PNG or JPG, max 5 MB. Only the buyer can download it, after paying.",
@@ -538,10 +543,12 @@ STRINGS = {
         "venue_title": "{venue} tickets · Spare",
         "venue_meta": "Buy and sell tickets for {venue} in {city}. Never above face value.",
         "venue_meta_pct": "Buy and sell tickets for {venue} in {city}. Never more than {pct}% above face value.",
+        "venue_meta_double": "Buy and sell tickets for {venue} in {city}. Never more than double the face value.",
         "venue_upcoming": "Upcoming at {venue}",
         "venue_empty": "No tickets for this venue right now",
         "og_event": "{n} tickets at {venue} on Spare. Never above face value.",
         "og_event_pct": "{n} tickets at {venue} on Spare. Never more than {pct}% above face value.",
+        "og_event_double": "{n} tickets at {venue} on Spare. Never more than double the face value.",
         "more_details": "Start time and poster",
         "start_time": "Start time",
         "start_time_hint": "Shows a countdown on the day.",
@@ -873,6 +880,7 @@ STRINGS = {
         "hero_title": "Tickets voor vanavond, Rotterdam.",
         "hero_sub": "Gemaakt voor studenten in Rotterdam. Nooit boven de nominale waarde.",
         "hero_sub_pct": "Gemaakt voor studenten in Rotterdam. Nooit meer dan {pct}% boven de nominale waarde.",
+        "hero_sub_double": "Gemaakt voor studenten in Rotterdam. Nooit meer dan het dubbele van de nominale waarde.",
         "search": "Zoeken",
         "search_placeholder": "Club of evenement",
         "venue": "Club",
@@ -892,6 +900,7 @@ STRINGS = {
         "trust_cap_title": "Nooit boven de nominale waarde",
         "trust_cap_body": "Verkopers vragen nooit meer dan ze zelf betaalden. Geen woekerprijzen.",
         "trust_cap_body_pct": "Verkopers vragen maximaal {pct}% boven de nominale waarde. Geen woekerprijzen.",
+        "trust_cap_body_double": "Verkopers vragen maximaal het dubbele van de nominale waarde. Geen woekerprijzen.",
         "trust_hold_title": "Betaling staat vast tot na de avond",
         "trust_hold_body": "De verkoper krijgt {hours} uur na het evenement betaald. Werkt je ticket niet, dan krijg je alles terug.",
         "trust_verified_title": "Bevestigde verkopers",
@@ -936,6 +945,7 @@ STRINGS = {
         "your_price": "Jouw prijs",
         "price_hint": "Maximaal de nominale waarde",
         "price_hint_pct": "Maximaal {pct}% boven de nominale waarde",
+        "price_hint_double": "Maximaal het dubbele van de nominale waarde",
         "ticket_file": "Ticket",
         "ticket_file_cta": "Kies een PDF of afbeelding",
         "ticket_file_hint": "PDF, PNG of JPG, max. 5 MB. Alleen de koper kan hem downloaden, na betaling.",
@@ -1307,10 +1317,12 @@ STRINGS = {
         "venue_title": "{venue} tickets · Spare",
         "venue_meta": "Koop en verkoop tickets voor {venue} in {city}. Nooit boven de nominale waarde.",
         "venue_meta_pct": "Koop en verkoop tickets voor {venue} in {city}. Nooit meer dan {pct}% boven de nominale waarde.",
+        "venue_meta_double": "Koop en verkoop tickets voor {venue} in {city}. Nooit meer dan het dubbele van de nominale waarde.",
         "venue_upcoming": "Binnenkort bij {venue}",
         "venue_empty": "Nu geen tickets voor deze locatie",
         "og_event": "{n} tickets bij {venue} op Spare. Nooit boven de nominale waarde.",
         "og_event_pct": "{n} tickets bij {venue} op Spare. Nooit meer dan {pct}% boven de nominale waarde.",
+        "og_event_double": "{n} tickets bij {venue} op Spare. Nooit meer dan het dubbele van de nominale waarde.",
         "more_details": "Begintijd en poster",
         "start_time": "Begintijd",
         "start_time_hint": "Toont een aftelklok op de dag zelf.",

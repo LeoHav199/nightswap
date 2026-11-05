@@ -53,9 +53,9 @@ TRANSFER_APPS = {"ticketmaster": "Ticketmaster", "weeztix": "Weeztix / Eventix",
                  "seetickets": "See Tickets", "other": None}  # None: shown as "another app" in the visitor's language
 BUYER_REMIND_HOURS = 2       # #31: ask the buyer whether an app ticket arrived this long after the transfer (and at 12:00 on the day)
 TRANSFER_REMIND_HOURS = 3  # remind sellers who haven't marked the transfer as done after this long
-# Resale price cap as % of face value: 120 = up to 20% above. 0 = no cap: sellers set their own price (since 5 Nov 2026).
-# The face value is still asked and shown next to the price, so buyers can see the markup.
-PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "0"))
+# Resale price cap as % of face value: 120 = up to 20% above, 200 = at most double (Leo's choice, 5 Nov 2026; it was 120).
+# 0 = no cap: sellers set their own price. The face value is always shown next to the price, so buyers see the markup.
+PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "200"))
 # Payouts (5 Nov 2026): Spare holds the money until the buyer is in. The buyer slides "Swap" at the door and the
 # seller is paid straight away; without a swap, the seller is paid automatically this long after the night.
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "24"))

@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Acheteurs</dt><dd>{{ fee }} par billet</dd></div>
       <div><dt>Vendeurs</dt><dd>{{ seller_fee_label }} par billet, déduits du versement</dd></div>
-      <div><dt>Prix maximum</dt><dd>{{ 'Ton choix' if price_free else ("Prix d'origine" if price_cap == 100 else "Prix d'origine + " ~ price_markup ~ '%') }}</dd></div>
+      <div><dt>Prix maximum</dt><dd>{{ 'Ton choix' if price_free else ("2 × prix d'origine" if price_cap == 200 else "Prix d'origine" if price_cap == 100 else "Prix d'origine + " ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">Pas de frais cachés. Les acheteurs voient le prix total, frais compris, dans la liste, et les vendeurs voient exactement ce qu'ils recevront avant de publier.</p>
   </section>

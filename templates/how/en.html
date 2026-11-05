@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Buyers</dt><dd>{{ fee }} per ticket</dd></div>
       <div><dt>Sellers</dt><dd>{{ seller_fee_label }} per ticket, taken from the payout</dd></div>
-      <div><dt>Maximum price</dt><dd>{{ 'Your choice' if price_free else ('Face value' if price_cap == 100 else 'Face value + ' ~ price_markup ~ '%') }}</dd></div>
+      <div><dt>Maximum price</dt><dd>{{ 'Your choice' if price_free else ('2 × face value' if price_cap == 200 else 'Face value' if price_cap == 100 else 'Face value + ' ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">No hidden costs. Buyers see the total price including the service fee in the list, and sellers see exactly what they'll receive before they post.</p>
   </section>

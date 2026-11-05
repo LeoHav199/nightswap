@@ -1,4 +1,4 @@
-{% set cap = 'de nominale waarde' if price_cap == 100 else price_markup ~ '% boven de nominale waarde' %}
+{% set cap = 'het dubbele van de nominale waarde' if price_cap == 200 else 'de nominale waarde' if price_cap == 100 else price_markup ~ '% boven de nominale waarde' %}
 <h1>Voorwaarden</h1>
 <p class="muted">Laatst bijgewerkt: november 2026</p>
 

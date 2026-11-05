@@ -1,4 +1,4 @@
-{% set cap = 'the face value' if price_cap == 100 else price_markup ~ '% above the face value' %}
+{% set cap = 'double the face value' if price_cap == 200 else 'the face value' if price_cap == 100 else price_markup ~ '% above the face value' %}
 <h1>Terms</h1>
 <p class="muted">Last updated: November 2026</p>
 

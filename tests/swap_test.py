@@ -32,8 +32,8 @@ def run(sql, *a):
     with app.app_context(): return A.db.run(sql, *a)
 
 # --- The new defaults
-ok(config.PRICE_CAP_PERCENT == 0 and config.PAYOUT_DELAY_HOURS == 24 and config.SWAP_OPENS_AFTER_DOORS_MINUTES == 0,
-   "defaults: no price cap, paid 24 hours after the night, Swap from when the doors open")
+ok(config.PRICE_CAP_PERCENT == 200 and config.PAYOUT_DELAY_HOURS == 24 and config.SWAP_OPENS_AFTER_DOORS_MINUTES == 0,
+   "defaults: at most double the face value, paid 24 hours after the night, Swap from when the doors open")
 ok(config.FACE_PROOF_REQUIRED and config.NEW_SELLER_LIMITS, "the safety checks stay switched on in the code")
 
 admin, seller, buyer, visitor = (app.test_client() for _ in range(4))
@@ -44,13 +44,26 @@ admin.post("/admin/events/save", data={"name": "Eno Night", "venue": "Perron", "
                                        "door_time": "23:00", "_csrf": csrf(admin)})
 ev = one("SELECT * FROM events WHERE name='Eno Night'")
 
-# --- Free prices
+# --- The cap: at most double the face value (Leo's choice, 5 Nov 2026)
 def sell(face, price, name="Eno Night"):
     e = one("SELECT * FROM events WHERE name=?", name)
     return seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(e["id"]), "face_value": face,
                                       "price": price, "adult": "yes", "ticket": (io.BytesIO(b"%PDF-1.4 " + os.urandom(8)), "t.pdf"),
                                       "_csrf": csrf(seller)}, content_type="multipart/form-data")
 run("UPDATE users SET payouts_ready=1 WHERE email='s@test.nl'")
+r = sell("20", "41")
+ok(r.status_code == 200 and "maximum for this ticket is €40" in html(r), "with the 100% cap a €20 ticket can't be listed for €41")
+home = html(visitor.get("/"))
+ok("Never more than double the face value." in home and "100% above" not in home, "the homepage says 'never more than double'")
+ok("at most double the face value" in html(visitor.get("/terms")) and "2 × face value" in html(visitor.get("/how-it-works")),
+   "terms and How it works say 'double'")
+import i18n
+ok("het dubbele" in i18n.t("nl", "hero_sub_pct", pct=100) and "au double" in i18n.t("fr", "price_hint_pct", pct=100)
+   and "50%" in i18n.t("en", "hero_sub_pct", pct=50) and i18n.t("en", "above_face_pct", pct=100) == "100% above face value",
+   "'double' in every language for a 100% cap; other caps and a listing's markup keep the percentage")
+
+# --- Free prices (PRICE_CAP_PERCENT=0 is still an option)
+config.PRICE_CAP_PERCENT = 0
 r = sell("20", "70")
 ok(r.status_code == 302 and "/t/" in r.location, "a €20 ticket can be listed for €70: sellers set their own price")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))

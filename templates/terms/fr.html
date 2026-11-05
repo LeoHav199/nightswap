@@ -1,4 +1,4 @@
-{% set cap = "le prix d'origine" if price_cap == 100 else price_markup ~ " % au-dessus du prix d'origine" %}
+{% set cap = "le double du prix d'origine" if price_cap == 200 else "le prix d'origine" if price_cap == 100 else price_markup ~ " % au-dessus du prix d'origine" %}
 <h1>Conditions</h1>
 <p class="muted">Dernière mise à jour : novembre 2026 · Traduction : en cas de doute, la version néerlandaise fait foi.</p>
 
