@@ -9,13 +9,14 @@ Spare's terms (`templates/terms/`) and privacy policy (`templates/privacy/`) wer
 ## Terms
 1. **Right of withdrawal (§5).** We say there's no 14-day withdrawal right because tickets are for a specific date (art. 6:230p BW / art. 16(l) of Directive 2011/83). That exception is written for the trader who provides the leisure service. Does it cover Spare's own intermediation service and service fee?
 2. **Private sellers (§2).** We tell buyers that sellers are private individuals and consumer law doesn't apply to them (art. 6a Directive 2011/83, as amended by the Omnibus directive). A short version is also shown next to the Buy button on every listing (`private_seller_note`). Is the wording enough?
-3. **Price cap (§4).** Face value + 20%. Check the Dutch rules on ticket resale (there's no general ban, but some events and organisers have their own rules) and the law in other countries before expanding (Belgium is believed to ban resale above the original price).
+3. **Price cap (§4).** At most double the face value (since 5 Nov 2026; it was face value + 20%). Is a markup this size a problem in the Netherlands? Check the Dutch rules on ticket resale (there's no general ban, but some events and organisers have their own rules) and the law in other countries before expanding (Belgium is believed to ban resale above the original price).
 4. **Liability cap (§11).** Limited to the amount of the order, except intent or gross negligence. Reasonable towards consumers (art. 6:237 BW, grey list)?
 5. **Clawback from sellers (§8).** "If the seller was paid already, we may claim the money back." Is this enforceable against private sellers as written?
 6. **Dispute decisions (§8).** Spare decides disputes between buyer and seller. Is this an acceptable arrangement, and does it need more detail (deadlines, evidence)?
 7. **DSA (§1, §10).** Single contact point, statements of reasons, 6-month internal complaint window, mention of out-of-court settlement bodies. Spare is likely a micro or small enterprise, which exempts it from some DSA duties: confirm which still apply (art. 16 notice-and-action, art. 17 statements of reasons, and for marketplaces art. 30 trader traceability, which shouldn't apply since sellers are private).
 8. **Changes (§13).** We promise an email 15 days before changes that matter. Is that the right period?
 9. **Minimum age for buyers.** Sellers must be 18+. Nothing is said about buyers. Decide whether buyers must be 16+ (needed if we rely on consent, see below) and add it.
+10. **Holding the buyer's money (§6, "Swap").** The buyer's payment stays with Spare until they slide "Swap" at the door (the ticket worked), and at the latest 24 hours after the night (72 for new sellers); then it goes to the seller. The money sits in Stripe (Stripe Connect), not in Spare's own bank account. Confirm Spare doesn't need a payment-services licence (DNB) for this, and that the terms describe it clearly enough.
 
 ## Privacy
 1. **Legal bases.** Check each one, in particular legitimate interest for fraud checks, message moderation (keeping original texts of blocked messages) and marketing-link tracking (`?from=` codes).
