@@ -96,7 +96,7 @@
     <a class="{{ 'is-on' if ep in ('index', 'event_page', 'listing_page') and not request.args.get('focus') }}" href="{{ url_for('index') }}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4V7.5Z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg>
       <span>{{ t('nav_buy') }}</span></a>
-    <a class="{{ 'is-on' if request.args.get('focus') == 'search' }}" href="{{ url_for('index', focus='search') }}">
+    <a class="{{ 'is-on' if request.args.get('focus') == 'search' }}" href="{{ url_for('index', focus='search') }}" data-search-tab>
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></svg>
       <span>{{ t('search') }}</span></a>
     <a class="tab-sell {{ 'is-on' if ep == 'sell' }}" href="{{ url_for('sell') }}">
@@ -109,6 +109,21 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.2-3.2 3.8-4.8 7-4.8s5.8 1.6 7 4.8"/></svg>
       <span>{{ t('nav_account') if user else t('nav_login') }}</span></a>
   </nav>
+  {% if ep != 'index' %}
+  {# The Search tab opens this on top of any page, with the keyboard up straight away (iPhones only open it
+     when the tap itself focuses the box, not after the next page loads). Without JavaScript the tab goes to the homepage. #}
+  <div class="search-sheet" data-search-sheet hidden>
+    <form class="search" method="get" action="{{ url_for('index') }}" role="search">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 3a5.5 5.5 0 0 1 4.38 8.83l3.65 3.64-1.06 1.06-3.64-3.65A5.5 5.5 0 1 1 8.5 3Zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+      <label class="sr-only" for="q-sheet">{{ t('search') }}</label>
+      <input id="q-sheet" type="search" name="q" placeholder="{{ t('search_placeholder') }}" autocomplete="off"
+             enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest-sheet"
+             data-suggest="{{ url_for('search_suggest') }}" data-none="{{ t('suggest_none') }}" data-all="{{ t('suggest_all') }}">
+      <div class="suggest" id="suggest-sheet" role="listbox" hidden></div>
+    </form>
+    <button class="btn-link search-close" type="button" data-search-close>{{ t('cancel') }}</button>
+  </div>
+  {% endif %}
   {% if tonight_pop %}
   <div class="tonight-pop" data-tonight-pop data-day="{{ tonight_pop.day }}" hidden>
     <span class="live-dot" aria-hidden="true"></span>

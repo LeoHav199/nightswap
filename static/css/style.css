@@ -1038,3 +1038,12 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .swap-warn { color: var(--warn); }
 .swap-done { color: var(--good); font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .swap-thumb.is-back, .swap-fill.is-back { transition: left .25s ease, width .25s ease; } }
+
+/* Search sheet: the Search tab opens it over any page other than the homepage. */
+.search-sheet { position: fixed; inset: 0; z-index: 70; background: rgba(10, 9, 24, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: flex; align-items: flex-start; gap: 12px; padding: calc(14px + env(safe-area-inset-top)) 16px 16px; }
+.search-sheet[hidden] { display: none; }
+.search-sheet .search { flex: 1; width: auto; }
+.search-sheet .suggest { position: absolute; top: calc(100% + 8px); left: 0; right: -76px; max-height: 65vh; }
+.search-close { margin: 0; height: 42px; color: var(--text); text-decoration: none; white-space: nowrap; }
+body.has-search-sheet { overflow: hidden; }

@@ -86,4 +86,11 @@ with app.app_context():
        and A.door_night(dict(l, event_date=(night + timedelta(days=2)).isoformat())) is False,
        "door mode is only for the event night, not the day before or after")
 
+# Search tab: a search sheet on every page but the homepage (which has its own box), so one tap puts you in the box.
+other = html(c.get("/credits"))
+ok("data-search-tab" in other and "data-search-sheet" in other and 'id="q-sheet"' in other, "other pages carry the search sheet for the Search tab")
+home = html(c.get("/"))
+ok("data-search-tab" in home and "data-search-sheet" not in home and 'id="q"' in home, "the homepage uses its own search box")
+ok('href="/?focus=search"' in other, "without JavaScript the Search tab still goes to the homepage search")
+
 print("\n%d failed" % len(fails))

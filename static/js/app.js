@@ -316,6 +316,32 @@
     });
   })();
 
+  // Search tab: straight into the search box. On the homepage that's the box at the top; elsewhere a search
+  // sheet opens over the page. Focusing during the tap itself is what makes iPhones open the keyboard.
+  var searchTab = document.querySelector("[data-search-tab]");
+  if (searchTab) searchTab.addEventListener("click", function (e) {
+    var box = document.getElementById("q"), sheet = document.querySelector("[data-search-sheet]");
+    if (box) {
+      e.preventDefault();
+      box.focus();
+      box.scrollIntoView({ block: "center", behavior: "smooth" });
+    } else if (sheet) {
+      e.preventDefault();
+      sheet.hidden = false;
+      document.body.classList.add("has-search-sheet");
+      sheet.querySelector("input").focus();
+    }
+  });
+  (function () {
+    var sheet = document.querySelector("[data-search-sheet]");
+    if (!sheet) return;
+    function close() { sheet.hidden = true; document.body.classList.remove("has-search-sheet"); }
+    sheet.querySelector("[data-search-close]").addEventListener("click", close);
+    sheet.addEventListener("click", function (e) { if (e.target === sheet) close(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !sheet.hidden) close(); });
+    window.addEventListener("pageshow", close);  // coming back with the Back button: don't leave it open
+  })();
+
   // Live search suggestions under the search bar.
   document.querySelectorAll("input[data-suggest]").forEach(function (input) {
     var box = document.getElementById(input.getAttribute("aria-controls"));
