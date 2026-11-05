@@ -59,7 +59,9 @@ OFF_PLATFORM = re.compile(
 RATE_EARLY = re.compile(
     r"\b((tap|click|press|give|leave|hit|confirm|mark|rate)\s+(\w+\s+){0,4}(👍|thumbs?\s*up|it\s+worked|worked|received|got\s+it|rating|confirmation)|"
     r"(rate|confirm|review)\s+(\w+\s+){0,3}(now|already|early|before|right\s+away|asap)|"
-    r"can\s+you\s+(already\s+|just\s+)?(rate|confirm)|"
+    r"can\s+you\s+(already\s+|just\s+)?(rate|confirm|swap|slide)|"
+    r"(swap|slide)\s+(\w+\s+){0,3}(now|already|early|before|right\s+away|asap|it|the\s+ticket|please|pls)|"
+    r"(alvast|nu|even|al)\s+(swappen|schuiven)|(swap|schuif)\s+(\w+\s+){0,3}(alvast|nu|even|al)\b|"
     r"(geef|klik|druk|tik|zet)\s+(\w+\s+){0,4}(duim(pje)?|👍|het\s+werkte|beoordeling|bevestiging)|"
     r"(nu|alvast|al|even)\s+(bevestigen|beoordelen)|bevestig\s+(je\s+)?(alvast|nu|even|al))",
     re.I,

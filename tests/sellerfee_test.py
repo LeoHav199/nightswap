@@ -53,7 +53,7 @@ r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); pub = r.location
 with app.app_context(): o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
 ok(o["price_cents"] == 2000 and o["fee_cents"] == 160 and o["seller_fee_cents"] == 100, "the order stores the €1 seller fee at purchase")
 buyer.post("/checkout/%s/test" % pub, data={"_csrf": csrf(buyer)})
-ok(re.search(r"receive €19\b", html(seller.get("/orders/%s" % pub))) is not None, "after the sale the seller sees €19 coming")
+ok(re.search(r"holds your €19\b", html(seller.get("/orders/%s" % pub))) is not None, "after the sale the seller sees €19 coming (held until the buyer is in)")
 ok(any("receive €19 " in body for to, s, body in SENT if to == "s@test.nl"), "the 'sold' email says €19")
 with app.app_context():
     o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
@@ -74,7 +74,7 @@ with app.test_request_context(): A.release_due_payouts()  # the hourly task (#30
 with app.app_context(): o = A.db.one("SELECT * FROM orders WHERE public_id=?", pub)
 ok(o["status"] == "released" and o["rating"] == "up", "the buyer's thumbs-up brings the payout forward to the next hourly run")
 ok("on its way" in html(seller.get("/orders/%s" % pub)), "the seller sees the money is on its way")
-ok("if the buyer confirms the ticket worked, sooner" in html(buyer.get("/how-it-works")).lower(), "How it works explains the early payout")
+ok("if the buyer slides swap" in html(buyer.get("/how-it-works")).lower(), "How it works explains the payout at the swap")
 
 # --- Explained honestly
 how = html(buyer.get("/how-it-works"))

@@ -53,8 +53,17 @@ TRANSFER_APPS = {"ticketmaster": "Ticketmaster", "weeztix": "Weeztix / Eventix",
                  "seetickets": "See Tickets", "other": None}  # None: shown as "another app" in the visitor's language
 BUYER_REMIND_HOURS = 2       # #31: ask the buyer whether an app ticket arrived this long after the transfer (and at 12:00 on the day)
 TRANSFER_REMIND_HOURS = 3  # remind sellers who haven't marked the transfer as done after this long
-PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "120"))  # max price as % of face value: 120 = up to 20% above
-PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "48"))
+# Resale price cap as % of face value: 120 = up to 20% above. 0 = no cap: sellers set their own price (since 5 Nov 2026).
+# The face value is still asked and shown next to the price, so buyers can see the markup.
+PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "0"))
+# Payouts (5 Nov 2026): Spare holds the money until the buyer is in. The buyer slides "Swap" at the door and the
+# seller is paid straight away; without a swap, the seller is paid automatically this long after the night.
+PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "24"))
+SWAP_OPENS_AFTER_DOORS_MINUTES = 0   # the buyer can swap from the moment the doors open
+# A swap pays straight away only when the buyer paid by iDEAL: card payments can be reversed by the bank weeks later,
+# so a stolen card plus a fake listing would cost Spare the money. Card orders are paid at the normal time.
+SWAP_INSTANT_IDEAL_ONLY = env("NIGHTSWAP_SWAP_INSTANT_IDEAL_ONLY", "1") == "1"
+SWAP_REMIND_MINUTES = 45             # "Inside? Swap" push + email this long after the doors open
 # Safety checks from the "Bulletproofing" review. Always on; only older tests that check other things switch them off.
 FACE_PROOF_REQUIRED = True   # #25: no official price known → proof of the price and an admin check before going live
 SMS_REQUIRED = False         # True: on the live site, phones can only be verified by text (needs Twilio). Leo chose
@@ -66,6 +75,9 @@ NEW_SELLER_MAX_TICKETS = 2   # tickets on sale at once
 NEW_SELLER_PAYOUT_HOURS = 72  # paid this long after the night, never early
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes
 MAX_FACE_VALUE_CENTS = 50000
+# #38: first-time buyers may pay by card too (internationals often have no Dutch bank), always with 3D Secure.
+# False = first purchases by iDEAL only again. Card payments are paid out at the normal time, not at the swap.
+FIRST_BUY_CARD = env("NIGHTSWAP_FIRST_BUY_CARD", "1") == "1"
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024          # per file
 ADMIN_EMAILS = {e.strip().lower() for e in env("ADMIN_EMAILS").split(",") if e.strip()}
 
@@ -123,6 +135,15 @@ VAT_NUMBER = env("VAT_NUMBER")
 ADMIN_SECOND_FACTOR = env("ADMIN_SECOND_FACTOR", "1") != "0"   # admins confirm a text code every 12 hours
 TRUST_PROXY = env("TRUST_PROXY", "0") == "1"                     # set to 1 behind Render/Fly so client IPs are read correctly
 PROXY_HOPS = int(env("TRUST_PROXY_HOPS", "1"))  # how many proxies add to X-Forwarded-For; check /admin → Network check
+# #41: with 2 hops (Cloudflare in front of Render) the extra hop is only trusted when the request really came from
+# Cloudflare; someone sending requests straight to Render can't pick their own IP any more.
+# Copied from https://www.cloudflare.com/ips/ on 5 Nov 2026 (that list was last changed 28 Sep 2023).
+CLOUDFLARE_RANGES = (
+    "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "104.16.0.0/13", "104.24.0.0/14", "108.162.192.0/18",
+    "131.0.72.0/22", "141.101.64.0/18", "162.158.0.0/15", "172.64.0.0/13", "173.245.48.0/20", "188.114.96.0/20",
+    "190.93.240.0/20", "197.234.240.0/22", "198.41.128.0/17",
+    "2400:cb00::/32", "2606:4700::/32", "2803:f800::/32", "2405:b500::/32", "2405:8100::/32", "2a06:98c0::/29", "2c0f:f248::/32",
+)
 
 # Integrations ---------------------------------------------------------------
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY")

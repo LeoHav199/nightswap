@@ -11,6 +11,21 @@
   <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_sources') }}">Links &amp; QR codes</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_backup') }}">Download backup</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_totp_setup') }}">Authenticator</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>
 </div>
 <div class="wrap account">
+  {# #42: launch check: green = set, red = needs doing. No secret values are shown. #}
+  <section class="account-section" id="checks">
+    <h2>Launch check</h2>
+    <ul class="table-list launch-checks">
+      {% for label, ok_, detail in checks %}
+      <li><span class="{{ 'good' if ok_ else 'warn-text' }}">{{ '✓' if ok_ else '✗' }}</span> {{ label }}{% if detail %} <span class="muted small">· {{ detail }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% if stuck %}
+    <h3>Payouts that need a manual look (#34)</h3>
+    <ul class="table-list">
+      {% for o in stuck %}<li><a href="{{ url_for('admin_dispute', public_id=o.public_id) }}">{{ o.public_id }}</a> · {{ o.seller_email }} · failed {{ o.payout_errors }}× <span class="muted small">{{ o.payout_last_error }}</span></li>{% endfor %}
+    </ul>
+    {% endif %}
+  </section>
   <section class="account-section" id="launch">
     <h2>Launch</h2>
     <div class="panel admin-case">

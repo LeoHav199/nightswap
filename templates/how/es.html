@@ -18,7 +18,7 @@
       <li><strong>Añade tu número de teléfono una vez.</strong> Los compradores nunca lo ven; solo lo usamos para contactarte si algo sale mal.</li>
       {% endif %}
       <li><strong>Publica tu entrada.</strong> Lugar, fecha, precio y el archivo de la entrada, o la app donde está. Te lleva un minuto.</li>
-      <li><strong>Cobra.</strong> Tu precio menos la comisión de vendedor, {{ payout_hours }} horas después de la noche. Si el comprador confirma que la entrada funcionó, antes: a partir de 3 horas después de que abran las puertas. Los vendedores nuevos (menos de {{ new_seller_sales }} ventas completadas) cobran {{ new_seller_hours }} horas después de la noche. Con una entrada en una app, solo después de marcarla como transferida.</li>
+      <li><strong>Cobra.</strong> Tu precio menos la comisión de vendedor, {{ payout_hours }} horas después de la noche. Si el comprador desliza Swap en la puerta cuando ya está dentro y pagó con iDEAL, al momento. Los vendedores nuevos (menos de {{ new_seller_sales }} ventas completadas) cobran {{ new_seller_hours }} horas después de la noche. Con una entrada en una app, solo después de marcarla como transferida.</li>
     </ol>
   </section>
   <section class="panel" id="fees">
@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Compradores</dt><dd>{{ fee }} por entrada</dd></div>
       <div><dt>Vendedores</dt><dd>{{ seller_fee_label }} por entrada, descontado del pago</dd></div>
-      <div><dt>Precio máximo</dt><dd>{{ 'Precio original' if price_cap == 100 else 'Precio original + ' ~ price_markup ~ '%' }}</dd></div>
+      <div><dt>Precio máximo</dt><dd>{{ 'Lo eliges tú' if price_free else ('Precio original' if price_cap == 100 else 'Precio original + ' ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">Sin costes ocultos. Los compradores ven en la lista el precio total con gastos incluidos, y los vendedores ven exactamente lo que recibirán antes de publicar.</p>
   </section>
@@ -50,6 +50,6 @@
   <details><summary>¿Puedo revender mi entrada?</summary><p>Normalmente sí, pero algunos organizadores prohíben la reventa o imprimen tu nombre en la entrada. Revisa las condiciones del evento antes de vender.</p></details>
   <details><summary>¿Qué entradas puedo publicar?</summary><p>Dos tipos. Una entrada en archivo: un PDF o una imagen con código QR o de barras, que el comprador descarga. O una entrada que está en una app ({{ apps }} u otra app con botón de transferir): el comprador da el nombre y el email de su cuenta en esa app, tú la transfieres con el botón de la app y pulsas «{{ t('seller_transfer_done_btn') }}», y el comprador confirma que le ha llegado.</p></details>
   <details><summary>¿Y si el vendedor vende la misma entrada también en otro sitio?</summary><p>Avísanos desde tu pedido antes de que se le pague al vendedor. Te devolvemos el dinero y bloqueamos al vendedor.</p></details>
-  <details><summary>¿Cuándo cobro como vendedor?</summary><p>{{ payout_hours }} horas después de la noche, siempre que el comprador no haya avisado de un problema. Si el comprador confirma que la entrada funcionó (puede a partir de 2 horas después de que abran las puertas), antes: a partir de 3 horas después de la apertura. Hasta completar {{ new_seller_sales }} ventas, cobras {{ new_seller_hours }} horas después de la noche. Con una entrada en una app, solo cuando la hayas marcado como transferida. Configuras tus cobros una sola vez a través de Stripe con tu IBAN.</p></details>
+  <details><summary>¿Cuándo cobro como vendedor?</summary><p>{{ payout_hours }} horas después de la noche, siempre que el comprador no haya avisado de un problema. Si el comprador desliza Swap cuando ya está dentro (posible desde que abren las puertas) y pagó con iDEAL, cobras al momento. Hasta completar {{ new_seller_sales }} ventas, cobras {{ new_seller_hours }} horas después de la noche. Con una entrada en una app, solo cuando la hayas marcado como transferida. Configuras tus cobros una sola vez a través de Stripe con tu IBAN.</p></details>
   <details><summary>¿Puedo cambiar o quitar mi anuncio?</summary><p>Puedes cambiar el precio en la página de tu anuncio, siempre que no pase del máximo. Puedes quitarlo cuando quieras antes de que se venda.</p></details>
 </div>

@@ -617,6 +617,55 @@
   }
 
   // Sell form: "other venue" field, live payout summary.
+  // Swap (order page): the buyer slides the thumb to the end once they're inside; that submits the form and Spare
+  // pays the seller. Without JavaScript the plain "Swap" button is shown instead. Keyboard: arrow keys or End.
+  document.querySelectorAll("[data-swap-form]").forEach(function (form) {
+    var track = form.querySelector("[data-swap]"), thumb = form.querySelector("[data-swap-thumb]");
+    var fill = form.querySelector("[data-swap-fill]"), fallback = form.querySelector("[data-swap-fallback]");
+    if (!track || !thumb) return;
+    track.hidden = false;
+    if (fallback) fallback.hidden = true;
+    var x = 0, startX = 0, dragging = false, sent = false;
+    function maxX() { return track.clientWidth - thumb.offsetWidth - 8; }
+    function place(v, animate) {
+      x = Math.max(0, Math.min(maxX(), v));
+      thumb.classList.toggle("is-back", !!animate);
+      fill.classList.toggle("is-back", !!animate);
+      thumb.style.left = (4 + x) + "px";
+      fill.style.width = (x + thumb.offsetWidth + 4) + "px";
+      thumb.setAttribute("aria-valuenow", String(Math.round(maxX() ? x / maxX() * 100 : 0)));
+    }
+    function finish() {
+      if (sent) return;
+      sent = true;
+      place(maxX());
+      track.classList.add("is-done");
+      if (navigator.vibrate) navigator.vibrate(30);
+      form.submit();
+    }
+    function end() {
+      if (!dragging) return;
+      dragging = false;
+      if (x >= maxX() * 0.9) finish(); else place(0, true);
+    }
+    thumb.addEventListener("pointerdown", function (e) {
+      if (sent) return;
+      dragging = true; startX = e.clientX - x;
+      thumb.setPointerCapture(e.pointerId);
+    });
+    thumb.addEventListener("pointermove", function (e) { if (dragging) place(e.clientX - startX); });
+    thumb.addEventListener("pointerup", end);
+    thumb.addEventListener("pointercancel", end);
+    thumb.addEventListener("keydown", function (e) {
+      if (sent) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); place(x + maxX() / 4); }
+      else if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); place(x - maxX() / 4); }
+      else if (e.key === "End") { e.preventDefault(); place(maxX()); }
+      else if (e.key === "Home") { e.preventDefault(); place(0); }
+      if (x >= maxX() - 1) finish();
+    });
+  });
+
   var sell = document.querySelector("form[data-sell-form]");
   if (!sell) return;
 
@@ -625,7 +674,8 @@
   function feeFor(p) { var f = Math.max(feeMin, Math.round(p * feePct / 100)); return feeMax ? Math.min(f, feeMax) : f; }
   var sellerPct = parseFloat(sell.dataset.sellerPct) || 0, sellerMin = parseInt(sell.dataset.sellerMin, 10) || 0;
   function sellerFeeFor(p) { return (sellerPct || sellerMin) ? Math.min(p, Math.max(sellerMin, Math.round(p * sellerPct / 100))) : 0; }
-  var cap = parseInt(sell.dataset.cap, 10) || 100;
+  var cap = parseInt(sell.dataset.cap, 10);
+  if (isNaN(cap)) cap = 100;  // 0 = no cap: sellers set their own price
   var sellLang = sell.dataset.lang;
   var venue = sell.querySelector("[data-venue]");
   var other = sell.querySelector("[data-other-venue]");
@@ -660,7 +710,7 @@
     receive.textContent = p ? money(p - sellerFeeFor(p)) : "–";
     if (sellerFeeBox) sellerFeeBox.textContent = p ? money(sellerFeeFor(p)) : sellerFeeBox.dataset.label;
     buyerPays.textContent = p ? money(p + feeFor(p)) : "–";
-    var over = p && f && p > Math.floor(f * cap / 100);
+    var over = cap && p && f && p > Math.floor(f * cap / 100);
     price.setAttribute("aria-invalid", over ? "true" : "false");
     price.style.borderColor = over ? "var(--bad)" : "";
   }
@@ -692,7 +742,7 @@
       manual.hidden = !!(checked && checked.value !== "new");
       // #25: with a known official price there's nothing to prove; otherwise the seller adds their order confirmation.
       var max = checked && checked.dataset.faceMax;
-      if (faceProof) faceProof.hidden = !!max;
+      if (faceProof) faceProof.hidden = !!max || cap === 0;  // no proof needed without a cap
       if (faceHint) faceHint.textContent = max ? sell.dataset.faceOfficial.replace("{max}", max) : faceHintText;
     }
     function load() {

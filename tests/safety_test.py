@@ -76,7 +76,7 @@ admin.post("/admin/events/save", data={"face_value_max": "500", "id": ev["id"], 
 ok(sum(1 for to, s, _ in SENT if s.startswith("Changed:")) == 4, "date change emails both buyers and both sellers")
 with app.app_context():
     o1 = A.db.one("SELECT * FROM orders WHERE buyer_id=(SELECT id FROM users WHERE email='b@test.nl')")
-    ok(o1["payout_due_at"].startswith((date.fromisoformat(NEW) + timedelta(days=3)).isoformat()), "payout date moves with the event")
+    ok(o1["payout_due_at"].startswith((date.fromisoformat(NEW) + timedelta(days=2)).isoformat()), "payout date moves with the event (24 hours after the night)")
 page = html(buyer.get("/orders/%s" % o1["public_id"]))
 ok("This event changed" in page and "Get a full refund" in page, "buyer sees the change and a refund button")
 buyer.post("/orders/%s/change-refund" % o1["public_id"], data={"_csrf": csrf(buyer)})

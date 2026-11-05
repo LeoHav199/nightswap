@@ -155,14 +155,25 @@
     {% endif %}
 
     {% if can_rate %}
-      <div class="rate">
-        <strong>{{ t('rate_question') }}</strong>
-        <form method="post" action="{{ url_for('rate_order', public_id=order.public_id) }}" class="rate-options">
+      {# Swap: the buyer slides once they're inside. Spare holds the seller's money until then. #}
+      <div class="swap-card">
+        <strong class="swap-title">{{ t('swap_title') }}</strong>
+        <p class="muted small">{{ t('swap_body') }}</p>
+        <form method="post" action="{{ url_for('swap_order', public_id=order.public_id) }}" data-swap-form>
           {{ m.csrf() }}
-          <button class="btn btn-ghost" name="rating" value="up" type="submit">👍 {{ t('rate_up') }}</button>
-          <button class="btn btn-ghost" name="rating" value="down" type="submit">👎 {{ t('rate_down') }}</button>
+          <div class="swap-track" data-swap hidden>
+            <span class="swap-label" aria-hidden="true">{{ t('swap_slide') }}</span>
+            <span class="swap-fill" data-swap-fill aria-hidden="true"></span>
+            <span class="swap-thumb" data-swap-thumb role="slider" tabindex="0" aria-label="{{ t('swap_slide') }}"
+                  aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">→</span>
+          </div>
+          <button class="btn btn-accent btn-block" type="submit" data-swap-fallback>{{ t('swap_button') }}</button>
         </form>
+        <p class="small swap-warn">{{ t('swap_wait') }}</p>
+        <a class="small" href="{{ url_for('order_page', public_id=order.public_id, report=1) }}#report">{{ t('swap_problem') }}</a>
       </div>
+    {% elif is_buyer and order.swapped_at %}
+      <p class="swap-done">✓ {{ t('swapped_done') }}</p>
     {% elif is_buyer and order.rating %}
       <p class="muted small">{{ t('rated_thanks') }}</p>
     {% endif %}
@@ -224,7 +235,8 @@
     {% if paid %}
       <ol class="timeline">
         <li class="done">{{ t('tl_paid') }}</li>
-        <li class="{{ 'done' if order.status == 'released' }}">{{ t('tl_event', date=fmt_date(l.event_date)) }}</li>
+        <li class="{{ 'done' if order.status == 'released' or order.swapped_at }}">{{ t('tl_event', date=fmt_date(l.event_date)) }}</li>
+        <li class="{{ 'done' if order.swapped_at }}">{{ t('tl_swap') }}</li>
         <li class="{{ 'done' if order.status == 'released' }}">{{ t('tl_payout', date=fmt_date(payout_due.date())) }}</li>
       </ol>
     {% endif %}

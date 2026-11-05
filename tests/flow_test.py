@@ -1,6 +1,7 @@
 import io, os, re, sys, tempfile
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # (checked in hardening_test.py)
+config.PRICE_CAP_PERCENT = 120  # these checks cover the optional price cap (off by default since 5 Nov 2026)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0; config.FEE_MIN_CENTS = 100  # these tests were written for a flat €1 fee
 config.SELLER_FEE_PERCENT = 0; config.SELLER_FEE_MIN_CENTS = 0  # ...and no seller fee
@@ -66,7 +67,7 @@ ok("got your ticket" in r.get_data(as_text=True), "payment completes")
 tid = re.search(r"/orders/%s/tickets/(\d+)" % pub, buyer.get("/orders/%s" % pub).get_data(as_text=True)).group(1)
 r = buyer.get("/orders/%s/tickets/%s" % (pub, tid)); ok(r.status_code == 200 and r.data == pdf, "buyer downloads ticket")
 ok(app.test_client().get("/orders/%s" % pub).status_code == 302, "stranger redirected to login")
-r = seller.get("/orders/%s" % pub); ok("receive €18.50" in r.get_data(as_text=True), "seller sees payout amount")
+r = seller.get("/orders/%s" % pub); ok("holds your €18.50" in r.get_data(as_text=True), "seller sees payout amount")
 r = buyer.post("/orders/%s/report" % pub, data={"reason": "QR code rejected at the door", "_csrf": csrf(buyer)}, follow_redirects=True)
 ok("received your report" in r.get_data(as_text=True), "problem reported")
 admin = app.test_client(); login(admin, "admin@example.com", "Admin")

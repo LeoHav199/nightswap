@@ -15,7 +15,7 @@
     <p class="detail-date">{% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ l.venue }}</a>{% else %}{{ l.venue }}{% endif %}{% if l.city != 'Rotterdam' %}, {{ l.city }}{% endif %} · {{ fmt_date(l.event_date, 'long') }}{% if l.start_time %} · {{ l.start_time }}{% endif %}</p>
 
     <dl class="facts">
-      <div><dt>{{ t('face_value') }}</dt><dd>{{ money(l.face_value_cents) }}</dd></div>
+      <div><dt>{{ t('face_value') }}</dt><dd>{{ money(l.face_value_cents) }}{% set mk = markup_percent(l.price_cents, l.face_value_cents) %}{% if mk %} <span class="muted small">· {{ t('above_face_pct', pct=mk) }}</span>{% endif %}</dd></div>
       <div><dt>{{ t('tickets_label') }}</dt><dd>{{ t('sold_as_set', n=l.available) if l.sold_together and l.available else l.available }}</dd></div>
       <div><dt>{{ t('ticket_type') }}</dt><dd>{{ t('ticket_type_file') }}</dd></div>
     </dl>
@@ -65,7 +65,7 @@
           <label class="field">
             <span class="label">{{ t('your_price') }} <span class="optional">{{ t('per_ticket') }}</span></span>
             <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="price" value="{{ '%.2f'|format(l.price_cents / 100) if l.price_cents % 100 else l.price_cents // 100 }}"></span>
-            <span class="hint">{{ t('price_edit_hint', max=money(max_price), fee=fee_label) }}</span>
+            <span class="hint">{{ t('price_edit_hint_free', fee=fee_label) if max_price is none else t('price_edit_hint', max=money(max_price), fee=fee_label) }}</span>
           </label>
           <button class="btn btn-ghost btn-block" type="submit">{{ t('save_price') }}</button>
         </form>

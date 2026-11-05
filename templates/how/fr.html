@@ -18,7 +18,7 @@
       <li><strong>Indique ton numéro de téléphone une fois.</strong> Les acheteurs ne le voient jamais ; on ne l'utilise que pour te joindre en cas de problème.</li>
       {% endif %}
       <li><strong>Mets ton billet en vente.</strong> Lieu, date, prix et le fichier du billet, ou l'appli où il se trouve. Ça prend une minute.</li>
-      <li><strong>Sois payé.</strong> Ton prix moins les frais vendeur, {{ payout_hours }} heures après la soirée. Si l'acheteur confirme que le billet a marché, plus tôt : à partir de 3 heures après l'ouverture des portes. Les nouveaux vendeurs (moins de {{ new_seller_sales }} ventes terminées) sont payés {{ new_seller_hours }} heures après la soirée. Pour un billet dans une appli, seulement après l'avoir marqué comme transféré.</li>
+      <li><strong>Sois payé.</strong> Ton prix moins les frais vendeur, {{ payout_hours }} heures après la soirée. Si l'acheteur fait glisser Swap une fois entré et a payé par iDEAL, tout de suite. Les nouveaux vendeurs (moins de {{ new_seller_sales }} ventes terminées) sont payés {{ new_seller_hours }} heures après la soirée. Pour un billet dans une appli, seulement après l'avoir marqué comme transféré.</li>
     </ol>
   </section>
   <section class="panel" id="fees">
@@ -26,7 +26,7 @@
     <dl class="breakdown">
       <div><dt>Acheteurs</dt><dd>{{ fee }} par billet</dd></div>
       <div><dt>Vendeurs</dt><dd>{{ seller_fee_label }} par billet, déduits du versement</dd></div>
-      <div><dt>Prix maximum</dt><dd>{{ "Prix d'origine" if price_cap == 100 else "Prix d'origine + " ~ price_markup ~ '%' }}</dd></div>
+      <div><dt>Prix maximum</dt><dd>{{ 'Ton choix' if price_free else ("Prix d'origine" if price_cap == 100 else "Prix d'origine + " ~ price_markup ~ '%') }}</dd></div>
     </dl>
     <p class="muted">Pas de frais cachés. Les acheteurs voient le prix total, frais compris, dans la liste, et les vendeurs voient exactement ce qu'ils recevront avant de publier.</p>
   </section>
@@ -50,6 +50,6 @@
   <details><summary>Ai-je le droit de revendre mon billet ?</summary><p>En général oui, mais certains organisateurs interdisent la revente ou impriment ton nom sur le billet. Vérifie les conditions de l'événement avant de vendre.</p></details>
   <details><summary>Quels billets puis-je mettre en vente ?</summary><p>Deux sortes. Un billet en fichier : un PDF ou une image avec un QR code ou un code-barres, que l'acheteur télécharge. Ou un billet qui se trouve dans une appli ({{ apps }} ou une autre appli avec un bouton de transfert) : l'acheteur donne le nom et l'e-mail de son compte dans cette appli, tu le transfères avec le bouton de l'appli et tu appuies sur « {{ t('seller_transfer_done_btn') }} », puis l'acheteur confirme qu'il l'a reçu.</p></details>
   <details><summary>Et si le vendeur vend aussi le même billet ailleurs ?</summary><p>Signale-le depuis ta commande avant que le vendeur soit payé. Tu es remboursé et le vendeur est bloqué.</p></details>
-  <details><summary>Quand suis-je payé en tant que vendeur ?</summary><p>{{ payout_hours }} heures après la soirée, tant que l'acheteur n'a pas signalé de problème. Si l'acheteur confirme que le billet a marché (possible à partir de 2 heures après l'ouverture des portes), plus tôt : à partir de 3 heures après l'ouverture. Tant que tu n'as pas terminé {{ new_seller_sales }} ventes, tu es payé {{ new_seller_hours }} heures après la soirée. Pour un billet dans une appli, seulement une fois marqué comme transféré. Tu configures tes versements une seule fois via Stripe avec ton IBAN.</p></details>
+  <details><summary>Quand suis-je payé en tant que vendeur ?</summary><p>{{ payout_hours }} heures après la soirée, tant que l'acheteur n'a pas signalé de problème. Si l'acheteur fait glisser Swap une fois à l'intérieur (possible dès l'ouverture des portes) et a payé par iDEAL, tu es payé tout de suite. Tant que tu n'as pas terminé {{ new_seller_sales }} ventes, tu es payé {{ new_seller_hours }} heures après la soirée. Pour un billet dans une appli, seulement une fois marqué comme transféré. Tu configures tes versements une seule fois via Stripe avec ton IBAN.</p></details>
   <details><summary>Puis-je modifier ou retirer mon annonce ?</summary><p>Tu peux changer le prix sur la page de ton annonce, tant qu'il reste sous le maximum. Tu peux la retirer à tout moment avant la vente.</p></details>
 </div>

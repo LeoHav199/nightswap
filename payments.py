@@ -28,9 +28,10 @@ def _stripe():
     return stripe
 
 
-def create_checkout(order, title, buyer_email, success_url, cancel_url, ideal_only=False):
+def create_checkout(order, title, buyer_email, success_url, cancel_url, ideal_only=False, strong_card_check=False):
     """Returns (session_id, redirect_url). success_url must contain {CHECKOUT_SESSION_ID}.
-    ideal_only (#27): first-time buyers pay by iDEAL, which can't be charged back like a card."""
+    ideal_only (#27): first-time buyers pay by iDEAL, which can't be charged back like a card.
+    strong_card_check (#38): always ask for 3D Secure on a card, which moves most fraud chargebacks to the card's bank."""
     stripe = _stripe()
     items = [{
         "price_data": {"currency": "eur", "unit_amount": order["price_cents"], "product_data": {"name": title}},
@@ -43,6 +44,8 @@ def create_checkout(order, title, buyer_email, success_url, cancel_url, ideal_on
             "quantity": 1,
         })
     extra = {"payment_method_types": ["ideal"]} if ideal_only else {}
+    if strong_card_check and not ideal_only:
+        extra["payment_method_options"] = {"card": {"request_three_d_secure": "any"}}
     session = stripe.checkout.Session.create(
         mode="payment",  # payment methods (iDEAL, card) are chosen in Dashboard → Settings → Payment methods
         **extra,
@@ -93,10 +96,27 @@ def transfer_to_seller(order, seller):
     return transfer.id
 
 
+def payment_method_type(payment_intent_id):
+    """How the buyer paid: 'ideal', 'card', ... or None when Stripe can't tell. The pretend checkout counts as iDEAL."""
+    if not live():
+        return "ideal"
+    if not payment_intent_id:
+        return None
+    try:
+        intent = _stripe().PaymentIntent.retrieve(payment_intent_id, expand=["latest_charge"])
+        charge = intent.latest_charge
+        details = getattr(charge, "payment_method_details", None) if charge else None
+        return getattr(details, "type", None) if details else None
+    except Exception:
+        return None
+
+
 def reverse_transfer(order):
     """#27: takes a seller's payout back (the money returns from their Stripe balance to Spare's)."""
-    if not live() or not order["transfer_ref"] or not order["transfer_ref"].startswith("tr_"):
+    if not live():
         return "test-reversal"
+    if not order["transfer_ref"] or not order["transfer_ref"].startswith("tr_"):
+        return None  # #39: nothing to reverse (yet): take_back_payout tells the admins instead of claiming success
     return _stripe().Transfer.create_reversal(order["transfer_ref"], idempotency_key="reversal-" + order["public_id"]).id
 
 
@@ -153,6 +173,19 @@ def payouts_ready(account_id):
     account = _v2("get", "/v2/core/accounts/%s" % account_id, include=["configuration.recipient"])
     recipient = account.configuration.recipient
     return bool(recipient) and recipient.capabilities.stripe_balance.stripe_transfers.status == "active"
+
+
+def bank_fingerprint_check(account_id):
+    """#40: what Stripe says about a seller's payout bank account, for the check-bank-fingerprint command."""
+    if not live():
+        return {"live": False, "note": "No Stripe key: nothing to check."}
+    try:
+        accounts = _stripe().Account.list_external_accounts(account_id, object="bank_account", limit=1)
+        data = accounts.data[0] if accounts.data else None
+        return {"live": True, "found": bool(data), "fingerprint": getattr(data, "fingerprint", None) if data else None,
+                "last4": getattr(data, "last4", None) if data else None}
+    except Exception as exc:
+        return {"live": True, "error": "%s: %s" % (type(exc).__name__, exc)}
 
 
 def bank_fingerprint(account_id):

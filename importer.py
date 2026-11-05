@@ -166,7 +166,17 @@ def extract(page_html, page_url=""):
                 address_text = ", ".join(x for x in (_text(address.get("streetAddress")), city) if x)
             offers = obj.get("offers") or {}
             if isinstance(offers, list):
-                offers = offers[0] if offers else {}
+                # #37: several ticket types: keep the first for the link, and the highest price over all of them
+                prices = []
+                for o in offers:
+                    if isinstance(o, dict):
+                        for k in ("highPrice", "price", "lowPrice"):
+                            try:
+                                prices.append(float(str(o.get(k)).replace(",", ".")))
+                            except (TypeError, ValueError):
+                                pass
+                first = next((o for o in offers if isinstance(o, dict)), {})
+                offers = dict(first, highPrice=max(prices)) if prices else first
             ticket_url = _text(offers.get("url") if isinstance(offers, dict) else "") or _text(obj.get("url")) or page_url
             # #25: the official price (the highest one, so every ticket type fits under it)
             price = (offers.get("highPrice") or offers.get("price")) if isinstance(offers, dict) else None

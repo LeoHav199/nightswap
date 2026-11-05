@@ -71,6 +71,12 @@ ADDED_COLUMNS = [
     ("orders", "rating", "TEXT"),
     ("orders", "rated_at", "TEXT"),
     ("orders", "rating_asked_at", "TEXT"),
+    ("orders", "swapped_at", "TEXT"),
+    ("orders", "payout_errors", "INTEGER NOT NULL DEFAULT 0"),  # #34: failed payout attempts; 3 = stop and ask an admin
+    ("orders", "payout_last_error", "TEXT"),
+    ("orders", "dispute_reminded_at", "TEXT"),     # #36: the seller was reminded to answer a problem report
+    ("orders", "dispute_escalated_at", "TEXT"),    # #36: not refunded automatically; an admin was asked             # the buyer slid "Swap" at the door: the ticket worked
+    ("orders", "pay_method", "TEXT"),             # ideal | card | ..., looked up from Stripe at the swap
     ("tickets", "code_text", "TEXT"),
     ("tickets", "code_format", "TEXT"),
     ("orders", "offer_id", "INTEGER"),

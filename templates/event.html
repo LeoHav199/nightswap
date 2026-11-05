@@ -3,7 +3,7 @@
 {% block title %}{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }} · Spare{% endblock %}
 {% block head %}
   <meta property="og:title" content="{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }}">
-  <meta property="og:description" content="{{ t('og_event', venue=ev.venue, n=ev.count) if price_cap == 100 else t('og_event_pct', venue=ev.venue, n=ev.count, pct=price_markup) }}">
+  <meta property="og:description" content="{{ t('og_event_free', venue=ev.venue, n=ev.count) if price_free else (t('og_event', venue=ev.venue, n=ev.count) if price_cap == 100 else t('og_event_pct', venue=ev.venue, n=ev.count, pct=price_markup)) }}">
   {% if ev.poster or ev.photo %}<meta property="og:image" content="{{ base_url }}{{ url_for('poster', name=ev.poster or ev.photo) }}">{% endif %}
   <script type="application/ld+json">{{ {
     "@context": "https://schema.org", "@type": "Event", "name": ev.name or ev.venue,
@@ -85,7 +85,7 @@
                 <span class="tr-qty">{{ t('sold_as_set', n=l.available) if l.sold_together else (t('n_available', n=l.available) if l.available > 1 else '') }}</span>
               </div>
               <div class="badges">{{ m.seller_badges(l, stats[l.seller_id]) }}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>
-              <div class="muted small"><a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report') }}</a> · {{ t('face_value') }} {{ money(l.face_value_cents) }}{% if l.price_cents < l.face_value_cents %} · <span class="good">{{ t('below_face', amount=money(l.face_value_cents - l.price_cents)) }}</span>{% endif %}</div>
+              <div class="muted small"><a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report') }}</a> · {{ t('face_value') }} {{ money(l.face_value_cents) }}{% if l.price_cents < l.face_value_cents %} · <span class="good">{{ t('below_face', amount=money(l.face_value_cents - l.price_cents)) }}</span>{% elif markup_percent(l.price_cents, l.face_value_cents) %} · {{ t('above_face_pct', pct=markup_percent(l.price_cents, l.face_value_cents)) }}{% endif %}</div>
             </div>
           </div>
           <div class="tr-buy">

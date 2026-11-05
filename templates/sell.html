@@ -91,12 +91,12 @@
       <label class="field">
         <span class="label">{{ t('your_price') }} <span class="optional">{{ t('per_ticket') }}</span></span>
         <span class="money-input"><span>€</span><input type="text" inputmode="decimal" name="price" value="{{ form.get('price', '') }}" placeholder="20" required data-price></span>
-        <span class="hint" data-cap-hint>{{ t('price_hint') if price_cap == 100 else t('price_hint_pct', pct=price_markup) }}</span>
+        <span class="hint" data-cap-hint>{{ t('price_hint_free') if price_free else (t('price_hint') if price_cap == 100 else t('price_hint_pct', pct=price_markup)) }}</span>
         {{ m.field_error(errors, 'price') }}
       </label>
     </div>
 
-    <label class="field face-proof" data-face-proof {{ 'hidden' if preset and preset.face_value_max_cents }}>
+    {% if not price_free %}<label class="field face-proof" data-face-proof {{ 'hidden' if preset and preset.face_value_max_cents }}>
       <span class="label">{{ t('face_proof_label') }}</span>
       <span class="file-drop file-drop-sm">
         <input type="file" name="face_proof" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" data-file>
@@ -104,7 +104,7 @@
       </span>
       <span class="hint">{{ t('face_proof_hint') }}</span>
       {{ m.field_error(errors, 'face_proof') }}
-    </label>
+    </label>{% endif %}
 
     {% set delivery = form.get('delivery', 'file') %}
     <fieldset class="field delivery-choice" data-delivery>

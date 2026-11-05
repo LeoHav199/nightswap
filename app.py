@@ -46,7 +46,9 @@ app.teardown_appcontext(db.close)
 if config.TRUST_PROXY:
     # Behind a host's proxy or a tunnel: take the visitor's https address from the forwarded headers.
     from werkzeug.middleware.proxy_fix import ProxyFix
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=config.PROXY_HOPS, x_proto=1, x_host=1)
+    # #41: behind Cloudflare (2 hops) ProxyFix only takes the address Render saw; client_ip() then trusts the
+    # entry before it only when that address is Cloudflare's.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1 if config.PROXY_HOPS >= 2 else config.PROXY_HOPS, x_proto=1, x_host=1)
 config.check_production()
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -137,7 +139,22 @@ def fee_label():
 
 
 def max_price(face_value_cents):
+    """The highest price allowed for this face value, or None when there's no cap (PRICE_CAP_PERCENT = 0)."""
+    if not config.PRICE_CAP_PERCENT:
+        return None
     return face_value_cents * config.PRICE_CAP_PERCENT // 100
+
+
+def over_cap(price_cents, face_value_cents):
+    cap = max_price(face_value_cents)
+    return cap is not None and price_cents > cap
+
+
+def markup_percent(price_cents, face_value_cents):
+    """How far above the face value a price is, in whole percent (0 when at or below it). Shown to buyers."""
+    if not face_value_cents or price_cents <= face_value_cents:
+        return 0
+    return int(round((price_cents - face_value_cents) * 100 / face_value_cents))
 
 
 def t(key, **kwargs):
@@ -222,10 +239,28 @@ def student_school(email):
     return None
 
 
+CLOUDFLARE_NETS = [ipaddress.ip_network(n) for n in config.CLOUDFLARE_RANGES]
+
+
+def from_cloudflare(ip):
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return any(a in n for n in CLOUDFLARE_NETS if n.version == a.version)
+
+
 def client_ip():
     """#10: the visitor's IP for rate limits. ProxyFix reads it from the right-hand end of X-Forwarded-For, which only
-    our host's proxies write; the left-hand end can be faked by the visitor, so it's never trusted."""
+    our host's proxies write; the left-hand end can be faked by the visitor, so it's never trusted.
+    #41: behind Cloudflare, the address Render saw is a Cloudflare server; only then is the entry Cloudflare wrote
+    before it (the real visitor) used. A request sent straight to Render keeps its own address."""
     ip = request.remote_addr or "?"
+    if config.TRUST_PROXY and config.PROXY_HOPS >= 2 and from_cloudflare(ip):
+        chain = [p.strip() for p in request.headers.get("X-Forwarded-For", "").split(",") if p.strip()]
+        if len(chain) >= 2 and not from_cloudflare(chain[-2]):
+            return chain[-2]
+        return ip
     if config.TRUST_PROXY and proxy_address(ip):
         # TRUST_PROXY_HOPS is too low and this is one of the host's own proxies. Sharing its address would lock
         # everyone out of signing in, so fall back to the next entry the proxies wrote (logged, see Network check).
@@ -370,8 +405,7 @@ def payout_due_for(event_date, seller_id=None):
     return night_end + timedelta(hours=hours)
 
 
-RATE_AFTER_DOORS_HOURS = 2   # #30: "did it work?" opens this long after the doors
-PAYOUT_AFTER_DOORS_HOURS = 3  # a 👍 brings the payout forward to this long after the doors (never sooner)
+# The buyer can swap (and rate) from this long after the doors open (config.SWAP_OPENS_AFTER_DOORS_MINUTES).
 
 
 def doors_open_at(listing):
@@ -388,7 +422,32 @@ def doors_open_at(listing):
 
 
 def can_rate_now(listing):
-    return utcnow() >= doors_open_at(listing) + timedelta(hours=RATE_AFTER_DOORS_HOURS)
+    return utcnow() >= doors_open_at(listing) + timedelta(minutes=config.SWAP_OPENS_AFTER_DOORS_MINUTES)
+
+
+def swap(order, listing):
+    """The buyer slid "Swap": they're in and the ticket worked. Pays the seller straight away when it's safe;
+    otherwise the seller is paid at the normal time (PAYOUT_DELAY_HOURS after the night). Returns 'now' or 'later'."""
+    db.run("UPDATE orders SET rating='up', rated_at=?, swapped_at=? WHERE id=? AND rating IS NULL",
+           sqltime(utcnow()), sqltime(utcnow()), order["id"])
+    order = db.one("SELECT * FROM orders WHERE id=?", order["id"])
+    if order["status"] != "paid" or is_new_seller(order["seller_id"]):
+        return "later"  # #28: new sellers are always paid NEW_SELLER_PAYOUT_HOURS after the night
+    if listing["delivery"] == "transfer" and not order["received_at"]:
+        db.run("UPDATE orders SET received_at=? WHERE id=?", sqltime(utcnow()), order["id"])  # swapping means it arrived
+    if config.SWAP_INSTANT_IDEAL_ONLY:
+        method = order["pay_method"] or payments.payment_method_type(order["payment_intent"])
+        if method and method != order["pay_method"]:
+            db.run("UPDATE orders SET pay_method=? WHERE id=?", method, order["id"])
+        if method != "ideal":
+            return "later"
+    db.run("UPDATE orders SET payout_due_at=? WHERE id=? AND payout_due_at > ?", sqltime(utcnow()), order["id"], sqltime(utcnow()))
+    try:
+        paid = release_payout(db.one("SELECT * FROM orders WHERE id=?", order["id"]))
+    except Exception:
+        app.logger.exception("Payout at swap failed for %s; the hourly task retries it", order["public_id"])
+        return "now"  # due now: the hourly task pays it as soon as Stripe allows
+    return "now" if paid else "later"  # not paid: seller blocked or payout setup unfinished; it waits as before
 
 
 def is_new_seller(user_id):
@@ -500,12 +559,28 @@ def mark_paid(order, payment_intent=None):
     return db.one("SELECT * FROM orders WHERE id=?", order["id"])
 
 
+PAYOUT_MAX_ERRORS = 3  # #34: after this many failed attempts an order waits for an admin
+
+
 def release_due_payouts():
-    """Pays sellers whose payout date has passed. Returns (released, waiting_for_seller_setup)."""
-    due = db.all("SELECT * FROM orders WHERE status='paid' AND payout_due_at <= ?", sqltime(utcnow()))
+    """Pays sellers whose payout date has passed. Returns (released, waiting_for_seller_setup).
+    #34: one order that Stripe refuses never stops the others; after PAYOUT_MAX_ERRORS tries it waits for an admin."""
+    due = db.all("SELECT * FROM orders WHERE status='paid' AND payout_due_at <= ? AND payout_errors < ?",
+                 sqltime(utcnow()), PAYOUT_MAX_ERRORS)
     released = waiting = 0
     for order in due:
-        if release_payout(order):
+        try:
+            ok = release_payout(order)
+        except Exception as exc:
+            app.logger.exception("Payout failed for %s", order["public_id"])
+            db.run("UPDATE orders SET payout_errors = payout_errors + 1, payout_last_error=? WHERE id=?", str(exc)[:300], order["id"])
+            if order["payout_errors"] + 1 >= PAYOUT_MAX_ERRORS:
+                notify.notify_admins("Spare: payout needs a manual look (%s)" % order["public_id"],
+                                     "Paying the seller failed %d times: %s\nIt's listed on /admin; it won't be retried automatically."
+                                     % (PAYOUT_MAX_ERRORS, exc))
+            waiting += 1
+            continue
+        if ok:
             released += 1
         else:
             waiting += 1
@@ -560,8 +635,19 @@ def release_payout(order):
     except Exception:
         db.run("UPDATE orders SET status='paid', releasing_at=NULL WHERE id=? AND status='releasing'", order["id"])
         raise
-    db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?",
+    db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=?, payout_errors=0 WHERE id=?",
            sqltime(utcnow()), ref, order["id"])
+    # #39: a chargeback that arrived while the transfer was on its way: take the payout straight back.
+    done = db.one("SELECT * FROM orders WHERE id=?", order["id"])
+    if done["chargeback_at"]:
+        notify.notify_admins("Spare: chargeback during a payout (%s)" % done["public_id"],
+                             "The buyer's bank opened a chargeback while the seller was being paid. Taking the payout back now.")
+        take_back_payout(done)
+    # #40: the blocked-bank check needs Stripe's fingerprint; tell the admins (once a day) when it's missing.
+    if payments.live() and not seller["bank_fingerprint"] and not rate_limited("no-fingerprint", 1, 24 * 60, "admins"):
+        notify.notify_admins("Spare: payout without a bank fingerprint",
+                             "%s was paid without a bank-account fingerprint from Stripe, so the blocked-bank check (#24) "
+                             "couldn't run. Check it with: flask --app app check-bank-fingerprint %s" % (seller["email"], seller["email"]))
     return True
 
 
@@ -569,7 +655,11 @@ def release_stuck_payouts():
     """#26: payouts claimed more than 15 minutes ago that never finished: finished if Stripe has the transfer, else retried later."""
     fixed = 0
     for order in db.all("SELECT * FROM orders WHERE status='releasing' AND releasing_at < ?", sqltime(utcnow() - timedelta(minutes=15))):
-        ref = payments.find_transfer(order)
+        try:
+            ref = payments.find_transfer(order)
+        except Exception:
+            app.logger.exception("Could not check the transfer for %s", order["public_id"])  # #34: try again next hour
+            continue
         if ref:
             db.run("UPDATE orders SET status='released', released_at=?, transfer_ref=? WHERE id=?", sqltime(utcnow()), ref, order["id"])
         else:
@@ -616,17 +706,25 @@ def send_reminders():
             db.run("UPDATE listings SET nudged_at=? WHERE id=?", sqltime(utcnow()), l["id"])
             nudged += 1
     for o in db.all(
-        """SELECT o.*, l.venue, l.event_name, l.event_date FROM orders o JOIN listings l ON l.id = o.listing_id
+        """SELECT o.*, l.venue, l.event_name, l.event_date, l.start_time, l.event_id FROM orders o JOIN listings l ON l.id = o.listing_id
            WHERE o.status IN ('paid', 'released') AND o.rating IS NULL AND o.rating_asked_at IS NULL
-             AND l.event_date < ?""",
+             AND l.event_date <= ?""",
         today().isoformat(),
     ):
+        doors = doors_open_at(o)
+        if utcnow() < doors + timedelta(minutes=config.SWAP_REMIND_MINUTES):
+            continue  # Swap: ask at the door, a little after the doors open
         buyer = db.one("SELECT * FROM users WHERE id=?", o["buyer_id"])
-        notify.send_email(buyer["email"], t("mail_rate_subject", title=listing_title(o)),
-                          t("mail_rate_body", name=buyer["first_name"], title=listing_title(o),
-                            url=base_url() + url_for("order_page", public_id=o["public_id"])))
-        push.send(buyer["id"], t("push_rate_title"), t("push_rate_body", title=listing_title(o)),
-                  url_for("order_page", public_id=o["public_id"]), tag="rate-" + o["public_id"])
+        path = url_for("order_page", public_id=o["public_id"])
+        at_the_door = o["status"] == "paid" and utcnow() < doors + timedelta(hours=12)
+        if at_the_door:  # "Inside? Slide Swap", during the night
+            notify.send_email(buyer["email"], t("mail_swap_subject", title=listing_title(o)),
+                              t("mail_swap_body", name=buyer["first_name"], title=listing_title(o), url=base_url() + path))
+            push.send(buyer["id"], t("push_swap_title"), t("push_swap_body", title=listing_title(o)), path, tag="swap-" + o["public_id"])
+        else:  # missed the night (or already paid out): the old "did it work?" request
+            notify.send_email(buyer["email"], t("mail_rate_subject", title=listing_title(o)),
+                              t("mail_rate_body", name=buyer["first_name"], title=listing_title(o), url=base_url() + path))
+            push.send(buyer["id"], t("push_rate_title"), t("push_rate_body", title=listing_title(o)), path, tag="rate-" + o["public_id"])
         db.run("UPDATE orders SET rating_asked_at=? WHERE id=?", sqltime(utcnow()), o["id"])
         asked += 1
     return nudged, asked
@@ -693,6 +791,7 @@ def nightly_backup(force=False):
     for email in config.ADMIN_EMAILS:
         notify.send_email(email, "Spare backup %s" % day, body, attachments=[(name, data)])
     set_setting("last_backup_day", day)
+    set_setting("last_backup_ok", sqltime(utcnow()))  # #42: shown on /admin's launch check
     return True
 
 
@@ -935,6 +1034,8 @@ def template_globals():
         "fee_max": config.FEE_MAX_CENTS,
         "price_cap": config.PRICE_CAP_PERCENT,
         "price_markup": config.PRICE_CAP_PERCENT - 100,  # e.g. 20 for "up to 20% above face value"
+        "price_free": not config.PRICE_CAP_PERCENT,      # no cap: sellers set their own price (texts switch to that)
+        "markup_percent": markup_percent,
         "payout_hours": config.PAYOUT_DELAY_HOURS,
         "new_seller_hours": config.NEW_SELLER_PAYOUT_HOURS, "new_seller_sales": config.NEW_SELLER_SALES,
         "base_url": base_url(),
@@ -1476,7 +1577,9 @@ def buy(listing_id):
     first_time = not db.one("SELECT 1 FROM orders WHERE buyer_id=? AND status IN ('paid', 'released', 'releasing') AND id != ?",
                             g.user["id"], order_id)
     try:
-        session_id, pay_url = payments.create_checkout(order, title, g.user["email"], success, cancel, ideal_only=first_time)
+        session_id, pay_url = payments.create_checkout(order, title, g.user["email"], success, cancel,
+                                                        ideal_only=first_time and not config.FIRST_BUY_CARD,
+                                                        strong_card_check=first_time)
     except Exception:
         app.logger.exception("Stripe checkout failed")
         db.run("UPDATE orders SET status='cancelled' WHERE id=?", order_id)
@@ -1639,7 +1742,9 @@ def order_calendar(public_id):
     return resp
 
 
-DISPUTE_REPLY_HOURS = 24  # the seller's time to answer a problem report in the order chat
+DISPUTE_REPLY_HOURS = 48  # the seller's time to answer a problem report in the order chat (#36: was 24)
+DISPUTE_REMIND_HOURS = 12  # #36: the seller is reminded after this long without an answer
+DISPUTE_HISTORY_DAYS = 90  # #36: a buyer with another dispute in this period isn't refunded automatically
 
 
 DISPUTE_KINDS = ("door_rejected", "already_scanned", "wrong_event", "never_received", "other")
@@ -1693,17 +1798,29 @@ def rate_order(public_id):
     if (order["buyer_id"] != g.user["id"] or value not in ("up", "down") or order["rating"]
             or order["status"] not in PAID_STATES or not can_rate_now(listing)):
         abort(400)  # #30: only once the doors have been open a while, so nobody confirms before they're inside
+    if value == "up":
+        when = swap(order, listing)
+        flash(t("swapped_now") if when == "now" else t("swapped_later"), "ok")
+        return redirect(url_for("order_page", public_id=public_id))
     db.run("UPDATE orders SET rating=?, rated_at=? WHERE id=?", value, sqltime(utcnow()), order["id"])
-    if value == "up" and order["status"] == "paid" and not is_new_seller(order["seller_id"]):
-        # The buyer confirms the ticket worked: no need to keep the seller waiting for the full 48 hours. The hourly
-        # task pays it, no sooner than 3 hours after the doors, and until then the buyer can still report a problem.
-        # (New sellers are always paid 72 hours after the night, #28.)
-        sooner = max(utcnow(), doors_open_at(listing) + timedelta(hours=PAYOUT_AFTER_DOORS_HOURS))
-        db.run("UPDATE orders SET payout_due_at=? WHERE id=? AND payout_due_at > ?", sqltime(sooner), order["id"], sqltime(sooner))
     if value == "down" and order["status"] == "paid":
         flash(t("rated_down"), "error")
         return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
     flash(t("rated_up") if value == "up" else t("rated_down_late"), "ok")
+    return redirect(url_for("order_page", public_id=public_id))
+
+
+@app.route("/orders/<public_id>/swap", methods=["POST"])
+@login_required
+def swap_order(public_id):
+    """The "Swap" slider on the order page: the buyer is in, the seller gets the money Spare was holding."""
+    order = get_order_for_user(public_id)
+    listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    if (order["buyer_id"] != g.user["id"] or order["rating"] or order["status"] not in PAID_STATES
+            or not can_rate_now(listing)):
+        abort(400)  # only from the moment the doors open, so nobody swaps days before
+    when = swap(order, listing)
+    flash(t("swapped_now") if when == "now" else t("swapped_later"), "ok")
     return redirect(url_for("order_page", public_id=public_id))
 
 
@@ -1723,13 +1840,9 @@ def mark_transferred(public_id):
             flash(errors["transfer_proof"], "error")
             return redirect(url_for("order_page", public_id=public_id))
         if proof:
-            picture = ticketcodes.phash(*proof)
-            reused = picture and any(ticketcodes.phash_distance(picture, p["phash"]) <= ticketcodes.PHASH_MATCH for p in db.all(
-                "SELECT phash FROM proofs WHERE kind='transfer' AND phash IS NOT NULL AND order_id != ?", order["id"]))
-            if reused:
-                flash(t("err_transfer_proof_reused"), "error")
-                return redirect(url_for("order_page", public_id=public_id))
-            save_proof(proof, "transfer", order_id=order["id"], phash=picture)
+            # #35: transfer confirmations from one app look the same for everyone, so they're kept for the buyer and
+            # Spare's team but no longer compared with each other.
+            save_proof(proof, "transfer", order_id=order["id"], phash=ticketcodes.phash(*proof))
         db.run("UPDATE orders SET transferred_at=? WHERE id=?", sqltime(utcnow()), order["id"])
         th = get_thread(listing, order["buyer_id"])
         add_message(th, None, "system", "sys_transferred")
@@ -1787,11 +1900,43 @@ def auto_refund_silent_disputes():
     done = 0
     cutoff = sqltime(utcnow() - timedelta(hours=DISPUTE_REPLY_HOURS))
     for o in db.all("""SELECT * FROM orders WHERE status='disputed' AND seller_replied_at IS NULL AND disputed_at < ?
-                       AND dispute_kind IN ('door_rejected', 'already_scanned')""", cutoff):
-        if refund_order(o, "refund_dispute_auto"):
-            db.run("UPDATE orders SET dispute_decision=? WHERE id=?", "Refunded automatically: the seller didn't answer within 24 hours.", o["id"])
+                       AND dispute_kind IN ('door_rejected', 'already_scanned') AND dispute_escalated_at IS NULL""", cutoff):
+        # #36: only refund on the spot with a photo, a clean history and no chargeback; otherwise an admin decides.
+        photo = db.one("SELECT 1 FROM proofs WHERE order_id=? AND kind='dispute_buyer'", o["id"])
+        repeat = db.one("""SELECT 1 FROM orders WHERE buyer_id=? AND id != ? AND disputed_at IS NOT NULL AND disputed_at > ?""",
+                        o["buyer_id"], o["id"], sqltime(utcnow() - timedelta(days=DISPUTE_HISTORY_DAYS)))
+        if not photo or repeat or o["chargeback_at"]:
+            db.run("UPDATE orders SET dispute_escalated_at=? WHERE id=?", sqltime(utcnow()), o["id"])
+            notify.notify_admins("Spare: dispute needs a decision (%s)" % o["public_id"],
+                                 "The seller didn't answer within %d hours, but it isn't refunded automatically (%s). Decide at %s"
+                                 % (DISPUTE_REPLY_HOURS, "chargeback open" if o["chargeback_at"] else "no photo" if not photo else
+                                    "the buyer had another dispute recently", base_url() + url_for("admin_dispute", public_id=o["public_id"])))
+            continue
+        try:
+            refunded = refund_order(o, "refund_dispute_auto")
+        except Exception:
+            app.logger.exception("Automatic refund failed for %s", o["public_id"])  # #34: the others carry on
+            continue
+        if refunded:
+            db.run("UPDATE orders SET dispute_decision=? WHERE id=?",
+                   "Refunded automatically: the seller didn't answer within %d hours." % DISPUTE_REPLY_HOURS, o["id"])
             done += 1
     return done
+
+
+def remind_silent_sellers():
+    """#36: a problem report the seller hasn't answered after DISPUTE_REMIND_HOURS: one email and push to the seller."""
+    sent = 0
+    cutoff = sqltime(utcnow() - timedelta(hours=DISPUTE_REMIND_HOURS))
+    for o in db.all("""SELECT * FROM orders WHERE status='disputed' AND seller_replied_at IS NULL AND dispute_reminded_at IS NULL
+                       AND disputed_at < ?""", cutoff):
+        db.run("UPDATE orders SET dispute_reminded_at=? WHERE id=?", sqltime(utcnow()), o["id"])
+        listing = db.one("SELECT * FROM listings WHERE id=?", o["listing_id"])
+        tell(o["seller_id"], t("mail_dispute_remind_subject", title=listing_title(listing)),
+             t("mail_dispute_remind_body", title=listing_title(listing), hours=DISPUTE_REPLY_HOURS - DISPUTE_REMIND_HOURS),
+             url_for("order_page", public_id=o["public_id"]))
+        sent += 1
+    return sent
 
 
 @app.route("/admin/disputes/<public_id>")
@@ -1899,6 +2044,9 @@ def stripe_webhook():
     obj = event["data"]["object"]
     if hasattr(obj, "to_dict"):
         obj = obj.to_dict()  # stripe-python 8+ objects aren't dicts any more: .get() raises AttributeError
+    set_setting("stripe_last_webhook", sqltime(utcnow()))  # #42: the launch check shows webhooks arrive
+    if event["type"] in ("charge.dispute.created", "charge.dispute.closed", "charge.refunded"):
+        set_setting("stripe_money_event", event["type"] + " · " + sqltime(utcnow()))
     if event["type"] in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
         order = db.one("SELECT * FROM orders WHERE payment_ref=?", obj["id"])
         if order and obj.get("payment_status") == "paid":
@@ -1921,6 +2069,11 @@ def take_back_payout(order):
         app.logger.exception("Transfer reversal failed")
         notify.notify_admins("Spare: couldn't take back a payout (%s)" % order["public_id"],
                              "Stripe refused to reverse the seller's payout for order %s: %s\n\nCheck it in the Stripe dashboard." % (order["public_id"], exc))
+        return None
+    if not ref:  # #39: no transfer to reverse yet (the payout is still being sent): never report success
+        notify.notify_admins("Spare: couldn't take back a payout (%s)" % order["public_id"],
+                             "Order %s has no Stripe transfer to reverse yet. Check the Stripe dashboard in a few minutes "
+                             "and reverse the transfer by hand if it went through." % order["public_id"])
         return None
     db.run("UPDATE orders SET reversal_ref=? WHERE id=?", ref, order["id"])
     return ref
@@ -2377,13 +2530,14 @@ def sell():
         face_proof = None
         if face is not None and official and face > official:
             errors["face_value"] = t("err_face_official", max=money(official))
-        elif not official and config.FACE_PROOF_REQUIRED:
+        elif not official and config.FACE_PROOF_REQUIRED and config.PRICE_CAP_PERCENT:
+            # Proof of the face value only matters when there's a cap to enforce; with free prices it's just shown.
             face_proof = read_proof(request.files.get("face_proof"), errors, "face_proof")
 
         price = parse_money(form.get("price"))
         if price is None or price < 100:
             errors["price"] = t("err_price")
-        elif face is not None and price > max_price(face):
+        elif face is not None and over_cap(price, face):
             errors["price"] = t("err_price_cap", max=money(max_price(face)))
 
         # #28: the seller promises the ticket isn't for sale anywhere else.
@@ -2417,11 +2571,12 @@ def sell():
         # #29: app tickets have nothing to check automatically, so the seller shows them: a screenshot from the
         # ticket app (event, date, ticket holder) and the order confirmation. Kept private for Spare's team.
         app_shot = app_order = None
+        picture_match = False
         if delivery == "transfer" and config.TICKET_CHECKS:
             app_shot = read_proof(request.files.get("app_screenshot"), errors, "app_screenshot")
             app_order = read_proof(request.files.get("app_order"), errors, "app_order")
             if app_shot and similar_picture_listed(ticketcodes.phash(*app_shot), []):
-                errors["app_screenshot"] = t("err_ticket_duplicate")
+                picture_match = True  # #35: app screens look alike for everyone; an admin decides, nobody is refused
 
         poster_upload = request.files.get("poster")
         poster_data = poster_ext = None
@@ -2445,13 +2600,15 @@ def sell():
                 errors["ticket"] = t("err_code_duplicate")
             elif sum(max(1, len(codes)) for _, _, codes in files) > config.MAX_TICKETS_PER_LISTING:
                 errors["ticket"] = t("err_too_many", n=config.MAX_TICKETS_PER_LISTING)
-            elif config.TICKET_CHECKS and any(similar_picture_listed(ticketcodes.phash(data, ext), codes) for data, ext, codes in files):
-                errors["ticket"] = t("err_ticket_duplicate")  # #29: a re-saved, resized or cropped copy of a listed ticket
             elif config.TICKET_CHECKS and any(not codes for _, _, codes in files) and form.get("code_review") != "yes":
                 # #29: without a readable code, the duplicate check only sees the file. Ask for a clearer file,
                 # or let an admin look at it before it goes on sale.
                 errors["ticket"] = t("err_no_code")
                 errors["code_review_offer"] = True
+
+        if files and not errors and config.TICKET_CHECKS and any(
+                similar_picture_listed(ticketcodes.phash(data, ext), codes) for data, ext, codes in files):
+            picture_match = True  # #29/#35: looks like a listed ticket (re-saved or same template): an admin decides
 
         new_seller = is_new_seller(g.user["id"])
         if not errors and new_seller:
@@ -2486,6 +2643,8 @@ def sell():
             review = ["face"] if face_proof else []
             if config.TICKET_CHECKS and files and any(not codes for _, _, codes in files):
                 review.append("code")
+            if picture_match:
+                review.append("picture")  # #35: looks like a ticket already on Spare; the admin queue shows both
             # #28: a seller's listings only go on sale once Stripe's payout setup (with its identity check) is done.
             draft = config.NEW_SELLER_LIMITS and not g.user["payouts_ready"]
             listing_id = db.run(
@@ -2567,7 +2726,7 @@ def change_price(listing_id):
         flash(t("err_cannot_edit"), "error")
     elif price is None or price < 100:
         flash(t("err_price"), "error")
-    elif price > max_price(l["face_value_cents"]):
+    elif over_cap(price, l["face_value_cents"]):
         flash(t("err_price_cap", max=money(max_price(l["face_value_cents"]))), "error")
     else:
         db.run("UPDATE listings SET price_cents=? WHERE id=?", price, listing_id)
@@ -3104,9 +3263,39 @@ def admin():
     network = {"ip": client_ip(), "entries": len(chain), "hops": config.PROXY_HOPS, "proxy": config.TRUST_PROXY}
     used, used_bytes, total = disk_usage()
     disk = {"pct": round(used * 100), "used": used_bytes / 1e9, "total": total / 1e9, "warn": used >= DISK_ALERT}
+    stuck = db.all("""SELECT o.public_id, o.payout_errors, o.payout_last_error, s.email AS seller_email FROM orders o
+                      JOIN users s ON s.id = o.seller_id WHERE o.status='paid' AND o.payout_errors >= ?""", PAYOUT_MAX_ERRORS)
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
                            waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
-                           review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files)
+                           review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files,
+                           checks=launch_checks(disk), stuck=stuck)
+
+
+def launch_checks(disk):
+    """#42: what's set and what isn't before real money, at a glance. Never shows secret values."""
+    host_ok = bool(config.BASE_URL) and urlparse(config.BASE_URL).netloc == request.host
+    admins = db.all("SELECT email, totp_secret FROM users WHERE email IN (%s)" % ",".join("?" * len(config.ADMIN_EMAILS)),
+                    *config.ADMIN_EMAILS) if config.ADMIN_EMAILS else []
+    last_hourly = get_setting("hourly_last_run")
+    hourly_ok = bool(last_hourly) and parse_sqltime(last_hourly) > utcnow() - timedelta(hours=2)
+    waiting = db.one("SELECT COUNT(*) AS n FROM listings WHERE status='review'")["n"]
+    return [
+        ("BASE_URL set, and this page is served from it", host_ok, config.BASE_URL or "not set"),
+        ("Stripe", payments.live(), "test mode" if payments.live() and payments.is_test_mode() else "live" if payments.live() else "no key"),
+        ("Stripe webhook secret set", bool(config.STRIPE_WEBHOOK_SECRET), ""),
+        ("A Stripe webhook arrived", bool(get_setting("stripe_last_webhook")), get_setting("stripe_last_webhook") or "never"),
+        ("Chargeback/refund events reach Spare (#27)", bool(get_setting("stripe_money_event")),
+         get_setting("stripe_money_event") or "none yet: add charge.dispute.created, charge.dispute.closed and charge.refunded in Stripe"),
+        ("BACKUP_KEY set", bool(config.BACKUP_KEY), "last backup " + (get_setting("last_backup_ok") or "never")),
+        ("Company details in the terms", bool(config.COMPANY_NAME and config.COMPANY_ADDRESS and config.KVK_NUMBER),
+         config.COMPANY_NAME or "COMPANY_NAME, COMPANY_ADDRESS, KVK_NUMBER not set"),
+        ("Every admin has an authenticator app", bool(admins) and all(a["totp_secret"] for a in admins),
+         ", ".join(a["email"] for a in admins if not a["totp_secret"]) or ""),
+        ("Email sending (SMTP)", bool(config.SMTP_HOST), ""),
+        ("Hourly task ran in the last 2 hours", hourly_ok, last_hourly or "never"),
+        ("Disk below %d%%" % round(DISK_ALERT * 100), not disk["warn"], "%d%% full" % disk["pct"]),
+        ("Listings waiting for a check", waiting == 0, "%d waiting" % waiting),
+    ]
 
 
 @app.route("/admin/backup")
@@ -4024,21 +4213,38 @@ def hourly_tasks():
     sent = request.headers.get("X-Task-Secret", "")
     if not config.TASK_SECRET or not hmac.compare_digest(sent, config.TASK_SECRET):
         abort(404)
-    release_stuck_payouts()
-    auto_refund_silent_disputes()
-    released, waiting = release_due_payouts()
-    nudged, asked = send_reminders()
-    resell = send_resell_reminders()
-    transfer_reminders = send_transfer_reminders()
-    send_buyer_transfer_reminders()
-    backed_up = nightly_backup()
-    files_deleted = cleanup_ticket_files()
-    check_disk()
-    db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1)))
-    db.run("DELETE FROM codes WHERE expires_at < ?", sqltime(utcnow()))  # expired sign-in codes (privacy policy)
+    # #34: each task on its own, so one error (a Stripe refusal, a full disk) never stops the others.
+    results, failed = {}, []
+
+    def run(name, fn):
+        try:
+            results[name] = fn()
+        except Exception as exc:
+            app.logger.exception("Hourly task %s failed", name)
+            failed.append(name)
+            if not rate_limited("hourly-alert", 1, 24 * 60, "hourly-" + name):
+                notify.notify_admins("Spare: hourly task '%s' failed" % name,
+                                     "%s\n\nThe other tasks carried on. You get this at most once a day per task." % exc)
+
+    run("stuck", release_stuck_payouts)
+    run("disputes", auto_refund_silent_disputes)
+    run("dispute_reminders", remind_silent_sellers)
+    run("payouts", release_due_payouts)
+    run("reminders", send_reminders)
+    run("resell", send_resell_reminders)
+    run("transfer", send_transfer_reminders)
+    run("buyer_transfer", send_buyer_transfer_reminders)
+    run("backup", nightly_backup)
+    run("cleanup", cleanup_ticket_files)
+    run("disk", check_disk)
+    run("tidy", lambda: (db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1))),
+                         db.run("DELETE FROM codes WHERE expires_at < ?", sqltime(utcnow()))) and None)  # expired codes (privacy policy)
+    set_setting("hourly_last_run", sqltime(utcnow()))  # #42: shown on /admin's launch check
+    released, waiting = results.get("payouts") or (0, 0)
+    nudged, asked = results.get("reminders") or (0, 0)
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
-            "resell_reminders": resell, "transfer_reminders": transfer_reminders, "backup": backed_up,
-            "ticket_files_deleted": files_deleted}
+            "resell_reminders": results.get("resell"), "transfer_reminders": results.get("transfer"),
+            "backup": results.get("backup"), "ticket_files_deleted": results.get("cleanup"), "failed": failed}
 
 
 @app.cli.command("init-db")
@@ -4071,6 +4277,21 @@ def send_reminders_command():
         nudged, asked = send_reminders()
         resell = send_resell_reminders()
     click.echo("Price nudges %d, rating requests %d, resell reminders %d" % (nudged, asked, resell))
+
+
+@app.cli.command("check-bank-fingerprint")
+@click.argument("email")
+def check_bank_fingerprint_command(email):
+    """#40: show what Stripe returns for a seller's payout bank account (never prints the full account number)."""
+    u = db.one("SELECT * FROM users WHERE email=?", email.strip().lower())
+    if not u:
+        raise click.ClickException("No user with that email.")
+    if not u["stripe_account_id"]:
+        raise click.ClickException("This user hasn't started payout setup.")
+    click.echo("Stripe account: %s" % u["stripe_account_id"])
+    click.echo("Saved fingerprint: %s" % (u["bank_fingerprint"] or "none"))
+    for key, value in payments.bank_fingerprint_check(u["stripe_account_id"]).items():
+        click.echo("%s: %s" % (key, value))
 
 
 @app.cli.command("test-email")

@@ -3,6 +3,7 @@ import io, os, re, sys, tempfile
 from datetime import date, datetime, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
+config.PRICE_CAP_PERCENT = 120  # these checks cover the optional price cap (off by default since 5 Nov 2026)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # switched on in the #28 and #29 sections only
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
@@ -77,8 +78,8 @@ ok("Van studenten, voor studenten" not in html(nl.get("/")) and "Gemaakt voor st
 
 # --- #4: one payout rule everywhere, matching rate_order and release_payout
 how, terms = html(visitor.get("/how-it-works")), html(visitor.get("/terms"))
-ok("If the buyer confirms the ticket worked, sooner" in how and "48 hours after the night" in how and "72 hours" in how, "#4 How it works describes the early and the latest payout")
-ok("the payout is brought forward" in terms and "nothing is paid out until the seller has transferred it" in terms, "#4 the terms say the same")
+ok("If the buyer slides Swap" in how and "24 hours after the night" in how and "72 hours" in how, "#4 How it works describes the Swap and the latest payout")
+ok("the payout is made straight away" in terms and "nothing is paid out until the seller has transferred it" in terms, "#4 the terms say the same")
 ok("held until after the event" not in how, "#4 no more 'held until after the event'")
 
 # --- #5: the FAQ is up to date and how-it-works exists in every language
@@ -163,7 +164,7 @@ r = buyer.post("/t/%d/buy" % lid2, data={"_csrf": csrf(buyer)}); pub2 = r.locati
 buyer.post("/checkout/%s/test" % pub2, data={"_csrf": csrf(buyer)}); SENT.clear()
 buyer.post("/orders/%s/report" % pub2, data={"reason": "The QR code was already scanned at the door", "_csrf": csrf(buyer)})
 mail = [b for to, sub, b in SENT if to == "s@test.nl" and "Problem reported" in sub]
-ok(mail and "within 24 hours" in mail[0] and "/orders/%s" % pub2 in mail[0], "#12 the seller gets an email about the problem, with 24 hours to reply in the chat")
+ok(mail and "within 48 hours" in mail[0] and "/orders/%s" % pub2 in mail[0], "#12 the seller gets an email about the problem, with 48 hours to reply in the chat (#36)")
 with app.app_context(): ok(A.db.one("SELECT 1 FROM messages WHERE kind='system' AND body='sys_disputed'") is not None, "#12 the order chat notes the report")
 r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                                "ticket": (io.BytesIO(b"%PDF-1.4 guard three"), "g3.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
@@ -643,15 +644,21 @@ login(seller3, "s3@test.nl", "Sy")  # blocking signed them out
 # iDEAL only for a first purchase
 seen = []
 real_checkout, real_live = payments.create_checkout, payments.live
-payments.create_checkout = lambda order, title, email, ok_url, cancel_url, ideal_only=False: seen.append(ideal_only) or ("cs_x", "https://checkout.stripe.com/x")
+payments.create_checkout = lambda order, title, email, ok_url, cancel_url, ideal_only=False, strong_card_check=False: seen.append((ideal_only, strong_card_check)) or ("cs_x", "https://checkout.stripe.com/x")
 payments.live = lambda: True
 newbuyer = app.test_client(); login(newbuyer, "first@test.nl", "Fi")
 r = sell3(priced, "25"); l_first = int(re.search(r"/t/(\d+)", r.location).group(1))
 newbuyer.post("/t/%d/buy" % l_first, data={"_csrf": csrf(newbuyer)})
 r = sell3(priced, "25"); l_again = int(re.search(r"/t/(\d+)", r.location).group(1))
 buyer.post("/t/%d/buy" % l_again, data={"_csrf": csrf(buyer)})
+config.FIRST_BUY_CARD = False
+newbuyer2 = app.test_client(); login(newbuyer2, "first2@test.nl", "Fe")
+r = sell3(priced, "25"); l_first2 = int(re.search(r"/t/(\d+)", r.location).group(1))
+newbuyer2.post("/t/%d/buy" % l_first2, data={"_csrf": csrf(newbuyer2)})
+config.FIRST_BUY_CARD = True
 payments.create_checkout, payments.live = real_checkout, real_live
-ok(seen == [True, False], "#27 a first-time buyer pays by iDEAL only; someone who bought before can also use a card")
+ok(seen == [(False, True), (False, False), (True, True)],
+   "#38 a first-time buyer may pay by card with 3D Secure; with FIRST_BUY_CARD off it's iDEAL only again (#27)")
 
 # --- #28: new sellers: payout setup first, 2 tickets at a time, paid 72 hours after the night, a no-double-sell promise
 config.NEW_SELLER_LIMITS = True
@@ -718,7 +725,9 @@ with app.app_context(): cl = A.db.one("SELECT * FROM listings WHERE seller_id=(S
 ok(cl["status"] == "review" and "code" in cl["review_reason"], "#29 ...sent for a manual check, it waits in the admin queue")
 ok("ticket file 1" in html(admin.get("/admin")), "#29 the admin queue links the ticket file")
 r = sell4((io.BytesIO(ticket_png(1, scale=0.8, fmt="JPEG")), "resaved.jpg"), {"code_review": "yes"})
-ok(r.status_code == 200 and "already" in html(r).lower(), "#29 a re-saved, resized copy of that picture is refused (perceptual hash)")
+with app.app_context(): rs = A.db.one("SELECT * FROM listings WHERE seller_id=(SELECT id FROM users WHERE email='s4@test.nl') ORDER BY id DESC")
+ok(r.status_code == 302 and rs["status"] == "review" and "picture" in rs["review_reason"],
+   "#35 a re-saved copy of a listed picture isn't refused: it waits for an admin with reason 'picture'")
 r = sell4((io.BytesIO(ticket_png(2, qr="TM-2026-AAA")), "a.png"))
 ok(r.status_code == 302, "#29 a ticket with a readable code goes through")
 r = sell4((io.BytesIO(ticket_png(2, qr="TM-2026-BBB")), "b.png"))
@@ -734,7 +743,8 @@ with app.app_context(): kinds = sorted(p["kind"] for p in A.db.all("SELECT kind 
 ok(kinds == ["app_order", "app_screenshot"], "#29 both are kept privately for Spare's team")
 r = seller4.post("/sell", data=dict(app_base, app_screenshot=(io.BytesIO(ticket_png(7, scale=0.9, fmt="JPEG")), "same.jpg"),
                                      app_order=(io.BytesIO(b"%PDF-1.4 order2"), "order2.pdf"), _csrf=csrf(seller4)), content_type="multipart/form-data")
-ok(r.status_code == 200, "#29 the same app screenshot can't be used for a second listing")
+with app.app_context(): rs = A.db.one("SELECT * FROM listings WHERE seller_id=(SELECT id FROM users WHERE email='s4@test.nl') ORDER BY id DESC")
+ok(r.status_code == 302 and "picture" in (rs["review_reason"] or ""), "#35 a look-alike app screenshot goes to an admin instead of being refused")
 config.TICKET_CHECKS = False
 
 # --- #30: "it worked" only once the doors have been open a while; a 👍 doesn't pay on the spot
@@ -749,17 +759,19 @@ with app.app_context():
 local_doors = opens.replace(tzinfo=__import__("datetime").timezone.utc).astimezone().strftime("%H:%M")
 ok(local_doors == "23:00", "#30 the doors come from the event's door time (Amsterdam time)")
 real_utcnow = A.utcnow
-A.utcnow = lambda: opens + timedelta(hours=1)
-r = buyer.post("/orders/%s/rate" % o7["public_id"], data={"rating": "up", "_csrf": csrf(buyer)})
-ok(r.status_code == 400, "#30 one hour after the doors it's still too early to say 'it worked'")
-A.utcnow = lambda: opens + timedelta(hours=2, minutes=5)
-buyer.post("/orders/%s/rate" % o7["public_id"], data={"rating": "up", "_csrf": csrf(buyer)})
+A.utcnow = lambda: opens - timedelta(minutes=30)
+r = buyer.post("/orders/%s/swap" % o7["public_id"], data={"_csrf": csrf(buyer)})
+ok(r.status_code == 400, "#30 Swap: before the doors open it's too early to swap")
+A.utcnow = lambda: opens + timedelta(minutes=5)
+due_before = order_now(o7)["payout_due_at"]
+with app.app_context(): new_seller = A.is_new_seller(o7["seller_id"])
+buyer.post("/orders/%s/swap" % o7["public_id"], data={"_csrf": csrf(buyer)})
 o7 = order_now(o7)
-ok(o7["rating"] == "up" and o7["status"] == "paid" and o7["payout_due_at"] == A.sqltime(opens + timedelta(hours=3)),
-   "#30 from 2 hours after the doors a 👍 counts, and brings the payout to 3 hours after the doors (not straight away)")
+ok(o7["rating"] == "up" and o7["swapped_at"] and not new_seller and o7["status"] == "released",
+   "#30 Swap counts from when the doors open, and pays a seller with a track record straight away (iDEAL)")
 SENT.clear(); MAIL_WORKS[0] = True
-buyer.post("/orders/%s/report" % o7["public_id"], data={"reason": "Turned away at 00:30, code already scanned", "_csrf": csrf(buyer)})
-ok(order_now(o7)["status"] == "disputed", "#30 the buyer can still report a problem after a 👍, until the money has gone")
+r = buyer.post("/orders/%s/report" % o7["public_id"], data={"reason": "Turned away at 00:30, code already scanned", "_csrf": csrf(buyer)})
+ok(r.status_code == 400 and order_now(o7)["status"] == "released", "#30 after a swap the money has gone, so there's nothing left to dispute here")
 A.utcnow = real_utcnow; MAIL_WORKS[0] = False
 r = seller3.get("/orders/%s" % o7["public_id"])
 with app.app_context(): th = A.db.one("SELECT id FROM threads WHERE order_id=?", o7["id"])
@@ -788,7 +800,7 @@ ok(buyer.get("/orders/%s/proofs/%d" % (a1["public_id"], tp["id"])).status_code =
 a2 = app_order(32)
 seller4.post("/orders/%s/transferred" % a2["public_id"], data={"transfer_proof": (io.BytesIO(ticket_png(310, scale=0.9, fmt="JPEG")), "again.jpg"), "_csrf": csrf(seller4)},
              content_type="multipart/form-data")
-ok(order_now(a2)["transferred_at"] is None, "#31 the same screenshot can't prove a second transfer")
+ok(order_now(a2)["transferred_at"] is not None, "#35 transfer confirmations are no longer compared with each other (they all look alike)")
 with app.app_context():
     A.db.run("UPDATE orders SET payout_due_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(minutes=1)), a1["id"])
     A.db.run("UPDATE users SET payouts_ready=1 WHERE email='s4@test.nl'")
@@ -820,7 +832,7 @@ d1 = order_now(d1)
 with app.app_context(): bphotos = A.db.all("SELECT * FROM proofs WHERE order_id=? AND kind='dispute_buyer'", d1["id"])
 ok(d1["status"] == "disputed" and d1["dispute_kind"] == "already_scanned" and len(bphotos) == 2, "#32 the report stores what happened and the buyer's photos")
 sp = html(seller3.get("/orders/%s" % d1["public_id"]))
-ok('action="/orders/%s/dispute-reply"' % d1["public_id"] in sp and "within 24 hours" in sp, "#32 the seller can give their side within 24 hours")
+ok('action="/orders/%s/dispute-reply"' % d1["public_id"] in sp and "within 48 hours" in sp, "#32 the seller can give their side within 48 hours (#36)")
 seller3.post("/orders/%s/dispute-reply" % d1["public_id"], data={"reply": "I sent it via the app, see the screenshot", "photos": (io.BytesIO(ticket_png(903)), "mine.png"),
              "_csrf": csrf(seller3)}, content_type="multipart/form-data")
 d1 = order_now(d1)
@@ -842,12 +854,25 @@ d3 = paid_order()
 buyer.post("/orders/%s/report" % d3["public_id"], data={"kind": "other", "reason": "The seller was rude in the chat", "_csrf": csrf(buyer)},
            content_type="multipart/form-data")
 with app.app_context():
-    for o in (d2, d3): A.db.run("UPDATE orders SET disputed_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(hours=25)), o["id"])
+    for o in (d2, d3): A.db.run("UPDATE orders SET disputed_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(hours=13)), o["id"])
+SENT.clear()
+with app.test_request_context(): reminded = A.remind_silent_sellers()
+ok(reminded == 2 and any("Reminder" in sub for to, sub, b in SENT), "#36 after 12 hours without an answer the seller is reminded")
+with app.app_context():
+    for o in (d2, d3): A.db.run("UPDATE orders SET disputed_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(hours=49)), o["id"])
 real_refund = payments.refund; payments.refund = lambda order: "re_auto"
+with app.test_request_context(): n = A.auto_refund_silent_disputes()
+ok(n == 0 and order_now(d2)["status"] == "disputed" and order_now(d2)["dispute_escalated_at"],
+   "#36 no photo and other recent disputes: not refunded automatically, an admin is asked")
+with app.app_context():
+    A.db.run("UPDATE orders SET dispute_escalated_at=NULL WHERE id=?", d2["id"])
+    A.db.run("UPDATE orders SET disputed_at=? WHERE buyer_id=? AND id != ?", A.sqltime(A.utcnow() - timedelta(days=100)), d2["buyer_id"], d2["id"])
+    A.db.run("UPDATE orders SET disputed_at=? WHERE id=?", A.sqltime(A.utcnow() - timedelta(hours=49)), d2["id"])
+    A.db.run("INSERT INTO proofs (kind, order_id, file) VALUES ('dispute_buyer', ?, 'x.png')", d2["id"])
 with app.test_request_context(): n = A.auto_refund_silent_disputes()
 payments.refund = real_refund
 ok(n == 1 and order_now(d2)["status"] == "refunded" and order_now(d3)["status"] == "disputed",
-   "#32 rejected at the door + no reply in 24 hours: refunded automatically (other problems wait for an admin)")
+   "#32/#36 refused at the door + a photo + a clean record + no reply in 48 hours: refunded automatically (other problems wait)")
 MAIL_WORKS[0] = False
 
 print("FAILED:", fails or "none")

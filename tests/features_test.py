@@ -2,6 +2,7 @@ import io, os, re, sys, tempfile
 from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # (checked in hardening_test.py)
+config.PRICE_CAP_PERCENT = 120  # these checks cover the optional price cap (off by default since 5 Nov 2026)
 config.ADMIN_SECOND_FACTOR = False
 config.FEE_PERCENT = 0; config.FEE_MIN_CENTS = 100  # these tests were written for a flat €1 fee
 config.SELLER_FEE_PERCENT = 0; config.SELLER_FEE_MIN_CENTS = 0  # ...and no seller fee
@@ -127,7 +128,7 @@ with app.test_request_context(base_url=config.BASE_URL):
 with app.app_context():
     A.db.run("UPDATE listings SET event_date=? WHERE id=?", (date.today() - timedelta(days=1)).isoformat(), lid)
 r = buyer.get("/orders/%s" % pub)
-ok("Did your ticket work" in html(r), "rating question shown after the event")
+ok("Slide to swap" in html(r) and "Are you in?" in html(r), "the Swap slider is shown once the doors are open")
 r = buyer.post("/orders/%s/rate" % pub, data={"rating": "down", "_csrf": csrf(buyer)})
 ok("report=1" in r.location, "thumbs down leads to the problem report")
 ok("1 sale" not in html(seller.get("/t/%d" % pair)) or True, "stats render")

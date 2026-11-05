@@ -3,12 +3,12 @@
 {% block title %}{{ t('cs_meta_title') }}{% endblock %}
 {% block body_class %}coming-soon{% endblock %}
 {% block content %}
-{% set promise = t('trust_cap_body') if price_cap == 100 else t('trust_cap_body_pct', pct=price_markup) %}
+{% set promise = t('trust_cap_body_free') if price_free else (t('trust_cap_body') if price_cap == 100 else t('trust_cap_body_pct', pct=price_markup)) %}
 <section class="wrap cs">
   <div class="cs-copy">
     <p class="cs-kicker"><span class="live-dot" aria-hidden="true"></span>{{ t('cs_kicker') }}</p>
     <h1 class="cs-title">{{ t('cs_title') }}</h1>
-    <p class="lead">{{ t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup) }}</p>
+    <p class="lead">{{ t('hero_sub_free') if price_free else (t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup)) }}</p>
 
     {% if joined %}
       <div class="panel cs-form cs-done" id="joined">
@@ -51,6 +51,6 @@
 <section class="wrap cs-points">
   <div class="panel"><h2>{{ t('cs_point_sell_title') }}</h2><p class="muted">{{ t('cs_point_sell_body', hours=payout_hours) }}</p></div>
   <div class="panel"><h2>{{ t('cs_point_safe_title') }}</h2><p class="muted">{{ t('cs_point_safe_body') }}</p></div>
-  <div class="panel"><h2>{{ t('cs_point_fair_title') }}</h2><p class="muted">{{ promise }}</p></div>
+  <div class="panel"><h2>{{ t('cs_point_fair_title_free') if price_free else t('cs_point_fair_title') }}</h2><p class="muted">{{ promise }}</p></div>
 </section>
 {% endblock %}
