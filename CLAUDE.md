@@ -34,6 +34,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
 - Code in static/js/app.js that should run on every page must go above the sell-form section: that part ends with `if (!sell) return;`.
 - Visitor IPs (rate limits): Render sits behind Cloudflare, so `TRUST_PROXY_HOPS=2` (checked 4 Nov 2026 on /admin → Network check; with 1, everyone looked like a Cloudflare address).
 - Look and feel: professional nightlife style that shouldn't look AI-generated. Day tabs, poster cards, and a bottom tab bar on phones.
+- Phones first (5 Nov 2026, from a phone audit): on the event night (noon to noon, `door_night`) the buyer's order page opens in door mode, with the code, the downloads and Swap first and the photo and details below. The event page puts the tickets straight after the name, with a short photo strip on phones. Photos are served as WebP copies at 480/800/1280px (`/posters/<file>?w=`, `poster_copy`, kept in DATA_DIR/cache, outside the backups); og:image keeps the original. Still to do from that audit: the sell form ("You receive" above the Post button, price proof only when needed, an easier date picker, the phone check at the end), moving the Report link away from the price, the Account buttons on small phones, a "check your junk folder" hint on the code screen, a lighter footer on app pages, and the "All · 1" day tab.
 
 ## Stack
 - Flask 3, SQLite in WAL mode, Jinja templates, plain JS and CSS, no build step. Python 3.9 locally, 3.11 on Render.
@@ -47,7 +48,7 @@ Ticket resale for students in Rotterdam, at sparetickets.eu: club nights, studen
   - `nightswap` (port 5001, debug)
   - `nightswap-phone` (Wi-Fi, port 5002)
   - `nightswap-demo` (gunicorn, port 5080, its own data in `demo-data/`, no admins)
-- Tests: `sh tests/run_all.sh` runs all the checks (about 615) against a throwaway database. Run it after every change. `tests/swap_test.py` covers Swap, free prices and fixes #34–#42. `tests/hardening_test.py` covers the 33-item "Bulletproofing" review (#N in its messages); older test files switch off the newer safety checks (`config.FACE_PROOF_REQUIRED`, `NEW_SELLER_LIMITS`, `TICKET_CHECKS`), which must stay on in the code.
+- Tests: `sh tests/run_all.sh` runs all the checks (about 640) against a throwaway database. Run it after every change. `tests/swap_test.py` covers Swap, free prices and fixes #34–#42; `tests/mobile_test.py` the phone changes. `tests/hardening_test.py` covers the 33-item "Bulletproofing" review (#N in its messages); older test files switch off the newer safety checks (`config.FACE_PROOF_REQUIRED`, `NEW_SELLER_LIMITS`, `TICKET_CHECKS`), which must stay on in the code.
 - `starter_data/` holds the real events and venue photos a brand-new (live) database loads once (`starter.py`). Refresh it with `../.venv/bin/flask --app app export-starter`.
 - `.env` holds secrets (Stripe test key, admin emails) and is never committed or printed. `.env.example` lists every setting.
 

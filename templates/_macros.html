@@ -2,10 +2,13 @@
 
 {# A flyer-style block: the event poster, else the venue photo, else generated artwork, with the name set big. #}
 {% macro poster(name, venue, day, poster_file, colour, size='card', photo=None, vt=None, art=None, credit=None, link=False) %}
-{% set img = url_for('poster', name=poster_file) if poster_file else (url_for('poster', name=photo) if photo else art) %}
+{% set file = poster_file or photo %}
+{% set img = url_for('poster', name=file, w=800) if file else art %}
+{# Phones get a copy at their own size: 480px for a card in a two-column grid, up to 1280px for a sharp full-width photo. #}
+{% set sizes = {'card': '(max-width: 640px) 50vw, 320px', 'large': '(max-width: 900px) 100vw, 360px'}.get(size, '(max-width: 900px) 100vw, 640px') %}
 <div class="poster poster-{{ size }} {{ 'has-img' if img }} {{ 'is-photo' if photo and not poster_file }} {{ 'is-art' if art and not poster_file and not photo }}"
      style="--venue: {{ colour }};{% if vt %} view-transition-name: {{ vt }};{% endif %}">
-  {% if img %}<img src="{{ img }}" alt="" loading="lazy" decoding="async" data-fade>{% endif %}
+  {% if img %}<img src="{{ img }}"{% if file %} srcset="{% for w in (480, 800, 1280) %}{{ url_for('poster', name=file, w=w) }} {{ w }}w{{ ', ' if not loop.last }}{% endfor %}" sizes="{{ sizes }}"{% endif %} alt="" loading="lazy" decoding="async" data-fade>{% endif %}
   {% if not poster_file %}
     <div class="poster-date"><span>{{ fmt_date(day, 'dow') }}</span><strong>{{ day[8:10]|int }}</strong><span>{{ fmt_date(day, 'mon') }}</span></div>
     <div class="poster-name">{{ name or venue }}</div>

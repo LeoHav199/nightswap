@@ -8,7 +8,7 @@
 {% endblock %}
 {% block content %}
 <section class="venue-hero {{ 'has-img' if venue.photo_file }}" style="--venue: {{ colour }}">
-  {% if venue.photo_file %}<img src="{{ url_for('poster', name=venue.photo_file) }}" alt="" data-fade>{% endif %}
+  {% if venue.photo_file %}<img src="{{ url_for('poster', name=venue.photo_file, w=1280) }}" alt="" data-fade>{% endif %}
   <div class="wrap venue-hero-inner">
     <a class="back" href="{{ url_for('index') }}">← {{ t('back_to_tickets') }}</a>
     <h1 class="display">{{ venue.name }}</h1>

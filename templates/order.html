@@ -10,18 +10,21 @@
 <div class="wrap detail">
   <section class="detail-main">
     {% if is_buyer and paid %}
-      <article class="ticket {{ 'just-paid' if just_paid }}">
-        <div class="ticket-top">{{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'ticket', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}</div>
-        <div class="stub-tear ticket-tear" aria-hidden="true"></div>
+      {# Door mode (the event night): the code, the downloads and Swap come first; photo and details go below. #}
+      <article class="ticket {{ 'just-paid' if just_paid }}{{ ' is-door' if door }}">
+        {% if not door %}<div class="ticket-top">{{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'ticket', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}</div>
+        <div class="stub-tear ticket-tear" aria-hidden="true"></div>{% endif %}
         <div class="ticket-body">
           <p class="ticket-kicker">{{ t('order_buyer_paid_title') }}</p>
           <h1 class="display">{{ l.event_name or l.venue }}</h1>
+          {% if not door %}
           <dl class="ticket-facts">
             <div><dt>{{ t('date') }}</dt><dd>{{ fmt_date(l.event_date, 'long') }}{% if l.start_time %} · {{ l.start_time }}{% endif %}</dd></div>
             <div><dt>{{ t('venue') }}</dt><dd>{% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ l.venue }}</a>{% else %}{{ l.venue }}{% endif %}</dd></div>
             <div><dt>{{ t('tickets_label') }}</dt><dd>{{ order.quantity }}</dd></div>
             <div><dt>{{ t('order') }}</dt><dd>{{ order.public_id }}</dd></div>
           </dl>
+          {% endif %}
           {% if qr_codes %}
             <div class="ticket-qrs">
               {% for tid, svg in qr_codes %}
@@ -61,13 +64,57 @@
                 {{ t('add_to_wallet') if wallet_tickets|length == 1 else t('add_to_wallet_n', n=loop.index) }}</a>
             {% endfor %}
           </div>
+          {% if not door %}
           <div class="ticket-links">
             <a href="{{ url_for('order_calendar', public_id=order.public_id) }}">{{ t('add_to_calendar') }}</a>
             {% if venue %}<a href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
           </div>
           <p class="muted small">{{ t('download_hint') }}</p>
+          {% endif %}
         </div>
       </article>
+      {% if door %}
+        {% if can_rate %}
+        {# Swap: the buyer slides once they're inside. Spare holds the seller's money until then. #}
+        <div class="swap-card">
+          <strong class="swap-title">{{ t('swap_title') }}</strong>
+          <p class="muted small">{{ t('swap_body') }}</p>
+          <form method="post" action="{{ url_for('swap_order', public_id=order.public_id) }}" data-swap-form>
+            {{ m.csrf() }}
+            <div class="swap-track" data-swap hidden>
+              <span class="swap-label" aria-hidden="true">{{ t('swap_slide') }}</span>
+              <span class="swap-fill" data-swap-fill aria-hidden="true"></span>
+              <span class="swap-thumb" data-swap-thumb role="slider" tabindex="0" aria-label="{{ t('swap_slide') }}"
+                    aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">→</span>
+            </div>
+            <button class="btn btn-accent btn-block" type="submit" data-swap-fallback>{{ t('swap_button') }}</button>
+          </form>
+          <p class="small swap-warn">{{ t('swap_wait') }}</p>
+          <a class="small" href="{{ url_for('order_page', public_id=order.public_id, report=1) }}#report">{{ t('swap_problem') }}</a>
+        </div>
+        {% elif order.swapped_at %}
+        <p class="swap-done">✓ {{ t('swapped_done') }}</p>
+        {% elif order.rating %}
+        <p class="muted small">{{ t('rated_thanks') }}</p>
+        {% endif %}
+        <div class="ticket door-details">
+          <div class="ticket-top">{{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'ticket', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}</div>
+          <div class="stub-tear ticket-tear" aria-hidden="true"></div>
+          <div class="ticket-body">
+            <dl class="ticket-facts">
+              <div><dt>{{ t('date') }}</dt><dd>{{ fmt_date(l.event_date, 'long') }}{% if l.start_time %} · {{ l.start_time }}{% endif %}</dd></div>
+              <div><dt>{{ t('venue') }}</dt><dd>{% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ l.venue }}</a>{% else %}{{ l.venue }}{% endif %}</dd></div>
+              <div><dt>{{ t('tickets_label') }}</dt><dd>{{ order.quantity }}</dd></div>
+              <div><dt>{{ t('order') }}</dt><dd>{{ order.public_id }}</dd></div>
+            </dl>
+            <div class="ticket-links">
+              <a href="{{ url_for('order_calendar', public_id=order.public_id) }}">{{ t('add_to_calendar') }}</a>
+              {% if venue %}<a href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
+            </div>
+            <p class="muted small">{{ t('download_hint') }}</p>
+          </div>
+        </div>
+      {% endif %}
       {% if just_paid %}<div class="confetti" aria-hidden="true">{% for i in range(18) %}<i style="--i: {{ i }}"></i>{% endfor %}</div>{% endif %}
     {% else %}
       {{ m.poster(l.event_name, l.venue, l.event_date, l.poster_file, colour, 'banner', venue.photo_file if venue else None, None, art_url(l.event_date, l.venue, l.event_name, l.category)) }}
@@ -154,6 +201,7 @@
       </div>
     {% endif %}
 
+    {% if not door %}
     {% if can_rate %}
       {# Swap: the buyer slides once they're inside. Spare holds the seller's money until then. #}
       <div class="swap-card">
@@ -176,6 +224,7 @@
       <p class="swap-done">✓ {{ t('swapped_done') }}</p>
     {% elif is_buyer and order.rating %}
       <p class="muted small">{{ t('rated_thanks') }}</p>
+    {% endif %}
     {% endif %}
 
     {% if is_seller and order.status == 'paid' and not seller.payouts_ready %}

@@ -33,38 +33,8 @@
       {% if venue %}<a class="venue-link" href="{{ url_for('venue_page', slug=venue.slug) }}">{{ ev.venue }}</a>{% else %}{{ ev.venue }}{% endif %}{% if ev.city != 'Rotterdam' %}, {{ ev.city }}{% endif %}
       · {{ fmt_date(ev.date, 'long') }}{% if ev.start_time %} · {{ ev.start_time }}{% endif %}
     </p>
-    {% if e %}
-      <dl class="event-facts">
-        {% if e.door_time %}<div><dt>{{ t('doors') }}</dt><dd>{{ e.door_time }}{% if e.end_time %} – {{ e.end_time }}{% endif %}</dd></div>{% endif %}
-        {% if e.min_age %}<div><dt>{{ t('age') }}</dt><dd>{{ e.min_age }}+</dd></div>{% endif %}
-        {% if e.ticket_url %}<div><dt>{{ t('official_tickets') }}</dt><dd><a href="{{ e.ticket_url }}" target="_blank" rel="noopener nofollow">{{ e.ticket_url.split('/')[2]|replace('www.', '') }}</a></dd></div>{% endif %}
-      </dl>
-      {% if e.description %}<p class="event-desc">{{ e.description }}</p>{% endif %}
-    {% endif %}
-    <p class="muted small not-affiliated">{{ t('not_affiliated') }}{% if e and e.ticket_url %} <a href="{{ e.ticket_url }}" target="_blank" rel="noopener nofollow">{{ t('official_shop') }}</a>{% endif %}</p>
     {% if starts_at and not past %}<p class="countdown-line"><span class="countdown" data-countdown="{{ starts_at }}" data-label="{{ t('starts_in') }}" data-started="{{ t('started') }}"></span></p>{% endif %}
 
-    <div class="event-actions">
-      {% if not past %}
-        {% if user %}
-          <form method="post" action="{{ url_for('toggle_alert') }}">
-            {{ m.csrf() }}
-            <input type="hidden" name="venue" value="{{ ev.venue }}"><input type="hidden" name="date" value="{{ ev.date }}"><input type="hidden" name="name" value="{{ ev.name or '' }}">
-            {% if alert %}
-              <input type="hidden" name="action" value="remove">
-              <button class="btn btn-ghost btn-sm is-on" type="submit">✓ {{ t('alert_on') }}</button>
-              {{ m.push_toggle() }}
-            {% else %}
-              <button class="btn btn-ghost btn-sm" type="submit">{{ t('alert_cta') }}</button>
-            {% endif %}
-          </form>
-        {% else %}
-          <a class="btn btn-ghost btn-sm" href="{{ url_for('login', next=event_url(ev.venue, ev.date, ev.name)) }}">{{ t('alert_cta') }}</a>
-        {% endif %}
-      {% endif %}
-      {{ m.share_button(ev.name or ev.venue, ev.venue, ev.date, (t('from') ~ ' ' ~ money(with_fee(ev.min_price))) if ev.min_price else t('on_nightswap'), url, ev.colour, ev.poster, category=ev.category) }}
-      {% if directions %}<a class="btn btn-ghost btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
-    </div>
     {% if looking and not past and not cancelled %}
       <div class="looking {{ 'looking-empty' if not rows }}">
         <span class="live-dot" aria-hidden="true"></span>
@@ -116,6 +86,43 @@
         <a class="btn btn-ghost btn-sm" href="{{ url_for('sell', event=e.id) if e else url_for('sell') }}">{{ t('sell_for_this') }}</a>
       </div>
     {% endif %}
+
+    {% set actions %}
+    <div class="event-actions">
+      {% if not past %}
+        {% if user %}
+          <form method="post" action="{{ url_for('toggle_alert') }}">
+            {{ m.csrf() }}
+            <input type="hidden" name="venue" value="{{ ev.venue }}"><input type="hidden" name="date" value="{{ ev.date }}"><input type="hidden" name="name" value="{{ ev.name or '' }}">
+            {% if alert %}
+              <input type="hidden" name="action" value="remove">
+              <button class="btn btn-ghost btn-sm is-on" type="submit">✓ {{ t('alert_on') }}</button>
+              {{ m.push_toggle() }}
+            {% else %}
+              <button class="btn btn-ghost btn-sm" type="submit">{{ t('alert_cta') }}</button>
+            {% endif %}
+          </form>
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('login', next=event_url(ev.venue, ev.date, ev.name)) }}">{{ t('alert_cta') }}</a>
+        {% endif %}
+      {% endif %}
+      {{ m.share_button(ev.name or ev.venue, ev.venue, ev.date, (t('from') ~ ' ' ~ money(with_fee(ev.min_price))) if ev.min_price else t('on_nightswap'), url, ev.colour, ev.poster, category=ev.category) }}
+      {% if directions %}<a class="btn btn-ghost btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>{% endif %}
+    </div>
+    {% endset %}
+    <div class="event-more">
+    {% if not rows %}{{ actions }}{% endif %}{# sold out: 'Notify me' right under the box that suggests it #}
+    {% if e %}
+      <dl class="event-facts">
+        {% if e.door_time %}<div><dt>{{ t('doors') }}</dt><dd>{{ e.door_time }}{% if e.end_time %} – {{ e.end_time }}{% endif %}</dd></div>{% endif %}
+        {% if e.min_age %}<div><dt>{{ t('age') }}</dt><dd>{{ e.min_age }}+</dd></div>{% endif %}
+        {% if e.ticket_url %}<div><dt>{{ t('official_tickets') }}</dt><dd><a href="{{ e.ticket_url }}" target="_blank" rel="noopener nofollow">{{ e.ticket_url.split('/')[2]|replace('www.', '') }}</a></dd></div>{% endif %}
+      </dl>
+      {% if e.description %}<p class="event-desc">{{ e.description }}</p>{% endif %}
+    {% endif %}
+    <p class="muted small not-affiliated">{{ t('not_affiliated') }}{% if e and e.ticket_url %} <a href="{{ e.ticket_url }}" target="_blank" rel="noopener nofollow">{{ t('official_shop') }}</a>{% endif %}</p>
+    {% if rows %}{{ actions }}{% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -10,7 +10,7 @@
   <ul class="credit-list">
     {% for v in venues %}
     <li id="v-{{ v.slug }}">
-      <img src="{{ url_for('poster', name=v.photo_file) }}" alt="" loading="lazy">
+      <img src="{{ url_for('poster', name=v.photo_file, w=480) }}" alt="" loading="lazy">
       <div>
         <strong><a href="{{ url_for('venue_page', slug=v.slug) }}">{{ v.name }}</a></strong>
         <span>{{ t('credits_photo') }}: {{ v.photo_credit or '—' }}</span>
@@ -28,7 +28,7 @@
   <ul class="credit-list">
     {% for e in posters %}
     <li id="e-{{ e.id }}">
-      <img src="{{ url_for('poster', name=e.poster_file) }}" alt="" loading="lazy">
+      <img src="{{ url_for('poster', name=e.poster_file, w=480) }}" alt="" loading="lazy">
       <div>
         <strong><a href="{{ event_url(e.venue, e.event_date, e.name) }}">{{ e.name }}</a></strong>
         <span>{{ t('poster_by', credit=e.poster_credit) }}</span>

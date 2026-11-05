@@ -13,3 +13,4 @@ demo-data/
 
 # fake tickets from tools/make_test_tickets.py
 test-tickets/
+cache/

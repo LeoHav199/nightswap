@@ -425,6 +425,13 @@ def can_rate_now(listing):
     return utcnow() >= doors_open_at(listing) + timedelta(minutes=config.SWAP_OPENS_AFTER_DOORS_MINUTES)
 
 
+def door_night(listing):
+    """From noon on the event day until noon the day after (Amsterdam time): the buyer's order page then opens on
+    the ticket and Swap, for the queue at the door."""
+    start = datetime.combine(date.fromisoformat(listing["event_date"]), datetime.min.time()).replace(hour=12)
+    return start <= datetime.now() < start + timedelta(days=1)
+
+
 def swap(order, listing):
     """The buyer slid "Swap": they're in and the ticket worked. Pays the seller straight away when it's safe;
     otherwise the seller is paid at the normal time (PAYOUT_DELAY_HOURS after the night). Returns 'now' or 'later'."""
@@ -1470,7 +1477,44 @@ def toggle_alert():
 def poster(name):
     if not re.fullmatch(r"[0-9a-f]{32}\.(jpg|png|webp)", name):
         abort(404)
-    return send_file(os.path.join(config.UPLOAD_DIR, "posters", name), max_age=60 * 60 * 24 * 30)
+    path = os.path.join(config.UPLOAD_DIR, "posters", name)
+    if not os.path.exists(path):
+        abort(404)
+    width = request.args.get("w", type=int)
+    if width in POSTER_WIDTHS:
+        path = poster_copy(path, width) or path
+    return send_file(path, max_age=60 * 60 * 24 * 30)
+
+
+POSTER_WIDTHS = (480, 800, 1280)  # phone-sized copies: venue photos are often 1920px and over 1 MB
+
+
+def poster_copy(path, width):
+    """A WebP copy of a poster or venue photo at most `width` pixels wide, made once and kept in DATA_DIR/cache
+    (outside the uploads, so backups skip it). None if it can't be made; the original is served then."""
+    out = os.path.join(config.DATA_DIR, "cache", "posters", "%s-w%d.webp" % (os.path.basename(path).split(".")[0], width))
+    if os.path.exists(out):
+        return out
+    try:
+        import cv2
+        img = cv2.imread(path, cv2.IMREAD_COLOR)
+        if img is None:
+            return None
+        h, w = img.shape[:2]
+        if w > width:
+            img = cv2.resize(img, (width, round(h * width / w)), interpolation=cv2.INTER_AREA)
+        ok, data = cv2.imencode(".webp", img, [cv2.IMWRITE_WEBP_QUALITY, 78])
+        if not ok:
+            return None
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        tmp = out + ".%d.tmp" % os.getpid()
+        with open(tmp, "wb") as f:
+            f.write(data.tobytes())
+        os.replace(tmp, out)  # two workers making the same copy don't trip over each other
+        return out
+    except Exception:
+        app.logger.exception("Could not make a %dpx copy of %s", width, path)
+        return None
 
 
 @app.route("/t/<int:listing_id>")
@@ -1667,6 +1711,7 @@ def order_page(public_id):
         directions=directions_url(get_venue(listing["venue"], listing["city"])) if get_venue(listing["venue"], listing["city"]) else None,
         colour=venue_colour(listing["venue"]), is_buyer=is_buyer, is_seller=g.user["id"] == order["seller_id"],
         can_report=order["status"] == "paid" and is_buyer,
+        door=is_buyer and order["status"] in PAID_STATES and door_night(listing),
         can_rate=is_buyer and order["status"] in PAID_STATES and not order["rating"] and can_rate_now(listing),
     ))
     if offline:
