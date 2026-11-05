@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ t('about_title') }} · Spare{% endblock %}
+{% block content %}
+{# Leo and Ilyas stay anonymous on purpose: no names or photos here, just that two Erasmus University students run it. #}
+<div class="wrap narrow-head">
+  <h1>{{ t('about_title') }}</h1>
+  <p class="lead">{{ t('about_lead') }}</p>
+</div>
+<div class="wrap about">
+  <section class="panel">
+    <h2>{{ t('about_why_title') }}</h2>
+    <p>{{ t('about_why_body') }}</p>
+  </section>
+  <section class="panel">
+    <h2>{{ t('about_promise_title') }}</h2>
+    <dl class="about-promises">
+      {% for i in (1, 2, 3, 4) %}
+        <div><dt>{{ t('about_p%d_title' % i) }}</dt><dd>{{ t('about_p%d' % i) }}</dd></div>
+      {% endfor %}
+    </dl>
+    <p class="muted small"><a href="{{ url_for('how') }}">{{ t('nav_how') }}</a></p>
+  </section>
+  <section class="panel">
+    <h2>{{ t('about_contact_title') }}</h2>
+    <p>{{ t('about_contact', email='hello@sparetickets.eu') }}</p>
+    <a class="btn btn-accent" href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>
+  </section>
+</div>
+{% endblock %}

@@ -312,7 +312,7 @@ def set_setting(key, value):
 # These pages stay reachable for everyone (sign-in for admins, legal pages, payments and cron).
 OPEN_WHILE_COMING_SOON = {
     "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
-    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "terms", "privacy", "credits",
+    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "about", "terms", "privacy", "credits",
     "stripe_webhook", "hourly_tasks",
 }
 
@@ -3204,6 +3204,11 @@ def credits():
     posters = db.all("""SELECT * FROM events WHERE poster_file IS NOT NULL AND poster_credit IS NOT NULL
                         AND status != 'hidden' AND event_date >= ? ORDER BY event_date""", today().isoformat())
     return render_template("credits.html", venues=venues, posters=posters)
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
 
 
 @app.route("/how-it-works")

@@ -248,6 +248,7 @@
     {% if can_report %}
       <details class="report" id="report" {{ 'open' if request.args.get('report') }}>
         <summary>{{ t('report_problem') }}</summary>
+        <p class="muted small">{{ t('help_fast') }} <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a></p>
         <form class="form" method="post" action="{{ url_for('report_problem', public_id=order.public_id) }}" enctype="multipart/form-data" data-once>
           {{ m.csrf() }}
           <p class="muted small">{{ t('report_hint_any') }}</p>

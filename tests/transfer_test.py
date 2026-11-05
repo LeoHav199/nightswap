@@ -56,7 +56,7 @@ ok(order(pub)["transfer_name"] == "Bo de Vries" and order(pub)["transfer_email"]
 MAIL_WORKS[0] = True
 buyer.post("/checkout/%s/test" % pub, data={"_csrf": csrf(buyer)})
 mail_seller = [b for to, s, b in SENT if to == "s@test.nl"]
-ok(mail_seller and "transfer the ticket to Bo de Vries (bo.tm@example.com)" in mail_seller[-1] and mail_seller[-1].rstrip().endswith("Spare"),
+ok(mail_seller and "transfer the ticket to Bo de Vries (bo.tm@example.com)" in mail_seller[-1] and mail_seller[-1].rstrip().endswith("The Spare team, two students at Erasmus University Rotterdam"),
    "the seller's 'sold' email says who to transfer it to, above the sign-off")
 ok(any("send your ticket to bo.tm@example.com in Ticketmaster" in b for to, s, b in SENT if to == "b@test.nl"), "the buyer's email says it's coming via Ticketmaster")
 sp = html(seller.get("/orders/%s" % pub))

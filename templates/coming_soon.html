@@ -9,6 +9,7 @@
     <p class="cs-kicker"><span class="live-dot" aria-hidden="true"></span>{{ t('cs_kicker') }}</p>
     <h1 class="cs-title">{{ t('cs_title') }}</h1>
     <p class="lead">{{ t('hero_sub_free') if price_free else (t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup)) }}</p>
+    <p class="made-by"><a href="{{ url_for('about') }}">{{ t('made_by_students') }} {{ t('nav_about') }} →</a></p>
 
     {% if joined %}
       <div class="panel cs-form cs-done" id="joined">

@@ -852,6 +852,25 @@ STRINGS = {
         "account_deleted": "Your account has been deleted.",
         "fee_label": "{pct}% (min. {min})",
         "seller_fee_label_share": "{base}, plus {share}% of anything above the face value",
+        "nav_about": "About us",
+        "about_title": "About Spare",
+        "about_lead": "Spare is run by two students at Erasmus University Rotterdam. We go to the same club nights, student parties and festivals as you.",
+        "about_why_title": "Why we built it",
+        "about_why_body": "Most student tickets change hands in WhatsApp groups and Instagram stories: you pay a stranger by Tikkie and hope the ticket works. Sometimes it doesn't, and the money is gone. We built Spare so students can buy and sell tickets with each other without that risk.",
+        "about_promise_title": "What we promise",
+        "about_p1_title": "Your money is safe",
+        "about_p1": "We hold the payment until you're in. If your ticket doesn't work, you get your money back.",
+        "about_p2_title": "Fair prices",
+        "about_p2": "The face value is always shown next to the price, so you can see what you're paying for.",
+        "about_p3_title": "Real people, fast replies",
+        "about_p3": "Messages come straight to us, not to a bot or a call centre. We reply fast, usually within a few hours.",
+        "about_p4_title": "Your data stays yours",
+        "about_p4": "We only ask for what we need to keep Spare safe, and we never sell your data.",
+        "about_contact_title": "Questions?",
+        "about_contact": "Email {email}, or use the chat on your order. One of us will get back to you quickly.",
+        "made_by_students": "Run by two students at Erasmus University Rotterdam.",
+        "help_fast": "Questions? Spare is run by two Erasmus University students, and we reply fast:",
+        "mail_signoff": "The Spare team, two students at Erasmus University Rotterdam",
         "first_seller_title": "Be the first to sell for these nights",
         "first_seller_body": "No tickets listed yet. Can't make it to one of these? List your ticket in a minute, and people looking for one get a notification.",
         "coming_up": "Coming up",
@@ -1627,6 +1646,25 @@ STRINGS = {
         "account_deleted": "Je account is verwijderd.",
         "fee_label": "{pct}% (min. {min})",
         "seller_fee_label_share": "{base}, plus {share}% van wat je boven de nominale waarde vraagt",
+        "nav_about": "Over ons",
+        "about_title": "Over Spare",
+        "about_lead": "Spare wordt gerund door twee studenten van de Erasmus Universiteit Rotterdam. We gaan naar dezelfde clubavonden, studentenfeesten en festivals als jij.",
+        "about_why_title": "Waarom we het hebben gebouwd",
+        "about_why_body": "De meeste studententickets wisselen van eigenaar in WhatsApp-groepen en Instagram-stories: je betaalt een onbekende via Tikkie en hoopt dat het ticket werkt. Soms werkt het niet, en is je geld weg. We hebben Spare gebouwd zodat studenten tickets met elkaar kunnen kopen en verkopen zonder dat risico.",
+        "about_promise_title": "Wat we beloven",
+        "about_p1_title": "Je geld is veilig",
+        "about_p1": "We houden de betaling vast tot je binnen bent. Werkt je ticket niet, dan krijg je je geld terug.",
+        "about_p2_title": "Eerlijke prijzen",
+        "about_p2": "De nominale waarde staat altijd naast de prijs, zodat je ziet waarvoor je betaalt.",
+        "about_p3_title": "Echte mensen, snel antwoord",
+        "about_p3": "Berichten komen direct bij ons, niet bij een bot of callcenter. We reageren snel, meestal binnen een paar uur.",
+        "about_p4_title": "Je gegevens blijven van jou",
+        "about_p4": "We vragen alleen wat nodig is om Spare veilig te houden, en we verkopen je gegevens nooit.",
+        "about_contact_title": "Vragen?",
+        "about_contact": "Mail {email}, of gebruik de chat bij je bestelling. Een van ons reageert snel.",
+        "made_by_students": "Gerund door twee studenten van de Erasmus Universiteit Rotterdam.",
+        "help_fast": "Vragen? Spare wordt gerund door twee studenten van de Erasmus Universiteit, en we reageren snel:",
+        "mail_signoff": "Het Spare-team, twee studenten van de Erasmus Universiteit Rotterdam",
         "first_seller_title": "Wees de eerste die een ticket verkoopt",
         "first_seller_body": "Nog geen tickets te koop. Kun je niet naar een van deze avonden? Zet je ticket er in een minuut op; mensen die er een zoeken krijgen een melding.",
         "coming_up": "Binnenkort",
@@ -1650,3 +1688,16 @@ def _load_locales():
 
 
 _load_locales()
+
+
+def _sign_emails():
+    """Emails end with "Spare" in the texts above; sign them as the team of two Erasmus University students instead,
+    so a real person stands behind every email (Leo and Ilyas stay anonymous)."""
+    for strings in STRINGS.values():
+        sign = strings.get("mail_signoff") or STRINGS["en"]["mail_signoff"]
+        for key, text in list(strings.items()):
+            if key.startswith("mail_") and text.endswith("\n\nSpare"):
+                strings[key] = text[:-len("Spare")] + sign
+
+
+_sign_emails()

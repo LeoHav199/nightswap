@@ -116,6 +116,7 @@
       {% if not user %}<p class="muted small center">{{ t('login_to_buy') }}</p>{% endif %}
       {% if l.name_on_ticket %}<p class="name-answer small"><strong>{{ t('q_name') }}</strong> {{ t('name_shown_' ~ l.name_on_ticket) }}</p>{% endif %}
       <p class="muted small">{{ t('private_seller_note') }}</p>
+      <p class="muted small">{{ t('help_fast') }} <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a></p>
       <ul class="assurances">
         <li>{{ t('assure_instant') }}</li>
         <li>{{ t('assure_refund', date=fmt_date(report_until.date(), 'long')) }}</li>

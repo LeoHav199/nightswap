@@ -1047,3 +1047,13 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .search-sheet .suggest { position: absolute; top: calc(100% + 8px); left: 0; right: -76px; max-height: 65vh; }
 .search-close { margin: 0; height: 42px; color: var(--text); text-decoration: none; white-space: nowrap; }
 body.has-search-sheet { overflow: hidden; }
+
+/* About page and the "made by students" line under the homepage lead. */
+.made-by { margin-top: 10px; font-size: 14px; }
+.made-by a { color: var(--muted); text-decoration: none; }
+.made-by a:hover { color: var(--accent); }
+.about { display: grid; gap: 18px; max-width: 760px; padding-bottom: 48px; }
+.about h2 { font-size: 20px; margin-bottom: 10px; }
+.about-promises { display: grid; gap: 14px; margin: 0 0 14px; }
+.about-promises dt { font-weight: 700; }
+.about-promises dd { margin: 2px 0 0; color: var(--muted); }
