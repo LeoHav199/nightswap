@@ -353,7 +353,7 @@ ok("the sender deleted their account" in html(buyer.get("/threads/%d" % gtid)), 
 
 # --- #19: the privacy policy covers what the law asks, matching the code
 priv = html(visitor.get("/privacy"))
-for words, what in (("[KVK NUMBER]", "who's responsible (placeholder until the KvK details are set)"), ("art. 6(1)(b)", "the legal basis for each use"),
+for words, what in (("Spare vof, Lombardkade 47A", "who's responsible (KvK number added once it's set)"), ("art. 6(1)(b)", "the legal basis for each use"),
                     ("Stripe", "Stripe"), ("Frankfurt", "Render and where it runs"), ("Brevo", "the email provider"), ("cron-job.org", "cron-job.org"),
                     ("7 years", "the 7-year bookkeeping rule"), ("14 days after the event", "when ticket files are deleted"),
                     ("encrypted backup", "backups"), ("Autoriteit Persoonsgegevens", "the right to complain to the AP")):
@@ -362,18 +362,20 @@ ok("Twilio" not in priv, "#19 Twilio is only listed when SMS is on")
 config.SMS_ENABLED = True; ok("Twilio" in html(visitor.get("/privacy")), "#19 ...and listed when it is"); config.SMS_ENABLED = False
 config.KVK_NUMBER, config.COMPANY_NAME = "12345678", "Spare Tickets"
 ok("KvK 12345678" in html(visitor.get("/privacy")) and "Spare Tickets" in html(visitor.get("/privacy")), "#19 once set on Render, the real company details show")
-config.KVK_NUMBER = config.COMPANY_NAME = ""
+config.KVK_NUMBER, config.COMPANY_NAME = "", "Spare vof"  # the defaults until the KvK number is set
 ok("Autoriteit Persoonsgegevens" in html(nl.get("/privacy")) and "Grond:" in html(nl.get("/privacy")), "#19 the Dutch version too")
 
 # --- #20: the terms cover the business basics; company line in footer and emails
 terms = html(visitor.get("/terms"))
-for words, what in (("[KVK NUMBER]", "who runs Spare"), ("private individuals", "that sellers are private individuals"), ("18 or older", "the 18+ rule"),
+for words, what in (("Spare vof, Lombardkade 47A", "who runs Spare"), ("private individuals", "that sellers are private individuals"), ("18 or older", "the 18+ rule"),
                     ("Cancelled or moved events", "cancelled and moved events"), ("A person at Spare looks at what both sides send", "how disputes are decided"),
                     ("within 6 months", "how to object to a removal"), ("Our liability is limited", "liability"), ("No right of withdrawal", "the right of withdrawal"),
                     ("Dutch law applies", "governing law"), ("Complaints about Spare", "complaints")):
     ok(words in terms, "#20 the terms cover %s" % what)
 ok("Geen herroepingsrecht" in html(nl.get("/terms")), "#20 the Dutch terms too")
-ok("company-line" not in html(visitor.get("/")), "#20 no company line in the footer until the KvK details are set")
+home = html(visitor.get("/"))
+ok("company-line" in home and "Spare vof · Lombardkade 47A" in home and "KvK" not in home.split("company-line")[1].split("</p>")[0],
+   "#20 the footer shows Spare vof and its address, and the KvK number only once it's set")
 config.COMPANY_NAME, config.COMPANY_ADDRESS, config.KVK_NUMBER = "Spare Tickets", "Coolsingel 1, Rotterdam", "12345678"
 ok("KvK 12345678" in html(visitor.get("/")), "#20 then the footer shows name, address and KvK number")
 with app.app_context(): ok("KvK 12345678" in real_notify.email_html("Hi", "Body"), "#20 ...and so does every email")

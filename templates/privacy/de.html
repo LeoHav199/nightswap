@@ -3,7 +3,7 @@
 <p>Hier steht, welche personenbezogenen Daten Spare erhebt, warum, wie lange wir sie speichern, wer sie noch verarbeitet und welche Rechte du hast. Wir halten es kurz und erheben nur, was ein sicherer Ticket-Marktplatz braucht.</p>
 
 <h2>Wer verantwortlich ist</h2>
-<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, betreibt Spare und ist Verantwortlicher für deine Daten. Fragen oder Anträge: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+<p>{{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}, betreibt Spare und ist Verantwortlicher für deine Daten. Fragen oder Anträge: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
 
 <h2>Was wir erheben, warum und auf welcher Grundlage</h2>
 <dl class="policy">
@@ -19,6 +19,8 @@
   <dd>Was wann von wem gekauft wurde, Beträge und Gebühren, Bewertungen und gemeldete Probleme. Zahlungsdaten (Karte, IBAN) und die Identitätsprüfung der Verkäufer laufen über Stripe und erreichen uns nie. <em>Grundlage: unser Vertrag mit dir und unsere gesetzliche Aufbewahrungspflicht für die Buchhaltung (Art. 6 Abs. 1 lit. c).</em></dd>
   <dt>Tickets in einer App</dt>
   <dd>Kaufst du ein Ticket, das in einer App liegt, teilen wir den Namen und die E-Mail, die du für die Übertragung angibst, mit dem Verkäufer, nur damit er dir das Ticket schicken kann. <em>Grundlage: unser Vertrag mit dir.</em></dd>
+  <dt>Ein Problem beim Veranstalter prüfen</dt>
+  <dd>Meldet ein Käufer, dass ein Ticket am Eingang nicht funktioniert hat, können wir den Veranstalter fragen, ob es gescannt wurde. Dafür schicken wir nur den Code des Tickets, oder bei einem Ticket in einer App den Namen und die E-Mail-Adresse, an die es übertragen wurde, dazu die Veranstaltung und das Datum. <em>Grundlage: unser berechtigtes Interesse, Streitfälle fair zu klären und Betrug zu verhindern (Art. 6 Abs. 1 lit. f).</em></dd>
   <dt>Nachrichten</dt>
   <dd>Nachrichten zwischen Käufern und Verkäufern laufen über Spare. Zum Schutz vor Betrug verbergen wir Telefonnummern, E-Mail-Adressen, Links und Zahlungsdaten automatisch, und Nachrichten, die eine Zahlung außerhalb von Spare vereinbaren wollen, werden nicht zugestellt. In diesen Fällen speichern wir den Originaltext, damit unser Team ihn bei Betrug oder einem gemeldeten Problem prüfen kann. <em>Grundlage: unser Vertrag mit dir und unser berechtigtes Interesse, Betrug zu verhindern.</em></dd>
   <dt>Benachrichtigungen</dt>

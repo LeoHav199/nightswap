@@ -3,7 +3,7 @@
 <p>This policy explains what personal data Spare collects, why, how long we keep it, who else handles it and what your rights are. We keep it short and only collect what we need to run a safe ticket marketplace.</p>
 
 <h2>Who is responsible</h2>
-<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, runs Spare and is the controller of your data. Questions or requests: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+<p>{{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}, runs Spare and is the controller of your data. Questions or requests: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
 
 <h2>What we collect, why, and on what basis</h2>
 <dl class="policy">
@@ -19,6 +19,8 @@
   <dd>What was bought, when, by whom, the amounts and fees, ratings and any problem reports. Payment details (card, IBAN) and sellers' identity checks are handled by Stripe and never reach us. <em>Basis: our agreement with you, and our legal duty to keep bookkeeping records (art. 6(1)(c)).</em></dd>
   <dt>Tickets that live in an app</dt>
   <dd>If you buy a ticket that lives in an app, the name and email address you give for the transfer are shared with the seller, only so they can send you the ticket. <em>Basis: our agreement with you.</em></dd>
+  <dt>Checking a problem with the organiser</dt>
+  <dd>If a buyer reports that a ticket didn't work at the door, we may ask the event's organiser whether it was scanned. For that we send them only the ticket's code, or for a ticket in an app the name and email address it was transferred to, plus the event and date. <em>Basis: our legitimate interest in settling disputes fairly and preventing fraud (art. 6(1)(f)).</em></dd>
   <dt>Messages</dt>
   <dd>Messages between buyers and sellers go through Spare. To protect you from scams, phone numbers, email addresses, links and payment details are hidden automatically, and messages that try to arrange paying outside Spare aren't delivered. When something was hidden or a message wasn't delivered, we keep the original text so our team can review it in case of fraud or a reported problem. <em>Basis: our agreement with you, and our legitimate interest in preventing fraud.</em></dd>
   <dt>Notifications</dt>

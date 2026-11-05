@@ -3,7 +3,7 @@
 <p>Voici quelles données personnelles Spare collecte, pourquoi, combien de temps on les garde, qui d'autre les traite et quels sont tes droits. On reste bref et on ne collecte que ce qu'il faut pour une place de marché de billets sûre.</p>
 
 <h2>Qui est responsable</h2>
-<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, exploite Spare et est responsable du traitement de tes données. Questions ou demandes : <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+<p>{{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}, exploite Spare et est responsable du traitement de tes données. Questions ou demandes : <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
 
 <h2>Ce qu'on collecte, pourquoi et sur quelle base</h2>
 <dl class="policy">
@@ -19,6 +19,8 @@
   <dd>Ce qui a été acheté, quand, par qui, les montants et frais, les avis et les problèmes signalés. Les données de paiement (carte, IBAN) et la vérification d'identité des vendeurs sont gérées par Stripe et ne nous parviennent jamais. <em>Base : notre contrat avec toi, et notre obligation légale de tenir une comptabilité (art. 6(1)(c)).</em></dd>
   <dt>Billets dans une appli</dt>
   <dd>Si tu achètes un billet qui se trouve dans une appli, le nom et l'e-mail que tu donnes pour le transfert sont partagés avec le vendeur, uniquement pour qu'il puisse te l'envoyer. <em>Base : notre contrat avec toi.</em></dd>
+  <dt>Vérifier un problème auprès de l'organisateur</dt>
+  <dd>Si un acheteur signale qu'un billet n'a pas marché à l'entrée, nous pouvons demander à l'organisateur de l'événement s'il a été scanné. Pour cela, nous lui envoyons seulement le code du billet, ou pour un billet dans une appli le nom et l'adresse e-mail vers lesquels il a été transféré, avec l'événement et la date. <em>Base : notre intérêt légitime à régler les litiges équitablement et à prévenir la fraude (art. 6(1)(f)).</em></dd>
   <dt>Messages</dt>
   <dd>Les messages entre acheteurs et vendeurs passent par Spare. Pour te protéger des arnaques, les numéros, e-mails, liens et données de paiement sont masqués automatiquement, et les messages qui tentent d'organiser un paiement hors de Spare ne sont pas délivrés. Dans ces cas, on garde le texte d'origine pour que notre équipe puisse le consulter en cas de fraude ou de problème signalé. <em>Base : notre contrat avec toi, et notre intérêt légitime à prévenir la fraude.</em></dd>
   <dt>Notifications</dt>

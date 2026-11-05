@@ -855,9 +855,9 @@ def delete_proofs(rows):
 
 
 def company():
-    """Who runs Spare (#19, #20), with visible placeholders until the KvK details are set on Render."""
-    return {"name": config.COMPANY_NAME or "[COMPANY NAME]", "address": config.COMPANY_ADDRESS or "[ADDRESS]",
-            "kvk": config.KVK_NUMBER or "[KVK NUMBER]", "vat": config.VAT_NUMBER or "[VAT NUMBER]",
+    """Who runs Spare (#19, #20). The KvK and VAT numbers are left out until they're set (KVK_NUMBER, VAT_NUMBER),
+    rather than showing a placeholder; the launch check stays red until the KvK number is there."""
+    return {"name": config.COMPANY_NAME, "address": config.COMPANY_ADDRESS, "kvk": config.KVK_NUMBER or "", "vat": config.VAT_NUMBER or "",
             "complete": bool(config.COMPANY_NAME and config.COMPANY_ADDRESS and config.KVK_NUMBER)}
 
 

@@ -3,7 +3,7 @@
 <p class="muted">Laatst bijgewerkt: november 2026</p>
 
 <h2>1. Wie we zijn</h2>
-<p>Spare (sparetickets.eu) wordt beheerd door {{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, btw {{ company.vat }}. Contact: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. Dit adres is ook ons contactpunt voor autoriteiten en gebruikers onder de Europese Digitaledienstenverordening (DSA); je kunt ons in het Nederlands of Engels schrijven.</p>
+<p>Spare (sparetickets.eu) wordt beheerd door {{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}{% if company.vat %}, btw {{ company.vat }}{% endif %}. Contact: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. Dit adres is ook ons contactpunt voor autoriteiten en gebruikers onder de Europese Digitaledienstenverordening (DSA); je kunt ons in het Nederlands of Engels schrijven.</p>
 
 <h2>2. Wat Spare doet</h2>
 <p>Spare is een platform waarop mensen tickets voor evenementen aan elkaar doorverkopen. Spare verkoopt zelf geen tickets, organiseert geen evenementen en is niet verbonden aan de locaties of organisatoren op de site. Verkopers zijn particulieren, geen bedrijven, dus de consumentenrechten die je hebt als je bij een bedrijf koopt (zoals herroepingsrecht of wettelijke garantie) gelden niet tegenover de verkoper. De eigen dienst van Spare aan jou staat in deze voorwaarden.</p>

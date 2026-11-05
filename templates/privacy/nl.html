@@ -3,7 +3,7 @@
 <p>Hier lees je welke persoonsgegevens Spare verzamelt, waarom, hoe lang we ze bewaren, wie ze nog meer verwerkt en wat je rechten zijn. We houden het kort en verzamelen alleen wat nodig is voor een veilige ticketmarktplaats.</p>
 
 <h2>Wie is verantwoordelijk</h2>
-<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, beheert Spare en is verwerkingsverantwoordelijke voor je gegevens. Vragen of verzoeken: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+<p>{{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}, beheert Spare en is verwerkingsverantwoordelijke voor je gegevens. Vragen of verzoeken: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
 
 <h2>Wat we verzamelen, waarom en op welke grond</h2>
 <dl class="policy">
@@ -19,6 +19,8 @@
   <dd>Wat er gekocht is, wanneer, door wie, de bedragen en kosten, beoordelingen en gemelde problemen. Betaalgegevens (kaart, IBAN) en de identiteitscontrole van verkopers lopen via Stripe en komen nooit bij ons. <em>Grond: onze overeenkomst met jou, en onze wettelijke bewaarplicht voor de administratie (art. 6 lid 1 sub c).</em></dd>
   <dt>Tickets die in een app staan</dt>
   <dd>Koop je zo'n ticket, dan delen we de naam en het e-mailadres die je opgeeft voor het overzetten met de verkoper, alleen zodat die het ticket naar je kan sturen. <em>Grond: onze overeenkomst met jou.</em></dd>
+  <dt>Een probleem nagaan bij de organisator</dt>
+  <dd>Meldt een koper dat een ticket aan de deur niet werkte, dan kunnen we de organisator van het evenement vragen of het is gescand. Daarvoor sturen we alleen de code van het ticket, of bij een ticket in een app de naam en het e-mailadres waarnaar het is overgezet, plus het evenement en de datum. <em>Grondslag: ons gerechtvaardigd belang om geschillen eerlijk op te lossen en fraude te voorkomen (art. 6 lid 1 sub f).</em></dd>
   <dt>Berichten</dt>
   <dd>Berichten tussen kopers en verkopers lopen via Spare. Om je te beschermen tegen oplichting verbergen we automatisch telefoonnummers, e-mailadressen, links en betaalgegevens, en berichten die betalen buiten Spare proberen te regelen worden niet afgeleverd. Als er iets verborgen is of een bericht niet is afgeleverd, bewaren we de originele tekst zodat ons team die kan bekijken bij fraude of een gemeld probleem. <em>Grond: onze overeenkomst met jou, en ons gerechtvaardigd belang om fraude te voorkomen.</em></dd>
   <dt>Meldingen</dt>

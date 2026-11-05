@@ -3,7 +3,7 @@
 <p>Aquí explicamos qué datos personales recoge Spare, por qué, cuánto tiempo los guardamos, quién más los trata y cuáles son tus derechos. Lo hacemos breve y solo recogemos lo necesario para un mercado de entradas seguro.</p>
 
 <h2>Quién es responsable</h2>
-<p>{{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, gestiona Spare y es responsable del tratamiento de tus datos. Preguntas o solicitudes: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
+<p>{{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}, gestiona Spare y es responsable del tratamiento de tus datos. Preguntas o solicitudes: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>.</p>
 
 <h2>Qué recogemos, por qué y con qué base</h2>
 <dl class="policy">
@@ -19,6 +19,8 @@
   <dd>Qué se compró, cuándo, quién, los importes y comisiones, valoraciones y problemas avisados. Los datos de pago (tarjeta, IBAN) y la verificación de identidad de los vendedores los gestiona Stripe y nunca nos llegan. <em>Base: nuestro contrato contigo y nuestra obligación legal de llevar la contabilidad (art. 6.1.c).</em></dd>
   <dt>Entradas en una app</dt>
   <dd>Si compras una entrada que está en una app, el nombre y el email que das para la transferencia se comparten con el vendedor, solo para que pueda enviártela. <em>Base: nuestro contrato contigo.</em></dd>
+  <dt>Comprobar un problema con el organizador</dt>
+  <dd>Si un comprador avisa de que una entrada no funcionó en la puerta, podemos preguntar al organizador del evento si se escaneó. Para ello solo le enviamos el código de la entrada o, si es una entrada en una app, el nombre y el email al que se transfirió, junto con el evento y la fecha. <em>Base: nuestro interés legítimo en resolver disputas de forma justa y prevenir el fraude (art. 6(1)(f)).</em></dd>
   <dt>Mensajes</dt>
   <dd>Los mensajes entre compradores y vendedores pasan por Spare. Para protegerte de estafas, ocultamos automáticamente teléfonos, emails, enlaces y datos de pago, y los mensajes que intentan organizar un pago fuera de Spare no se entregan. En esos casos guardamos el texto original para que nuestro equipo pueda revisarlo si hay fraude o un problema avisado. <em>Base: nuestro contrato contigo y nuestro interés legítimo en evitar el fraude.</em></dd>
   <dt>Notificaciones</dt>

@@ -3,7 +3,7 @@
 <p class="muted">Última actualización: noviembre de 2026 · Traducción: en caso de duda, prevalece la versión neerlandesa.</p>
 
 <h2>1. Quiénes somos</h2>
-<p>Spare (sparetickets.eu) lo gestiona {{ company.name }}, {{ company.address }}, KvK {{ company.kvk }}, IVA {{ company.vat }}. Contacto: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. Esta dirección también es nuestro punto de contacto para autoridades y usuarios según el Reglamento europeo de Servicios Digitales (DSA); puedes escribirnos en inglés o neerlandés.</p>
+<p>Spare (sparetickets.eu) lo gestiona {{ company.name }}, {{ company.address }}{% if company.kvk %}, KvK {{ company.kvk }}{% endif %}{% if company.vat %}, IVA {{ company.vat }}{% endif %}. Contacto: <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a>. Esta dirección también es nuestro punto de contacto para autoridades y usuarios según el Reglamento europeo de Servicios Digitales (DSA); puedes escribirnos en inglés o neerlandés.</p>
 
 <h2>2. Qué hace Spare</h2>
 <p>Spare es una plataforma donde las personas se revenden entradas de eventos. Spare no vende entradas, no organiza eventos y no está vinculada a los locales u organizadores que aparecen en la web. Los vendedores son particulares, no empresas, así que los derechos que tienes al comprar a una empresa (como el desistimiento o la garantía legal) no se aplican al vendedor. El servicio propio de Spare hacia ti se describe en estas condiciones.</p>
