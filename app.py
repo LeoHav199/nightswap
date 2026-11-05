@@ -116,11 +116,15 @@ def app_name(key):
     return config.TRANSFER_APPS.get(key) or t("app_other")
 
 
-def seller_fee_for(price_cents):
-    """Seller fee for one ticket at this price (never more than the price itself)."""
-    if not config.SELLER_FEE_PERCENT and not config.SELLER_FEE_MIN_CENTS:
-        return 0
-    return min(price_cents, max(config.SELLER_FEE_MIN_CENTS, int(price_cents * config.SELLER_FEE_PERCENT / 100 + 0.5)))
+def seller_fee_for(price_cents, face_cents=None):
+    """Seller fee for one ticket at this price: the percentage (with its minimum) plus the profit share on whatever the
+    price is above the face value. Never more than the price itself."""
+    fee = 0
+    if config.SELLER_FEE_PERCENT or config.SELLER_FEE_MIN_CENTS:
+        fee = max(config.SELLER_FEE_MIN_CENTS, int(price_cents * config.SELLER_FEE_PERCENT / 100 + 0.5))
+    if config.PROFIT_SHARE_PERCENT and face_cents and price_cents > face_cents:
+        fee += int((price_cents - face_cents) * config.PROFIT_SHARE_PERCENT / 100 + 0.5)
+    return min(price_cents, fee)
 
 
 def payout_for(order):
@@ -130,7 +134,11 @@ def payout_for(order):
 
 def seller_fee_label():
     pct = ("%g" % config.SELLER_FEE_PERCENT).replace(".", "," if g.get("lang") == "nl" else ".")
-    return t("fee_label", pct=pct, min=money(config.SELLER_FEE_MIN_CENTS))
+    label = t("fee_label", pct=pct, min=money(config.SELLER_FEE_MIN_CENTS))
+    if config.PROFIT_SHARE_PERCENT:
+        share = ("%g" % config.PROFIT_SHARE_PERCENT).replace(".", "," if g.get("lang") == "nl" else ".")
+        label = t("seller_fee_label_share", base=label, share=share)
+    return label
 
 
 def fee_label():
@@ -1038,6 +1046,7 @@ def template_globals():
         "fee_min": config.FEE_MIN_CENTS,
         "seller_fee_for": seller_fee_for, "payout_for": payout_for, "seller_fee_label": seller_fee_label(),
         "seller_fee_pct": config.SELLER_FEE_PERCENT, "seller_fee_min": config.SELLER_FEE_MIN_CENTS,
+        "profit_share_pct": config.PROFIT_SHARE_PERCENT,
         "fee_max": config.FEE_MAX_CENTS,
         "price_cap": config.PRICE_CAP_PERCENT,
         "price_markup": config.PRICE_CAP_PERCENT - 100,  # e.g. 20 for "up to 20% above face value"
@@ -1596,7 +1605,7 @@ def buy(listing_id):
                                total_cents, offer_id, expires_at, seller_fee_cents, transfer_name, transfer_email)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         public_id, listing_id, g.user["id"], l["seller_id"], qty, price, fee, price + fee, offer["id"] if offer else None,
-        sqltime(utcnow() + timedelta(minutes=config.RESERVATION_MINUTES + 2)), seller_fee_for(unit_price) * qty,
+        sqltime(utcnow() + timedelta(minutes=config.RESERVATION_MINUTES + 2)), seller_fee_for(unit_price, l["face_value_cents"]) * qty,
         transfer_name, transfer_email,
     )
     held = 0

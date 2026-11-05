@@ -552,6 +552,7 @@ STRINGS = {
     "deleted_user": "Usuario eliminado",
     "account_deleted": "Tu cuenta se ha eliminado.",
     "fee_label": "{pct}% (mín. {min})",
+    "seller_fee_label_share": "{base}, más el {share}% de lo que supere el precio original",
     "first_seller_title": "Sé el primero en vender para estas noches",
     "first_seller_body": "Aún no hay entradas a la venta. ¿No puedes ir a alguna de estas noches? Publica tu entrada en un minuto, y quienes buscan una recibirán un aviso.",
     "coming_up": "Próximamente",

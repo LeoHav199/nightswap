@@ -699,7 +699,13 @@
   var feeMax = parseInt(sell.dataset.feeMax, 10) || 0;
   function feeFor(p) { var f = Math.max(feeMin, Math.round(p * feePct / 100)); return feeMax ? Math.min(f, feeMax) : f; }
   var sellerPct = parseFloat(sell.dataset.sellerPct) || 0, sellerMin = parseInt(sell.dataset.sellerMin, 10) || 0;
-  function sellerFeeFor(p) { return (sellerPct || sellerMin) ? Math.min(p, Math.max(sellerMin, Math.round(p * sellerPct / 100))) : 0; }
+  var profitShare = parseFloat(sell.dataset.profitShare) || 0;
+  // Same as seller_fee_for in app.py: the percentage with its minimum, plus the profit share above the face value.
+  function sellerFeeFor(p, f) {
+    var fee = (sellerPct || sellerMin) ? Math.max(sellerMin, Math.round(p * sellerPct / 100)) : 0;
+    if (profitShare && f && p > f) fee += Math.round((p - f) * profitShare / 100);
+    return Math.min(p, fee);
+  }
   var cap = parseInt(sell.dataset.cap, 10);
   if (isNaN(cap)) cap = 100;  // 0 = no cap: sellers set their own price
   var sellLang = sell.dataset.lang;
@@ -733,8 +739,8 @@
   function money(c) { return formatMoney(c, sellLang); }
   function update() {
     var p = cents(price.value), f = cents(face.value);
-    receive.textContent = p ? money(p - sellerFeeFor(p)) : "–";
-    if (sellerFeeBox) sellerFeeBox.textContent = p ? money(sellerFeeFor(p)) : sellerFeeBox.dataset.label;
+    receive.textContent = p ? money(p - sellerFeeFor(p, f)) : "–";
+    if (sellerFeeBox) sellerFeeBox.textContent = p ? money(sellerFeeFor(p, f)) : sellerFeeBox.dataset.label;
     buyerPays.textContent = p ? money(p + feeFor(p)) : "–";
     var over = cap && p && f && p > Math.floor(f * cap / 100);
     price.setAttribute("aria-invalid", over ? "true" : "false");

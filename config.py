@@ -42,11 +42,14 @@ LOAD_STARTER_DATA = env("LOAD_STARTER_DATA", "1") == "1"  # a brand-new database
 # Business rules -------------------------------------------------------------
 # Buyer service fee per ticket: a percentage of the ticket price, with a minimum (and an optional maximum).
 FEE_PERCENT = float(env("NIGHTSWAP_FEE_PERCENT", "8"))
-FEE_MIN_CENTS = int(env("NIGHTSWAP_FEE_MIN_CENTS", "150"))
+FEE_MIN_CENTS = int(env("NIGHTSWAP_FEE_MIN_CENTS", "199"))  # €1.99 since 6 Nov 2026 (was €1.50): cheap tickets barely covered Stripe
 FEE_MAX_CENTS = int(env("NIGHTSWAP_FEE_MAX_CENTS", "0"))   # 0 = no maximum
 # Seller fee per ticket, taken from the payout: covers Stripe's per-seller and per-payout costs.
 SELLER_FEE_PERCENT = float(env("NIGHTSWAP_SELLER_FEE_PERCENT", "5"))
 SELLER_FEE_MIN_CENTS = int(env("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "100"))
+# Profit share (Leo and Ilyas, 6 Nov 2026): sellers also pay this percentage of whatever their price is above the
+# face value. Selling at or below face value costs nothing extra. 0 = off.
+PROFIT_SHARE_PERCENT = float(env("NIGHTSWAP_PROFIT_SHARE_PERCENT", "10"))
 
 # Ticket apps with changing QR codes, where tickets move with the app's own "transfer" button.
 TRANSFER_APPS = {"ticketmaster": "Ticketmaster", "weeztix": "Weeztix / Eventix", "paylogic": "Paylogic",

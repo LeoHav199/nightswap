@@ -552,6 +552,7 @@ STRINGS = {
     "deleted_user": "Gelöschtes Konto",
     "account_deleted": "Dein Konto wurde gelöscht.",
     "fee_label": "{pct}% (mind. {min})",
+    "seller_fee_label_share": "{base}, plus {share}% von allem über dem Originalpreis",
     "first_seller_title": "Sei die erste Person, die für diese Abende verkauft",
     "first_seller_body": "Noch keine Tickets im Angebot. Du kannst zu einem dieser Abende nicht hin? Stell dein Ticket in einer Minute ein, und alle, die eins suchen, bekommen eine Benachrichtigung.",
     "coming_up": "Demnächst",

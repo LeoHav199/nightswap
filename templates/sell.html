@@ -9,7 +9,7 @@
 
 <div class="wrap sell">
   <form class="panel form" method="post" enctype="multipart/form-data" data-sell-form data-once
-        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-seller-pct="{{ seller_fee_pct }}" data-seller-min="{{ seller_fee_min }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" data-face-official="{{ t('face_official', max='{max}') }}" novalidate>
+        data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-seller-pct="{{ seller_fee_pct }}" data-seller-min="{{ seller_fee_min }}" data-profit-share="{{ profit_share_pct }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" data-face-official="{{ t('face_official', max='{max}') }}" novalidate>
     {{ m.csrf() }}
     {% set picked = form.get('venue', '') %}
     {% set picked_event = (preset.id|string) if preset else form.get('event_id', '') %}
