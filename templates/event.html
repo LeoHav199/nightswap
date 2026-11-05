@@ -12,6 +12,11 @@
     "offers": ({"@type": "AggregateOffer", "priceCurrency": "EUR", "lowPrice": "%.2f"|format(with_fee(ev.min_price) / 100), "offerCount": ev.count} if ev.min_price else none)
   }|tojson }}</script>
 {% endblock %}
+{% block og %}
+  <meta property="og:site_name" content="Spare">
+  {% if not (ev.poster or ev.photo) %}<meta property="og:image" content="{{ base_url }}{{ url_for('static', filename='og-image.png') }}">{% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+{% endblock %}
 {% block content %}
 {% set url = event_url(ev.venue, ev.date, ev.name, external=True) %}
 <div class="wrap">
@@ -55,7 +60,8 @@
                 <span class="tr-qty">{{ t('sold_as_set', n=l.available) if l.sold_together else (t('n_available', n=l.available) if l.available > 1 else '') }}</span>
               </div>
               <div class="badges">{{ m.seller_badges(l, stats[l.seller_id]) }}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>
-              <div class="muted small"><a class="report-link" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report') }}</a> · {{ t('face_value') }} {{ money(l.face_value_cents) }}{% if l.price_cents < l.face_value_cents %} · <span class="good">{{ t('below_face', amount=money(l.face_value_cents - l.price_cents)) }}</span>{% elif markup_percent(l.price_cents, l.face_value_cents) %} · {{ t('above_face_pct', pct=markup_percent(l.price_cents, l.face_value_cents)) }}{% endif %}</div>
+              <div class="muted small">{{ t('face_value') }} {{ money(l.face_value_cents) }}{% if l.price_cents < l.face_value_cents %} · <span class="good">{{ t('below_face', amount=money(l.face_value_cents - l.price_cents)) }}</span>{% elif markup_percent(l.price_cents, l.face_value_cents) %} · {{ t('above_face_pct', pct=markup_percent(l.price_cents, l.face_value_cents)) }}{% endif %}</div>
+              <a class="report-link tr-report" href="{{ url_for('report_listing', listing_id=l.id) }}">{{ t('report') }}</a>
             </div>
           </div>
           <div class="tr-buy">

@@ -338,7 +338,8 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 
 /* Account ---------------------------------------------------------------- */
 .account-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
-.head-actions { display: flex; gap: 8px; }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }  /* wraps on small phones, so "Log out" is never cut off */
+.head-actions form { margin: 0; }
 .account-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .status-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; }
 .status-label { font-size: 13px; color: var(--muted); }
@@ -1059,3 +1060,11 @@ body.has-search-sheet { overflow: hidden; }
 .about-promises dd { margin: 2px 0 0; color: var(--muted); }
 
 .report-warning { color: var(--flyer); margin: 4px 0 12px; }
+
+/* The Report link sits quietly on its own line under the seller, not next to the price. */
+.tr-report { display: inline-block; margin-top: 4px; font-size: 12px; text-decoration: none; }
+.tr-report:hover { text-decoration: underline; }
+
+/* What the seller gets, right above the Post button (the summary panel sits below the form on phones). */
+.receive-line { display: flex; align-items: baseline; gap: 8px; margin: 16px 0 10px; font-size: 15px; }
+.receive-line strong { font-size: 22px; color: var(--accent); }

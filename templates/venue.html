@@ -6,6 +6,11 @@
   <meta property="og:description" content="{{ t('venue_meta_free', venue=venue.name, city=venue.city) if price_free else (t('venue_meta', venue=venue.name, city=venue.city) if price_cap == 100 else t('venue_meta_pct', venue=venue.name, city=venue.city, pct=price_markup)) }}">
   {% if venue.photo_file %}<meta property="og:image" content="{{ base_url }}{{ url_for('poster', name=venue.photo_file) }}">{% endif %}
 {% endblock %}
+{% block og %}
+  <meta property="og:site_name" content="Spare">
+  {% if not venue.photo_file %}<meta property="og:image" content="{{ base_url }}{{ url_for('static', filename='og-image.png') }}">{% endif %}
+  <meta name="twitter:card" content="summary_large_image">
+{% endblock %}
 {% block content %}
 <section class="venue-hero {{ 'has-img' if venue.photo_file }}" style="--venue: {{ colour }}">
   {% if venue.photo_file %}<img src="{{ url_for('poster', name=venue.photo_file, w=1280) }}" alt="" data-fade>{% endif %}

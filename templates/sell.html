@@ -193,6 +193,7 @@
       <label class="consent"><input type="checkbox" name="adult" value="yes" {{ 'checked' if form.get('adult') == 'yes' }} required><span>{{ t('adult_confirm') }}</span></label>
       {{ m.field_error(errors, 'adult') }}
     {% endif %}
+    <p class="receive-line">{{ t('you_receive') }} <strong data-receive>–</strong> <span class="muted small">{{ t('per_ticket') }}</span></p>
     <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('post_ticket') }}</button>
     <p class="muted small center">{{ t('sell_agree_pre') }} <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>.</p>
   </form>
@@ -205,9 +206,9 @@
       <div><dt>{{ t('your_fee') }}</dt><dd data-seller-fee data-label="{{ seller_fee_label }}">{{ seller_fee_label }}</dd></div>
     </dl>
     <ol class="steps-mini">
-      <li>{{ t('sell_step_1') }}</li>
+      <li>{{ t('sell_step_1_payouts') if not user.payouts_ready else t('sell_step_1') }}</li>
       <li>{{ t('sell_step_2') }}</li>
-      <li>{{ t('sell_step_3', hours=payout_hours) }}</li>
+      <li>{{ t('sell_step_3_new', hours=new_seller_hours, sales=new_seller_sales) if new_seller else t('sell_step_3', hours=payout_hours) }}</li>
     </ol>
     {% if not user.payouts_ready %}<p class="muted small">{{ t('payout_later_note') }}</p>{% endif %}
   </aside>

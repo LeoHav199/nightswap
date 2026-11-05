@@ -4,10 +4,11 @@
     <h2>Buying</h2>
     <ol class="steps">
       <li><strong>Find your ticket.</strong> Every ticket is listed by night, with the total price shown up front.</li>
-      <li><strong>Pay with iDEAL or card.</strong> You pay the seller's price plus a {{ fee }} service fee.</li>
+      <li><strong>Pay with iDEAL or card.</strong> You pay the seller's price plus a service fee of {{ fee }}.</li>
       <li><strong>Get your ticket.</strong> A ticket file is in your account and your inbox right after paying. A ticket that lives in an app ({{ apps }}) is sent to your account in that app by the seller.</li>
+      <li>{{ t('how_swap_step')|safe }}</li>
     </ol>
-    <p class="muted">Ticket doesn't work at the door? Report it from your order any time before the seller is paid, and you get your money back.</p>
+    <p class="muted">{{ t('how_door_report') }}</p>
   </section>
   <section class="panel">
     <h2>Selling</h2>

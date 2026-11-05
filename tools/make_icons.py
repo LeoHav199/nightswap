@@ -48,7 +48,37 @@ def icon(size, mark_share, corner=0.0, bg=BG):
     return img
 
 
+def font(name, size, weight):
+    from PIL import ImageFont
+    f = ImageFont.truetype("static/fonts/" + name, size)
+    try:
+        f.set_variation_by_axes([weight])  # the site's fonts are variable: pick the weight the CSS uses
+    except Exception:
+        pass
+    return f
+
+
+def share_image():
+    """The link preview for WhatsApp, Instagram and search results (og:image, 1200 x 630): the mark, the wordmark,
+    what Spare is and why it's safe. English only; it's mostly a picture."""
+    W, H = 1200, 630
+    img = Image.new("RGBA", (W, H), BG)
+    d = ImageDraw.Draw(img)
+    mpx = 150
+    layer = Image.new("RGBA", (mpx, mpx), ACCENT)
+    img.paste(layer, (70, 60), mark_mask(mpx))
+    d.text((236, 92), "spare", font=font("inter-tight-latin-9e0189.woff", 84, 900), fill=(245, 243, 236, 255))
+    head = font("big-shoulders-display-latin-48e1b4.woff2", 112, 900)
+    for i, line in enumerate(("RESELL YOUR TICKETS.", "STUDENT TO STUDENT.")):
+        d.text((76, 250 + i * 108), line, font=head, fill=ACCENT if i else (245, 243, 236, 255))
+    body = font("instrument-sans-latin-e190a6.woff2", 34, 500)
+    d.text((80, 500), "Rotterdam nights. Your money is held until you're in.", font=body, fill=(196, 193, 214, 255))
+    d.text((80, 548), "sparetickets.eu", font=font("instrument-sans-latin-e190a6.woff2", 34, 700), fill=ACCENT)
+    img.convert("RGB").save("static/og-image.png", optimize=True)
+
+
 if __name__ == "__main__":
+    share_image()
     icon(192, 0.68, corner=0.22).save("static/icons/icon-192.png")
     icon(512, 0.68, corner=0.22).save("static/icons/icon-512.png")
     icon(512, 0.56).save("static/icons/icon-maskable-512.png")   # keeps the mark inside the safe zone

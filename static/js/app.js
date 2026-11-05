@@ -713,7 +713,7 @@
   var other = sell.querySelector("[data-other-venue]");
   var face = sell.querySelector("[data-face]");
   var price = sell.querySelector("[data-price]");
-  var receive = document.querySelector("[data-receive]");
+  var receives = document.querySelectorAll("[data-receive]");  // in the summary and right above the Post button
   var buyerPays = document.querySelector("[data-buyer-pays]");
   var sellerFeeBox = document.querySelector("[data-seller-fee]");
 
@@ -739,7 +739,7 @@
   function money(c) { return formatMoney(c, sellLang); }
   function update() {
     var p = cents(price.value), f = cents(face.value);
-    receive.textContent = p ? money(p - sellerFeeFor(p, f)) : "–";
+    receives.forEach(function (el) { el.textContent = p ? money(p - sellerFeeFor(p, f)) : "–"; });
     if (sellerFeeBox) sellerFeeBox.textContent = p ? money(sellerFeeFor(p, f)) : sellerFeeBox.dataset.label;
     buyerPays.textContent = p ? money(p + feeFor(p)) : "–";
     var over = cap && p && f && p > Math.floor(f * cap / 100);
@@ -774,11 +774,11 @@
       manual.hidden = !!(checked && checked.value !== "new");
       // #25: with a known official price there's nothing to prove; otherwise the seller adds their order confirmation.
       var max = checked && checked.dataset.faceMax;
-      if (faceProof) faceProof.hidden = !!max || cap === 0;  // no proof needed without a cap
+      if (faceProof) faceProof.hidden = !checked || !!max || cap === 0;  // only once an event is picked and its price is unknown; none without a cap
       if (faceHint) faceHint.textContent = max ? sell.dataset.faceOfficial.replace("{max}", max) : faceHintText;
     }
     function load() {
-      if (!dateInput.value) { list.innerHTML = ""; addNew.hidden = true; manual.hidden = true; return; }
+      if (!dateInput.value) { list.innerHTML = ""; addNew.hidden = true; syncManual(); manual.hidden = true; return; }
       fetch(picker.dataset.api + "?date=" + dateInput.value).then(function (r) { return r.json(); }).then(function (data) {
         list.innerHTML = data.events.map(function (e) {
           return '<label class="pick"><input type="radio" name="event_id" value="' + e.id + '" data-face-max="' + esc(e.face_max) + '"' + (String(e.id) === selected ? " checked" : "") + '>' +
