@@ -14,7 +14,7 @@
     <p class="muted small">Reported {{ (o.disputed_at or '')[:16] }}</p>
     <h2>Seller's side</h2>
     {% if o.seller_reply %}<blockquote>{{ o.seller_reply }}</blockquote><p class="muted small">Replied {{ o.seller_replied_at[:16] }}</p>
-    {% else %}<p class="muted">No reply yet.{% if o.dispute_kind in ('door_rejected', 'already_scanned') %} Without a reply within 24 hours of the report, the buyer is refunded automatically.{% endif %}</p>{% endif %}
+    {% else %}<p class="muted">No reply yet.{% if o.dispute_kind in ('door_rejected', 'already_scanned') %} Without a reply within {{ reply_hours }} hours of the report, the buyer is refunded automatically (only with a photo, a clean 90-day record and no chargeback; otherwise you decide).{% endif %}</p>{% endif %}
     {% if o.dispute_decision %}<p><strong>Decision:</strong> {{ o.dispute_decision }}</p>{% endif %}
   </section>
   <section class="account-section">
@@ -24,6 +24,11 @@
       {% else %}<li class="muted" style="padding:14px 4px">No photos or proof files.</li>{% endfor %}
       {% for tk in tickets %}{% if tk.file %}<li><a href="{{ url_for('admin_ticket_file', ticket_id=tk.id) }}" target="_blank" rel="noopener"><span class="tl-main"><strong>Ticket file</strong><span class="muted small">code: {{ tk.code_text or 'not readable' }}{% if tk.code_format %} ({{ tk.code_format }}){% endif %}</span></span></a></li>{% endif %}{% endfor %}
     </ul>
+    <h2>Ask the organiser</h2>
+    {% if organiser_mail %}
+      <p class="muted small">Their scan log usually settles it: scanned for the buyer means the buyer got in. The email is ready in Dutch and English; add the organiser's address{% if event and event.ticket_url %} (try {{ event.ticket_url.split('/')[2]|replace('www.', '') }}){% endif %}.</p>
+      <a class="btn btn-ghost btn-sm" href="{{ organiser_mail }}">Email the organiser: was it scanned?</a>
+    {% else %}<p class="muted">No ticket code or transfer details to check with the organiser.</p>{% endif %}
     <h2>Was this ticket on Spare before?</h2>
     {% if history %}
       <ul class="table-list">{% for h in history %}<li class="admin-event-row"><div class="tl-main"><strong>Same {{ 'code' if h.match == 'code_hash' else 'file' }}</strong><span class="muted small">listing <a href="{{ url_for('listing_page', listing_id=h.listing_id) }}">{{ h.listing_id }}</a> by {{ h.email }} · ticket {{ h.status }} · {{ h.created_at[:16] }}</span></div></li>{% endfor %}</ul>
@@ -48,7 +53,7 @@
   <section class="account-section">
     <h2>Decide</h2>
     <p class="muted small">Your reason is emailed to both the buyer and the seller.</p>
-    {% for action, label, cls, confirm in (('refund', 'Refund the buyer', 'btn-accent', 'Refund the buyer in full?'), ('refund_block', 'Refund and block the seller', 'btn-accent', 'Refund the buyer and block the seller?'), ('keep', 'Keep: pay the seller', 'btn-ghost', 'Close the dispute and pay the seller?')) %}
+    {% for action, label, cls, confirm in (('refund', 'Refund the buyer', 'btn-accent', 'Refund the buyer in full?'), ('refund_block', 'Refund and block the seller', 'btn-accent', 'Refund the buyer and block the seller?'), ('keep', 'Keep: pay the seller', 'btn-ghost', 'Close the dispute and pay the seller?'), ('keep_block', 'False report: pay the seller and block the buyer', 'btn-ghost', 'Pay the seller and block the buyer for a false report?')) %}
       <form class="admin-actions" method="post" action="{{ url_for('admin_dispute_decide', public_id=o.public_id, action=action) }}" data-confirm="{{ confirm }}">{{ m.csrf() }}
         <input type="text" name="why" placeholder="Reason (emailed to both)" required><button class="btn {{ cls }} btn-sm">{{ label }}</button></form>
     {% endfor %}

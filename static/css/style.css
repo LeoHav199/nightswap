@@ -1057,3 +1057,5 @@ body.has-search-sheet { overflow: hidden; }
 .about-promises { display: grid; gap: 14px; margin: 0 0 14px; }
 .about-promises dt { font-weight: 700; }
 .about-promises dd { margin: 2px 0 0; color: var(--muted); }
+
+.report-warning { color: var(--flyer); margin: 4px 0 12px; }

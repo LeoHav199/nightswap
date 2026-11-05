@@ -255,7 +255,7 @@
           <fieldset class="field">
             <legend class="label">{{ t('dispute_kind_q') }}</legend>
             <div class="cat-options">
-              {% for k in dispute_kinds %}<label class="cat-option"><input type="radio" name="kind" value="{{ k }}" required {{ 'checked' if loop.first }}><span>{{ t('dispute_kind_' ~ k) }}</span></label>{% endfor %}
+              {% for k in dispute_kinds if door_report_ok or k not in ('door_rejected', 'already_scanned') %}<label class="cat-option"><input type="radio" name="kind" value="{{ k }}" required {{ 'checked' if loop.first }}><span>{{ t('dispute_kind_' ~ k) }}</span></label>{% endfor %}
             </div>
           </fieldset>
           <label class="field">
@@ -263,10 +263,11 @@
             <textarea name="reason" rows="4" minlength="10" maxlength="1000" required></textarea>
           </label>
           <label class="field">
-            <span class="label">{{ t('dispute_photos', n=max_photos) }} <span class="optional">{{ t('optional') }}</span></span>
+            <span class="label">{{ t('dispute_photos', n=max_photos) }} <span class="optional">{{ t('photo_needed_door') if door_report_ok else t('optional') }}</span></span>
             <span class="file-drop file-drop-sm"><input type="file" name="photos" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" multiple data-file data-many="{{ t('n_files') }}">
               <span class="file-drop-text" data-file-label>{{ t('dispute_photos_cta') }}</span></span>
           </label>
+          <p class="small report-warning">{{ t('report_warning') }}</p>
           <button class="btn btn-ghost" type="submit">{{ t('report_send') }}</button>
         </form>
       </details>

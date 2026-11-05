@@ -1720,6 +1720,7 @@ def order_page(public_id):
         directions=directions_url(get_venue(listing["venue"], listing["city"])) if get_venue(listing["venue"], listing["city"]) else None,
         colour=venue_colour(listing["venue"]), is_buyer=is_buyer, is_seller=g.user["id"] == order["seller_id"],
         can_report=order["status"] == "paid" and is_buyer,
+        door_report_ok=is_buyer and door_report_open(order, listing),
         door=is_buyer and order["status"] in PAID_STATES and door_night(listing),
         can_rate=is_buyer and order["status"] in PAID_STATES and not order["rating"] and can_rate_now(listing),
     ))
@@ -1802,8 +1803,23 @@ DISPUTE_HISTORY_DAYS = 90  # #36: a buyer with another dispute in this period is
 
 
 DISPUTE_KINDS = ("door_rejected", "already_scanned", "wrong_event", "never_received", "other")
-AUTO_REFUND_KINDS = ("door_rejected", "already_scanned")  # refunded automatically if the seller doesn't answer in 24h
+AUTO_REFUND_KINDS = ("door_rejected", "already_scanned")  # refunded automatically if the seller doesn't answer in 48h
 MAX_DISPUTE_PHOTOS = 3
+DOOR_REPORT_UNTIL_HOUR = 6  # door problems are reported on the night itself, until 06:00 after the doors (Amsterdam time)
+
+
+def door_report_until(listing):
+    """Against buyers who get in and then claim they didn't: someone really turned away reports from the queue, so
+    door problems (with a photo) can only be reported until 06:00 after the doors open, and never after Swap."""
+    doors = doors_open_at(listing).replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)  # back to Amsterdam time
+    until = doors.replace(hour=DOOR_REPORT_UNTIL_HOUR, minute=0, second=0)
+    if until <= doors:
+        until += timedelta(days=1)
+    return until.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def door_report_open(order, listing):
+    return not order["swapped_at"] and utcnow() <= door_report_until(listing)
 
 
 def open_dispute(order, reason, kind="other"):
@@ -1833,6 +1849,13 @@ def report_problem(public_id):
     if len(reason) < 10:
         flash(t("err_report_short"), "error")
         return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
+    if kind in AUTO_REFUND_KINDS:
+        listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+        problem = ("err_door_swapped" if order["swapped_at"] else "err_door_late" if not door_report_open(order, listing)
+                   else "err_door_photo" if not any(photos) and not errors else None)
+        if problem:
+            flash(t(problem), "error")
+            return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
     if errors:
         flash(errors["dispute_photo"], "error")
         return redirect(url_for("order_page", public_id=public_id, report=1) + "#report")
@@ -2020,9 +2043,34 @@ def admin_dispute(public_id):
         return u, stats
     th = db.one("SELECT * FROM threads WHERE order_id=?", o["id"]) or get_thread(listing, o["buyer_id"], create=False)
     chat = db.all("SELECT m.*, u.first_name FROM messages m LEFT JOIN users u ON u.id = m.sender_id WHERE m.thread_id=? ORDER BY m.id", th["id"]) if th else []
-    return render_template("admin_dispute.html", o=o, l=listing, tickets=tickets, history=history,
+    event = db.one("SELECT * FROM events WHERE id=?", listing["event_id"]) if listing["event_id"] else None
+    return render_template("admin_dispute.html", o=o, l=listing, tickets=tickets, history=history, organiser_mail=organiser_mail(o, listing, tickets),
+                           event=event, reply_hours=DISPUTE_REPLY_HOURS,
                            buyer=person(o["buyer_id"]), seller=person(o["seller_id"]), chat=chat,
                            proofs=db.all("SELECT * FROM proofs WHERE order_id=? OR listing_id=? ORDER BY id", o["id"], o["listing_id"]))
+
+
+def organiser_mail(o, listing, tickets):
+    """A ready-made question for the organiser: was this ticket scanned, and when? Their scan log settles most disputes.
+    In Dutch and English, since most organisers here are Dutch."""
+    codes = [tk["code_text"] for tk in tickets if tk["code_text"]]
+    if codes:
+        what_nl = "ticketcode(s): " + ", ".join(codes)
+        what_en = "ticket code(s): " + ", ".join(codes)
+    elif listing["delivery"] == "transfer" and o["transfer_name"]:
+        what_nl = "het ticket dat is overgezet naar %s (%s)" % (o["transfer_name"], o["transfer_email"] or "")
+        what_en = "the ticket transferred to %s (%s)" % (o["transfer_name"], o["transfer_email"] or "")
+    else:
+        return None  # nothing the organiser could look up
+    title = "%s, %s, %s" % (listing["event_name"] or listing["venue"], listing["venue"], fmt_date(listing["event_date"], "long"))
+    subject = "Vraag over een ticket voor %s" % (listing["event_name"] or listing["venue"])
+    body = ("Hallo,\n\nWe zijn Spare (sparetickets.eu), een platform waar studenten tickets aan elkaar doorverkopen. Een koper zegt dat "
+            "dit ticket aan de deur niet werkte. Kunt u voor ons nagaan of het is gescand, en zo ja hoe laat?\n\n"
+            "Evenement: %s\nTicket: %s\n\nAlvast bedankt!\n\n---\n\nHello,\n\nWe're Spare (sparetickets.eu), a platform where "
+            "students resell tickets to each other. A buyer says this ticket didn't work at the door. Could you check whether it "
+            "was scanned, and if so at what time?\n\nEvent: %s\nTicket: %s\n\nThank you!\n\nThe Spare team"
+            % (title, what_nl, title, what_en))
+    return "mailto:?subject=%s&body=%s" % (quote(subject), quote(body))
 
 
 @app.route("/admin/disputes/<public_id>/<action>", methods=["POST"])
@@ -2031,7 +2079,7 @@ def admin_dispute_decide(public_id, action):
     """#32: refund the buyer, refund and block the seller, or keep (pay the seller). The reason goes to both sides."""
     o = db.one("SELECT * FROM orders WHERE public_id=?", public_id)
     why = request.form.get("why", "").strip()[:500]
-    if not o or action not in ("refund", "refund_block", "keep"):
+    if not o or action not in ("refund", "refund_block", "keep", "keep_block"):
         abort(404)
     if not why:
         flash("Write a short reason: both sides get it by email.", "error")
@@ -2041,9 +2089,13 @@ def admin_dispute_decide(public_id, action):
         return redirect(url_for("admin_dispute", public_id=public_id))
     listing = db.one("SELECT * FROM listings WHERE id=?", o["listing_id"])
     title = listing_title(listing)
-    if action == "keep":
+    if action in ("keep", "keep_block"):
         db.run("UPDATE orders SET status='paid', dispute_decision=? WHERE id=? AND status='disputed'", why, o["id"])
         decision = t("dispute_kept")
+        if action == "keep_block":  # a false report, e.g. the organiser confirmed the ticket was scanned for the buyer
+            buyer = db.one("SELECT * FROM users WHERE id=?", o["buyer_id"])
+            block_user(buyer["id"], "False problem report %s: %s" % (public_id, why))
+            send_statement_of_reasons(buyer, t("dsa_what_account"), why)
     else:
         if not refund_order(o, "refund_dispute"):
             return redirect(url_for("admin_dispute", public_id=public_id))

@@ -848,8 +848,8 @@ ok(order_now(d1)["status"] == "paid", "#32 'keep' closes the dispute and the sel
 both = {to for to, sub, b in SENT if "Decision about" in sub and "transfer to the buyer" in b}
 ok(both == {"b@test.nl", "s3@test.nl"}, "#32 both sides get the decision and the reason")
 d2 = paid_order()
-buyer.post("/orders/%s/report" % d2["public_id"], data={"kind": "door_rejected", "reason": "Refused at the door, invalid code", "_csrf": csrf(buyer)},
-           content_type="multipart/form-data")
+buyer.post("/orders/%s/report" % d2["public_id"], data={"kind": "door_rejected", "reason": "Refused at the door, invalid code",
+           "photos": (io.BytesIO(ticket_png(904)), "door.png"), "_csrf": csrf(buyer)}, content_type="multipart/form-data")  # a photo is required for door problems
 d3 = paid_order()
 buyer.post("/orders/%s/report" % d3["public_id"], data={"kind": "other", "reason": "The seller was rude in the chat", "_csrf": csrf(buyer)},
            content_type="multipart/form-data")
@@ -863,7 +863,7 @@ with app.app_context():
 real_refund = payments.refund; payments.refund = lambda order: "re_auto"
 with app.test_request_context(): n = A.auto_refund_silent_disputes()
 ok(n == 0 and order_now(d2)["status"] == "disputed" and order_now(d2)["dispute_escalated_at"],
-   "#36 no photo and other recent disputes: not refunded automatically, an admin is asked")
+   "#36 other recent disputes: not refunded automatically, an admin is asked")
 with app.app_context():
     A.db.run("UPDATE orders SET dispute_escalated_at=NULL WHERE id=?", d2["id"])
     A.db.run("UPDATE orders SET disputed_at=? WHERE buyer_id=? AND id != ?", A.sqltime(A.utcnow() - timedelta(days=100)), d2["buyer_id"], d2["id"])
