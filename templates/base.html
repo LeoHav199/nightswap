@@ -22,7 +22,7 @@
 <body class="{% block body_class %}{% endblock %}" data-csrf="{{ csrf_token }}">
   <div class="loadbar" aria-hidden="true"></div>
   <div class="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.5 10.5a7.6 7.6 0 0 1 13.4-4.6"/><path d="M18.6 2.4v4h-4"/><path d="M19.5 13.5a7.6 7.6 0 0 1-13.4 4.6"/><path d="M5.4 21.6v-4h4"/></svg></div>
-  {% if test_mode and not bare %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
+  {% if test_mode and not test_lock and not bare %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
   {% if test_lock and not bare %}<div class="testbar lockbar">{{ t('test_lock_bar') }}</div>{% endif %}
   {% if coming_soon and is_admin %}<div class="testbar adminbar">Coming-soon mode is on: visitors only see the sign-up page. <a href="{{ url_for('admin') }}#launch">Change</a></div>{% endif %}
   <header class="site-header">
