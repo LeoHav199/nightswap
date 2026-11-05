@@ -572,6 +572,7 @@ STRINGS = {
     "made_by_students": "Lo llevan dos estudiantes de la Universidad Erasmus de Róterdam.",
     "help_fast": "¿Preguntas? Spare lo llevan dos estudiantes de la Universidad Erasmus, y respondemos rápido:",
     "mail_signoff": "El equipo de Spare, dos estudiantes de la Universidad Erasmus de Róterdam",
+    "footer_company": "Datos de la empresa",
     "report_warning": "Comprobamos con el organizador si tu entrada se escaneó. Si el aviso es falso, el vendedor se queda el dinero y tu cuenta se bloquea.",
     "photo_needed_door": "obligatorio si no te dejaron entrar",
     "err_door_photo": "Añade una foto para un problema en la entrada, por ejemplo la pantalla del escáner o el mensaje del personal.",

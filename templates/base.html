@@ -77,7 +77,6 @@
           <span>spare</span>
         </div>
         <p class="muted small">{{ t('footer_tagline') }}</p>
-        {% if company.name and company.address %}<p class="muted small company-line">{{ company.name }} · {{ company.address }}{% if company.kvk %} · KvK {{ company.kvk }}{% endif %}{% if company.vat %} · {{ t('vat') }} {{ company.vat }}{% endif %}</p>{% endif %}
       </div>
       <nav class="footer-links">
         <a href="{{ url_for('how') }}">{{ t('nav_how') }}</a>
@@ -85,6 +84,8 @@
         <a href="{{ url_for('how') }}#fees">{{ t('footer_fees') }}</a>
         <a href="{{ url_for('settings') }}">{{ t('settings') }}</a>
         <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>
+        {# The legally required name, address and KvK number live in the terms and privacy policy, not on every page (Leo and Ilyas's choice). #}
+        <a href="{{ url_for('terms') }}#company">{{ t('footer_company') }}</a>
         <a href="{{ url_for('privacy') }}">{{ t('footer_privacy') }}</a>
         <a href="{{ url_for('credits') }}">{{ t('photo_credits') }}</a>
         <a href="mailto:hello@sparetickets.eu">{{ t('footer_contact') }}</a>

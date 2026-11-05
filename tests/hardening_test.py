@@ -374,10 +374,10 @@ for words, what in (("Spare vof, Lombardkade 47A", "who runs Spare"), ("private 
     ok(words in terms, "#20 the terms cover %s" % what)
 ok("Geen herroepingsrecht" in html(nl.get("/terms")), "#20 the Dutch terms too")
 home = html(visitor.get("/"))
-ok("company-line" in home and "Spare vof · Lombardkade 47A" in home and "KvK" not in home.split("company-line")[1].split("</p>")[0],
-   "#20 the footer shows Spare vof and its address, and the KvK number only once it's set")
+ok("Lombardkade" not in home and 'href="/terms#company"' in home, "#20 the address isn't on every page: the footer links to the company details in the terms")
+ok('id="company"' in terms and "Spare vof, Lombardkade 47A" in terms, "#20 ...where name and address are")
 config.COMPANY_NAME, config.COMPANY_ADDRESS, config.KVK_NUMBER = "Spare Tickets", "Coolsingel 1, Rotterdam", "12345678"
-ok("KvK 12345678" in html(visitor.get("/")), "#20 then the footer shows name, address and KvK number")
+ok("KvK 12345678" in html(visitor.get("/terms")) and "KvK 12345678" in html(visitor.get("/privacy")), "#20 then the terms and privacy policy show the KvK number")
 with app.app_context(): ok("KvK 12345678" in real_notify.email_html("Hi", "Body"), "#20 ...and so does every email")
 config.COMPANY_NAME = config.COMPANY_ADDRESS = config.KVK_NUMBER = ""
 ok(os.path.exists("docs/legal-review.md"), "#20 the points for a lawyer are listed in docs/legal-review.md")
