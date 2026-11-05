@@ -75,7 +75,7 @@ TICKET_CHECKS = True         # #29: unreadable codes go to an admin, re-saved pi
 NEW_SELLER_LIMITS = True     # #28: limits below for sellers with fewer than NEW_SELLER_SALES paid-out sales
 NEW_SELLER_SALES = 2
 NEW_SELLER_MAX_TICKETS = 2   # tickets on sale at once
-NEW_SELLER_PAYOUT_HOURS = 72  # paid this long after the night, never early
+NEW_SELLER_PAYOUT_HOURS = int(env("NIGHTSWAP_NEW_SELLER_PAYOUT_HOURS", "24"))  # paid this long after the night, never early at Swap (was 72 until 6 Nov 2026, Leo's call: door problems now close at 06:00, so 24 hours is enough)
 RESERVATION_MINUTES = 30          # Stripe Checkout sessions last at least 30 minutes
 MAX_FACE_VALUE_CENTS = 50000
 # #38: first-time buyers may pay by card too (internationals often have no Dutch bank), always with 3D Secure.

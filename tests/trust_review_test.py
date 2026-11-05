@@ -42,7 +42,7 @@ r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(sel
 seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})", html(r)).group(1), "_csrf": csrf(seller)})
 sp = html(seller.get("/sell"))
 ok("set up payouts with Stripe (a few minutes" in sp and "appears in the list right away" not in sp, "a new seller is told the ticket goes on sale after payout setup")
-ok("paid 72 hours after the night. After 2 completed sales" in sp and "at the latest 24 hours" not in sp, "a new seller is told they're paid 72 hours after the night")
+ok("paid 24 hours after the night. After 2 completed sales" in sp and "at the latest 24 hours" not in sp, "a new seller is told they're paid 24 hours after the night")
 ok("after your first sale" not in sp, "no more 'add your bank details after your first sale'")
 ok(sp.index('class="receive-line"') < sp.index(">Post ticket<") or sp.index('class="receive-line"') < sp.index("post_ticket"), "'You receive' sits right above the Post button")
 acc = html(seller.get("/account"))

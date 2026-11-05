@@ -78,7 +78,7 @@ ok("Van studenten, voor studenten" not in html(nl.get("/")) and "Gemaakt voor st
 
 # --- #4: one payout rule everywhere, matching rate_order and release_payout
 how, terms = html(visitor.get("/how-it-works")), html(visitor.get("/terms"))
-ok("If the buyer slides Swap" in how and "24 hours after the night" in how and "72 hours" in how, "#4 How it works describes the Swap and the latest payout")
+ok("If the buyer slides Swap" in how and "24 hours after the night" in how and "fewer than 2 completed sales" in how, "#4 How it works describes the Swap and the latest payout")
 ok("the payout is made straight away" in terms and "nothing is paid out until the seller has transferred it" in terms, "#4 the terms say the same")
 ok("held until after the event" not in how, "#4 no more 'held until after the event'")
 
@@ -692,8 +692,8 @@ with app.app_context(): nl2 = A.db.one("SELECT * FROM listings l JOIN users u ON
 r = buyer.post("/t/%d/buy" % nl2["id"], data={"qty": "1", "transfer_name": "Bo", "transfer_email": "bo@example.com", "_csrf": csrf(buyer)})
 npub = r.location.split("/")[2]; buyer.post("/checkout/%s/test" % npub, data={"_csrf": csrf(buyer)})
 with app.app_context(): no = A.db.one("SELECT * FROM orders WHERE public_id=?", npub)
-expected = datetime.combine(date.fromisoformat(D) + timedelta(days=1), datetime.min.time()) + timedelta(hours=72)
-ok(no["payout_due_at"] == A.sqltime(expected), "#28 a new seller is paid 72 hours after the night")
+expected = datetime.combine(date.fromisoformat(D) + timedelta(days=1), datetime.min.time()) + timedelta(hours=config.NEW_SELLER_PAYOUT_HOURS)
+ok(config.NEW_SELLER_PAYOUT_HOURS == 24 and no["payout_due_at"] == A.sqltime(expected), "#28 a new seller is paid 24 hours after the night (never early)")
 with app.app_context(): A.db.run("UPDATE listings SET event_date=? WHERE id=?", date.today().isoformat(), nl2["id"]); A.db.run("UPDATE orders SET transferred_at=? WHERE id=?", A.sqltime(A.utcnow()), no["id"])
 buyer.post("/orders/%s/rate" % npub, data={"rating": "up", "_csrf": csrf(buyer)})
 with app.app_context(): no = A.db.one("SELECT * FROM orders WHERE public_id=?", npub)

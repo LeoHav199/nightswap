@@ -92,7 +92,7 @@ r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); pub = r.location
 buyer.post("/checkout/%s/test" % pub, data={"_csrf": csrf(buyer)})
 o = one("SELECT * FROM orders WHERE public_id=?", pub)
 night_end = datetime.combine(date.fromisoformat(D) + timedelta(days=1), datetime.min.time())
-ok(o["status"] == "paid" and o["payout_due_at"] == A.sqltime(night_end + timedelta(hours=72)), "a new seller's payout waits 72 hours after the night (#28)")
+ok(o["status"] == "paid" and o["payout_due_at"] == A.sqltime(night_end + timedelta(hours=24)), "a new seller's payout waits 24 hours after the night (#28)")
 sp = html(seller.get("/orders/%s" % pub))
 ok("Spare holds your" in sp and "swap at the door" in sp, "the seller sees Spare is holding the money until the buyer swaps")
 ok("Slide to swap" not in html(buyer.get("/orders/%s" % pub)), "no Swap before the event")
