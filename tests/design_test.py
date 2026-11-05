@@ -8,7 +8,7 @@ config.SHOW_ALL_NETHERLANDS = True  # these tests cover the all-NL view  # these
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
-import notify; notify.send_email = lambda *a: False
+import notify; notify.send_email = lambda *a, **kw: False
 import app as A, seed, qrcode
 from PIL import Image
 app = A.app; app.config["TESTING"] = True

@@ -6,7 +6,7 @@ config.ADMIN_SECOND_FACTOR = False
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.DATA_DIR = tmp
-import notify; notify.send_email = lambda *a: False
+import notify; notify.send_email = lambda *a, **kw: False
 import app as A, qrcode
 from flask import render_template_string
 from PIL import Image

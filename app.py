@@ -313,7 +313,7 @@ def set_setting(key, value):
 OPEN_WHILE_COMING_SOON = {
     "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
     "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "about", "terms", "privacy", "credits",
-    "stripe_webhook", "hourly_tasks",
+    "stripe_webhook", "hourly_tasks", "emails_stop",
 }
 
 
@@ -683,10 +683,25 @@ def release_stuck_payouts():
     return fixed
 
 
+def email_stop_url(user_id):
+    """A one-click link that stops a user's optional emails (alerts, resell reminders); order emails always go out."""
+    from itsdangerous import URLSafeSerializer
+    return base_url() + url_for("emails_stop", token=URLSafeSerializer(app.config["SECRET_KEY"], salt="emails-stop").dumps(user_id))
+
+
+def send_optional_email(user_id, email, subject, body):
+    """Alerts and reminders: with a stop link in the text and the one-click unsubscribe mail apps show (#17)."""
+    stop = email_stop_url(user_id)
+    head, sep, sign = body.rpartition("\n\n")
+    body = (head + "\n\n" + t("mail_stop_line", url=stop) + sep + sign) if sep else body + "\n\n" + t("mail_stop_line", url=stop)
+    notify.send_email(email, subject, body, headers={"List-Unsubscribe": "<%s>, <mailto:%s?subject=unsubscribe>" % (stop, config.SUPPORT_EMAIL),
+                                                      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"})
+
+
 def notify_alerts(listing):
     """Email everyone waiting for this event that tickets are available (at most once an hour each)."""
     rows = db.all(
-        """SELECT a.id, a.user_id, u.email, u.first_name FROM alerts a JOIN users u ON u.id = a.user_id
+        """SELECT a.id, a.user_id, u.email, u.first_name, u.optional_emails_off FROM alerts a JOIN users u ON u.id = a.user_id
            WHERE a.event_date = ? AND lower(a.venue) = lower(?) AND lower(a.event_name) = lower(?)
              AND a.user_id != ? AND (a.last_notified_at IS NULL OR a.last_notified_at < ?)""",
         listing["event_date"], listing["venue"], listing["event_name"] or "", listing["seller_id"],
@@ -695,10 +710,11 @@ def notify_alerts(listing):
     title = listing_title(listing)
     url = event_url(listing["venue"], listing["event_date"], listing["event_name"], external=True)
     for row in rows:
-        notify.send_email(row["email"], t("mail_alert_subject", title=title),
-                          t("mail_alert_body", name=row["first_name"], title=title,
-                            date=fmt_date(listing["event_date"], "long"), price=money(with_fee(listing["price_cents"])),
-                            url=url))
+        if not row["optional_emails_off"]:  # push notifications are their own opt-in, so they still go
+            send_optional_email(row["user_id"], row["email"], t("mail_alert_subject", title=title),
+                                t("mail_alert_body", name=row["first_name"], title=title,
+                                  date=fmt_date(listing["event_date"], "long"), price=money(with_fee(listing["price_cents"])),
+                                  url=url))
         push.send(row["user_id"], t("push_alert_title", title=title),
                   t("push_alert_body", date=fmt_date(listing["event_date"]), price=money(with_fee(listing["price_cents"]))),
                   event_url(listing["venue"], listing["event_date"], listing["event_name"]), tag="alert-%s" % listing["id"])
@@ -898,9 +914,10 @@ def send_resell_reminders():
         title = listing_title(o)
         looking = looking_count(o["event_date"], o["venue"], o["event_name"])
         path = url_for("sell", event=o["event_id"]) if o["event_id"] else url_for("sell")
-        notify.send_email(buyer["email"], t("mail_resell_subject", title=title),
-                          t("mail_resell_body", name=buyer["first_name"], title=title,
-                            looking=t("mail_resell_looking", n=looking) if looking > 1 else "", url=base_url() + path))
+        if not buyer["optional_emails_off"]:
+            send_optional_email(buyer["id"], buyer["email"], t("mail_resell_subject", title=title),
+                                t("mail_resell_body", name=buyer["first_name"], title=title,
+                                  looking=t("mail_resell_looking", n=looking) if looking > 1 else "", url=base_url() + path))
         push.send(buyer["id"], t("push_resell_title"), t("push_resell_body", title=title), path, tag="resell-" + o["public_id"])
         sent += 1
     return sent
@@ -945,7 +962,7 @@ def before():
 
     if "csrf" not in session:
         session["csrf"] = secrets.token_urlsafe(24)
-    if request.method == "POST" and request.endpoint not in ("stripe_webhook", "hourly_tasks", "waitlist_leave"):
+    if request.method == "POST" and request.endpoint not in ("stripe_webhook", "hourly_tasks", "waitlist_leave", "emails_stop"):  # the last two: one-click unsubscribe from mail apps, guarded by their signed token
         sent = request.form.get("_csrf") or request.headers.get("X-CSRF-Token", "")
         if not hmac.compare_digest(sent, session["csrf"]):
             abort(400)
@@ -3075,6 +3092,30 @@ def student_verify():
             return redirect(url_for("account"))
         error = t("err_code")
     return render_template("student_verify.html", email=email, error=error)
+
+
+@app.route("/emails/stop/<token>", methods=["GET", "POST"])
+def emails_stop(token):
+    """The stop link in alert and reminder emails. POST is the one-click unsubscribe from a mail app: no page, no session."""
+    from itsdangerous import BadSignature, URLSafeSerializer
+    try:
+        user_id = URLSafeSerializer(app.config["SECRET_KEY"], salt="emails-stop").loads(token)
+    except BadSignature:
+        abort(404)
+    db.run("UPDATE users SET optional_emails_off=? WHERE id=? AND optional_emails_off IS NULL", sqltime(utcnow()), user_id)
+    if request.method == "POST":
+        return "Stopped.", 200
+    flash(t("emails_stopped"), "ok")
+    return redirect(url_for("settings") + "#emails")
+
+
+@app.route("/settings/emails", methods=["POST"])
+@login_required
+def settings_emails():
+    on = request.form.get("optional_emails") == "on"
+    db.run("UPDATE users SET optional_emails_off=? WHERE id=?", None if on else sqltime(utcnow()), g.user["id"])
+    flash(t("emails_on") if on else t("emails_off_saved"), "ok")
+    return redirect(url_for("settings") + "#emails")
 
 
 @app.route("/settings", methods=["GET", "POST"])

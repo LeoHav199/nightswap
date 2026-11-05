@@ -6,7 +6,7 @@ config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfil
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
 import notify; SENT = []; MAIL_WORKS = [False]
-notify.send_email = lambda to, subject, body, attachments=(): (SENT.append((to, subject, body)) or True) if MAIL_WORKS[0] else False
+notify.send_email = lambda to, subject, body, attachments=(), **kw: (SENT.append((to, subject, body)) or True) if MAIL_WORKS[0] else False
 import app as A
 app = A.app; app.config["TESTING"] = True
 fails = []

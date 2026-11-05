@@ -10,7 +10,7 @@ config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tm
 config.ADMIN_EMAILS = {"admin@example.com"}
 import notify
 SENT = []
-notify.send_email = lambda to, subject, body: (SENT.append((to, subject, body)), False)[1]
+notify.send_email = lambda to, subject, body, **kw: (SENT.append((to, subject, body)), False)[1]
 import app as A
 app = A.app; app.config["TESTING"] = True
 fails = []

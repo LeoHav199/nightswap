@@ -7,7 +7,7 @@ config.FEE_PERCENT = 0  # these tests were written for a flat €1 fee
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
-import notify; notify.send_email = lambda *a: False
+import notify; notify.send_email = lambda *a, **kw: False
 import app as A, importer
 app = A.app; app.config["TESTING"] = True
 fails = []

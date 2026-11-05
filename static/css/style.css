@@ -6,7 +6,7 @@
   --line-strong: #454068;
   --text: #f5f3ec;
   --muted: #a9a6c0;
-  --faint: #77739a;
+  --faint: #928eb4;  /* was #77739a: 4.5:1 contrast or better on --bg, --surface and --surface-2 (WCAG AA) */
   --accent: #d4ff3a;
   --accent-hover: #e2ff70;
   --accent-ink: #15132b;

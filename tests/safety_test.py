@@ -7,7 +7,7 @@ config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
 import notify; SENT = []
-notify.send_email = lambda to, s, b: (SENT.append((to, s, b)), False)[1]
+notify.send_email = lambda to, s, b, **kw: (SENT.append((to, s, b)), False)[1]
 import payments; REFUNDS = []
 _orig_refund = payments.refund
 payments.refund = lambda o: (REFUNDS.append(o["public_id"]), _orig_refund(o))[1]

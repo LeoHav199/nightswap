@@ -5,7 +5,7 @@ import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = config.TI
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
-import notify; notify.send_email = lambda *a: False
+import notify; notify.send_email = lambda *a, **kw: False
 import app as A
 app = A.app; app.config["TESTING"] = True
 fails = []

@@ -7,7 +7,7 @@ config.FEE_PERCENT = 0  # these tests were written for a flat €1 fee
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.ADMIN_EMAILS = {"admin@example.com"}
-import notify; SENT = []; notify.send_email = lambda to, s, b: (SENT.append((to, s)), False)[1]
+import notify; SENT = []; notify.send_email = lambda to, s, b, **kw: (SENT.append((to, s)), False)[1]
 import app as A
 from PIL import Image
 app = A.app; app.config["TESTING"] = True

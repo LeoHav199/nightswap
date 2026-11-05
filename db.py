@@ -28,6 +28,7 @@ def _columns(table):
 
 
 ADDED_COLUMNS = [
+    ("users", "optional_emails_off", "TEXT"),  # stopped alert and resell-reminder emails (one-click link in those emails)
     ("waitlist", "source", "TEXT"),       # which marketing link brought them (?from=)
     ("users", "source", "TEXT"),
     ("users", "avatar", "TEXT"),

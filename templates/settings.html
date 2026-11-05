@@ -6,6 +6,17 @@
   <h1>{{ t('settings') }}</h1>
 </div>
 <div class="wrap account settings">
+  {% if user %}
+  <section class="panel settings-block" id="emails">
+    <h2>{{ t('settings_emails_title') }}</h2>
+    <form method="post" action="{{ url_for('settings_emails') }}">
+      {{ m.csrf() }}
+      <label class="consent"><input type="checkbox" name="optional_emails" value="on" {{ 'checked' if not user.optional_emails_off }}><span>{{ t('settings_emails_label') }}</span></label>
+      <p class="muted small">{{ t('settings_emails_hint') }}</p>
+      <button class="btn btn-ghost btn-sm" type="submit">{{ t('save') }}</button>
+    </form>
+  </section>
+  {% endif %}
   <section class="panel settings-block">
     <h2>{{ t('avatar_title') }}</h2>
     {% if user %}

@@ -39,6 +39,9 @@
   </ul>
   {% endif %}
 
+  <h2>{{ t('credits_fonts_title') }}</h2>
+  <p class="muted">Big Shoulders Display, Instrument Sans {{ t('and') }} Inter Tight: <a href="{{ url_for('static', filename='fonts/OFL.txt') }}" rel="license">SIL Open Font License 1.1</a></p>
+
   <p class="muted small">{{ t('credits_contact') }} <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a></p>
 </div>
 {% endblock %}
