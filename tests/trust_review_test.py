@@ -74,4 +74,8 @@ terms = html(c.get("/terms"))
 ok("hours for sellers with fewer than" not in terms, "the terms don't repeat '24 hours (24 hours for new sellers)'")
 ok("aren't paid at the door yet" in html(c.get("/how-it-works")).replace("&#39;", "'"), "How it works says what's different for new sellers")
 
+ok('is-app' in html(seller.get("/account")).split("<body", 1)[1].split(">", 1)[0] and 'is-app' not in html(c.get("/")).split("<body", 1)[1].split(">", 1)[0],
+   "account pages get the one-line app footer on phones; the homepage keeps the full one")
+ok("Company details" in html(seller.get("/account")), "...with the company details link still there")
+
 print("\n%d failed" % len(fails))

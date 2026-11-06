@@ -643,6 +643,10 @@ body { padding-top: env(safe-area-inset-top); }
   body.is-chat .tabbar { display: none; }
   body.is-chat main { padding-bottom: 0; }
   body.is-chat .site-footer { display: none; }
+  /* App pages: just the legal and contact links on one quiet line, no logo or tagline. */
+  body.is-app .site-footer { padding-top: 16px; }
+  body.is-app .footer-inner > div:first-child { display: none; }
+  body.is-app .footer-links { gap: 6px 14px; font-size: 12px; }
   .composer { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
   .bubble { max-width: 88%; }
 }

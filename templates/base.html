@@ -31,7 +31,9 @@
   <meta name="twitter:card" content="summary_large_image">
   {% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}" data-csrf="{{ csrf_token }}">
+{# Account, order, selling and sign-in pages feel like an app on phones: a one-line footer (the tab bar does the rest). #}
+{% set app_page = request.endpoint in ('account', 'account_data', 'order_page', 'sell', 'settings', 'phone', 'phone_verify', 'inbox', 'payouts_setup', 'student', 'student_verify', 'login', 'login_verify') %}
+<body class="{% block body_class %}{% endblock %}{{ ' is-app' if app_page }}" data-csrf="{{ csrf_token }}">
   <div class="loadbar" aria-hidden="true"></div>
   <div class="ptr" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4.5 10.5a7.6 7.6 0 0 1 13.4-4.6"/><path d="M18.6 2.4v4h-4"/><path d="M19.5 13.5a7.6 7.6 0 0 1-13.4 4.6"/><path d="M5.4 21.6v-4h4"/></svg></div>
   {% if test_mode and not test_lock and not bare %}<div class="testbar">{{ t('testbar') }}</div>{% endif %}
