@@ -573,6 +573,8 @@ STRINGS = {
     "help_fast": "¿Preguntas? Spare lo llevan dos estudiantes de la Universidad Erasmus, y respondemos rápido:",
     "mail_signoff": "El equipo de Spare, dos estudiantes de la Universidad Erasmus de Róterdam",
     "footer_company": "Datos de la empresa",
+    "tickets_short": "{n} entradas",
+    "tickets_short_one": "1 entrada",
     "credits_fonts_title": "Tipografías",
     "and": "y",
     "mail_stop_line": "¿No quieres estos emails? Desactívalos con un clic: {url}",

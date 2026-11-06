@@ -25,6 +25,10 @@
     {% else %}
       <fieldset class="field picker" data-picker data-api="{{ url_for('events_on_date') }}" data-selected="{{ picked_event }}">
         <legend class="label">{{ t('which_event') }}</legend>
+        {# Most tickets are for the next few nights: one tap instead of the date picker. #}
+        <div class="date-chips" data-date-chips>
+          {% for d in quick_dates %}<button class="chip" type="button" data-pick-date="{{ d }}">{{ t('today') if loop.first else (t('tomorrow') if loop.index == 2 else fmt_date(d, 'dow')) }}</button>{% endfor %}
+        </div>
         <input type="date" name="event_date" value="{{ form.get('event_date', '') }}" min="{{ today }}" max="{{ max_date }}" required aria-label="{{ t('date') }}" data-picker-date>
         {{ m.field_error(errors, 'event_date') }}{{ m.field_error(errors, 'event') }}
         <div class="picker-list" data-picker-list role="radiogroup"></div>

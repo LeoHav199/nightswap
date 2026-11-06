@@ -60,14 +60,14 @@
 <nav class="days-wrap" aria-label="{{ t('date') }}">
   <div class="wrap">
     <ul class="days">
-      <li><a class="day-tab day-all {{ 'is-on' if not day }}" href="{{ url_for('index', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('all_nights') }}</span><span class="day-n">{{ total }}</span></a></li>
+      <li><a class="day-tab day-all {{ 'is-on' if not day }}" href="{{ url_for('index', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('all_nights') }}</span><span class="day-n">{{ t('tickets_short_one') if total == 1 else t('tickets_short', n=total) }}</span></a></li>
       {% for tab in tabs %}
         {% set label = t('today') if loop.first else (t('tomorrow') if loop.index == 2 else fmt_date(tab.date, 'dow')) %}
         <li><a class="day-tab {{ 'is-on' if day == tab.key }} {{ 'is-empty' if not tab.count }}" href="{{ url_for('index', day=tab.key, q=q or None, cat=cat or None) }}">
           <span class="day-dow">{{ label }}</span><span class="day-num">{{ tab.date[8:10]|int }}</span>
         </a></li>
       {% endfor %}
-      {% if later %}<li><a class="day-tab {{ 'is-on' if day == 'later' }}" href="{{ url_for('index', day='later', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('later') }}</span><span class="day-n">{{ later }}</span></a></li>{% endif %}
+      {% if later %}<li><a class="day-tab {{ 'is-on' if day == 'later' }}" href="{{ url_for('index', day='later', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('later') }}</span><span class="day-n">{{ t('tickets_short_one') if later == 1 else t('tickets_short', n=later) }}</span></a></li>{% endif %}
     </ul>
   </div>
 </nav>

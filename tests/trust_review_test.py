@@ -65,4 +65,13 @@ ev = html(c.get("/event?venue=Het+Sieraad&date=%s&name=Gala" % D))
 row = ev.split('class="ticket-row"', 1)[1].split("</li>", 1)[0] if 'class="ticket-row"' in ev else ""
 ok(row and "Report</a> · " not in row and 'class="report-link tr-report"' in row, "the Report link has its own quiet line, not in front of the face value")
 
+# Smaller polish (6 Nov 2026, night)
+home = html(c.get("/"))
+ok(re.search(r'day-all[^>]*>.*?class="day-n">(\d+ tickets|1 ticket)<', home, re.S) is not None, "the All tab says '3 tickets', not a bare number that looks like a date")
+ok('data-pick-date=' in sp and ">Today<" in sp and ">Tomorrow<" in sp, "the sell form has Today / Tomorrow buttons above the date picker")
+ok("min-height: 46px" in open("static/css/style.css").read(), "option buttons grow with long labels")
+terms = html(c.get("/terms"))
+ok("hours for sellers with fewer than" not in terms, "the terms don't repeat '24 hours (24 hours for new sellers)'")
+ok("aren't paid at the door yet" in html(c.get("/how-it-works")).replace("&#39;", "'"), "How it works says what's different for new sellers")
+
 print("\n%d failed" % len(fails))

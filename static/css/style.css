@@ -147,7 +147,7 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .day-tab:hover { background: var(--surface); color: var(--text); }
 .day-dow { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
 .day-num, .day-n { font: 800 22px/1.05 var(--display); }
-.day-n { font-size: 15px; font-family: var(--font); font-weight: 600; margin-top: 3px; }
+.day-n { font-size: 13px; font-family: var(--font); font-weight: 600; margin-top: 5px; white-space: nowrap; }  /* "3 tickets", so it isn't read as a date */
 .day-tab.is-empty { color: var(--faint); opacity: .55; }
 .day-tab.is-on { background: var(--text); color: var(--bg); opacity: 1; }
 .day-all { min-width: 64px; }
@@ -730,7 +730,8 @@ body { padding-top: env(safe-area-inset-top); }
 .cat-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .cat-option { position: relative; }
 .cat-option input { position: absolute; opacity: 0; inset: 0; }
-.cat-option span { display: flex; align-items: center; justify-content: center; height: 46px; padding: 0 8px; text-align: center; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; }
+/* min-height, not height: longer labels ("Yes, and the organiser allows name changes") wrap inside the button */
+.cat-option span { display: flex; align-items: center; justify-content: center; min-height: 46px; height: 100%; padding: 8px 10px; line-height: 1.25; text-align: center; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; }
 .cat-option input:checked + span { border-color: var(--accent); color: var(--text); background: rgba(212, 255, 58, .08); }
 .cat-option input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -1068,3 +1069,7 @@ body.has-search-sheet { overflow: hidden; }
 /* What the seller gets, right above the Post button (the summary panel sits below the form on phones). */
 .receive-line { display: flex; align-items: baseline; gap: 8px; margin: 16px 0 10px; font-size: 15px; }
 .receive-line strong { font-size: 22px; color: var(--accent); }
+
+/* Sell form: Today / Tomorrow / the next two days, above the date picker. */
+.date-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.date-chips .chip.is-on { border-color: var(--accent); background: rgba(212, 255, 58, .08); }

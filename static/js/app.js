@@ -765,6 +765,17 @@
     var addNew = picker.querySelector("[data-pick-new]");
     var manual = sell.querySelector("[data-manual]");
     var selected = picker.dataset.selected;
+    picker.querySelectorAll("[data-pick-date]").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        dateInput.value = chip.dataset.pickDate;
+        dateInput.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+    function markChip() {
+      picker.querySelectorAll("[data-pick-date]").forEach(function (chip) { chip.classList.toggle("is-on", chip.dataset.pickDate === dateInput.value); });
+    }
+    dateInput.addEventListener("change", markChip);
+    markChip();
     function esc(v) { return String(v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
     var faceProof = sell.querySelector("[data-face-proof]");
     var faceHint = sell.querySelector("[data-face-hint]");

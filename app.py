@@ -8,6 +8,7 @@ import os
 import re
 import secrets
 import shutil
+import sqlite3
 import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
@@ -2818,6 +2819,7 @@ def sell():
                            city_suggestions=config.CITY_SUGGESTIONS, preset=preset,
                            preset_looking=looking_count(preset["event_date"], preset["venue"], preset["name"]) if preset else 0,
                            today=today().isoformat(), max_date=(today() + timedelta(days=365)).isoformat(),
+                           quick_dates=[(today() + timedelta(days=i)).isoformat() for i in range(4)],
                            max_tickets=config.MAX_TICKETS_PER_LISTING, new_seller=is_new_seller(g.user["id"]),
                            new_seller_max=config.NEW_SELLER_MAX_TICKETS, new_seller_hours=config.NEW_SELLER_PAYOUT_HOURS,
                            new_seller_sales=config.NEW_SELLER_SALES)
@@ -4485,6 +4487,60 @@ def reset_admin_2fa_command(email):
     n = db.count("UPDATE users SET totp_secret=NULL, totp_last_step=NULL, totp_recovery=NULL, "
                  "session_version=session_version+1 WHERE email=?", email.strip().lower())
     click.echo("Reset." if n else "No account with that email.")
+
+
+@app.cli.command("clear-test-data")
+@click.option("--yes", is_flag=True, help="Really delete. Without it, only shows what would go.")
+def clear_test_data_command(yes):
+    """Before launch: remove everything made while testing in Stripe test mode, so the real site starts clean.
+
+    Goes: listings, tickets and their files, orders, chats, offers, proofs, reports, alerts, push subscriptions,
+    sign-in codes, rate-limit counters, and every account that isn't an admin (ADMIN_EMAILS). Admin accounts stay
+    but lose their test-mode Stripe payout setup, which can't be used with live keys. Stays: the waitlist, events,
+    venues, settings, marketing links and their visit counts, blocked phone numbers. Refuses to run if any order
+    was paid with real money (a live Stripe session), and makes a backup of the database first."""
+    live = db.one("SELECT COUNT(*) AS n FROM orders WHERE payment_ref LIKE 'cs_live_%'")["n"]
+    if live:
+        raise click.ClickException("%d order(s) were paid with real money (live Stripe). Nothing was deleted." % live)
+    admins = [e.lower() for e in config.ADMIN_EMAILS]
+    keep = "lower(email) IN (%s)" % ",".join("?" * len(admins)) if admins else "0"
+    gone_users = [r["id"] for r in db.all("SELECT id FROM users WHERE NOT (%s)" % keep, *admins)]
+    files = [os.path.join(config.UPLOAD_DIR, r["file"]) for r in db.all("SELECT file FROM tickets WHERE file != ''")]
+    files += [os.path.join(config.UPLOAD_DIR, "proofs", r["file"]) for r in db.all("SELECT file FROM proofs")]
+    files += [os.path.join(config.UPLOAD_DIR, "posters", r["poster_file"]) for r in db.all(
+        """SELECT DISTINCT poster_file FROM listings WHERE poster_file IS NOT NULL
+           AND poster_file NOT IN (SELECT poster_file FROM events WHERE poster_file IS NOT NULL)""")]
+    tables = ("messages", "offers", "threads", "proofs", "reports", "tickets", "orders", "listings", "alerts",
+              "push_subs", "codes", "hits")
+    counts = {t: db.one("SELECT COUNT(*) AS n FROM %s" % t)["n"] for t in tables}
+    click.echo("Would delete:" if not yes else "Deleting:")
+    for t in tables:
+        click.echo("  %-10s %d" % (t, counts[t]))
+    click.echo("  accounts   %d (keeping %d admin account(s): %s)" % (len(gone_users), len(admins), ", ".join(admins) or "none"))
+    click.echo("  files      %d" % sum(1 for f in files if os.path.exists(f)))
+    click.echo("Keeping: the waitlist (%d), events, venues, settings and marketing links."
+               % db.one("SELECT COUNT(*) AS n FROM waitlist")["n"])
+    if not yes:
+        click.echo("Nothing changed. Run again with --yes to delete.")
+        return
+    folder = os.path.join(config.DATA_DIR, "backups")
+    os.makedirs(folder, exist_ok=True)
+    backup_path = os.path.join(folder, "before-clear-test-data-%s.sqlite3" % utcnow().strftime("%Y%m%d-%H%M%S"))
+    with sqlite3.connect(backup_path) as copy:
+        db.get().backup(copy)
+    for t in tables:
+        db.run("DELETE FROM %s" % t)
+    for uid in gone_users:
+        db.run("UPDATE events SET created_by=NULL WHERE created_by=?", uid)
+        db.run("DELETE FROM poster_submissions WHERE user_id=?", uid)
+        db.run("DELETE FROM users WHERE id=?", uid)
+    db.run("UPDATE users SET stripe_account_id=NULL, payouts_ready=0, bank_fingerprint=NULL")
+    for f in files:
+        try:
+            os.remove(f)
+        except FileNotFoundError:
+            pass
+    click.echo("Done. A copy of the database from before is at %s" % backup_path)
 
 
 @app.cli.command("seed")
