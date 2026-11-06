@@ -1465,8 +1465,12 @@ def venue_page(slug):
 @app.route("/sitemap.xml")
 def sitemap():
     urls = [base_url() + url_for("index"), base_url() + url_for("how")]
-    urls += [base_url() + url_for("venue_page", slug=v["slug"]) for v in db.all("SELECT slug FROM venues")]
-    urls += [event_url(ev["venue"], ev["date"], ev["name"], external=True) for ev in group_events(browse(), event_rows())]
+    if g.sees_site:  # in coming-soon mode visitors are sent to the sign-up page from venue and event pages
+        cities = {c.lower() for c in config.ENABLED_CITIES}
+        urls += [base_url() + url_for("venue_page", slug=v["slug"]) for v in db.all("SELECT slug, city FROM venues")
+                 if v["city"].lower() in cities]
+        urls += [event_url(ev["venue"], ev["date"], ev["name"], external=True) for ev in group_events(browse(), event_rows())
+                 if ev["city"].lower() in cities]
     body = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     body += "".join("  <url><loc>%s</loc></url>\n" % escape(u) for u in urls) + "</urlset>\n"
     return app.response_class(body, mimetype="application/xml")
@@ -1474,7 +1478,7 @@ def sitemap():
 
 @app.route("/robots.txt")
 def robots():
-    body = "User-agent: *\nDisallow: /account\nDisallow: /orders\nDisallow: /threads\nDisallow: /admin\n"
+    body = "User-agent: *\nDisallow: /account\nDisallow: /orders\nDisallow: /threads\nDisallow: /admin\nDisallow: /tasks\n"
     body += "Sitemap: %s\n" % (base_url() + url_for("sitemap"))
     return app.response_class(body, mimetype="text/plain")
 
