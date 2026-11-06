@@ -36,7 +36,8 @@ Two rules the code enforces on the buyer's side:
 2. Read the page from the top: what the buyer said and their photos, the seller's reply, the evidence, the chat, and the numbers about both people (sales, purchases, earlier disputes, thumbs up and down).
 3. **Was this ticket on Spare before?** shows other tickets with the same code or file. Two different sellers with the same code means someone sold it twice.
 4. **Ask the organiser**: if the ticket has a code (or is an app ticket with the buyer's name), there is a ready Dutch/English email. Click it, send it to the organiser, and ask whether the ticket was scanned and when. Their scan log settles most cases.
-5. Decide with one of four buttons. Each needs a short reason, and **both people get it by email**:
+5. If the page or the order shows a **chargeback** (the buyer's bank also opened a dispute), do **not** press either refund button: the buyer would get the money from you and from the bank. See case 3.
+6. Decide with one of four buttons. Each needs a short reason, and **both people get it by email**:
 
 | Button | Use it when | What it does |
 |---|---|---|
@@ -49,7 +50,7 @@ Use the last one carefully: it blocks someone from the site. The terms (section 
 
 **If nobody decides:** door problems ("rejected at the door", "already scanned") are refunded automatically when the seller is silent for 48 hours, but **only if** the buyer attached a photo, has no other dispute in the last 90 days, and there is no chargeback. If any of those is missing, you get the email "dispute needs a decision". The other kinds (wrong event, never arrived, other) are never refunded automatically: they wait for you.
 
-**If the seller was already paid** (order status "released"): there is no dispute button. In /admin → **Recent orders**, open **Refund after payout...** on that order, write a reason, and press *Refund, take payout back, block seller*. This takes the money back from the seller's Stripe account, refunds the buyer in full and blocks the seller. If Stripe refuses to take the payout back, the confirmation says so ("taking back the payout FAILED") and you get an email: check the Stripe dashboard.
+**If the seller was already paid** (order status "released"): there is no dispute button. In /admin → **Recent orders** (only the last 50 orders are listed), open **Refund after payout...** on that order, write a reason, and press *Refund, take payout back, block seller*. This takes the money back from the seller's Stripe account, refunds the buyer in full and blocks the seller. If Stripe refuses to take the payout back, the confirmation says so ("taking back the payout FAILED") and you get an email: check the Stripe dashboard.
 
 ---
 
@@ -97,7 +98,8 @@ What Spare did by itself:
 2. Send evidence: the order number, the date and time, the ticket details, the buyer's chat messages, the seller's reply, and the organiser's answer if you asked (ask them, see case 1). The more concrete, the better.
 3. When the bank decides, you get "chargeback closed" with the result. It is also shown on the order in /admin → Chargebacks.
 4. Don't pay the seller while it is open. If you press *Keep: pay the seller* on a chargeback order, the seller is paid on the normal date and Spare then takes the payout straight back because of the chargeback, so it only creates noise.
-5. If you lose, the money is gone either way. Think about whether the seller was at fault (fake or double-sold ticket): then block them. Don't try to refund the buyer on top of a lost chargeback; the money was already taken back from Spare by the bank.
+5. **Never refund the buyer yourself while a chargeback is open** (not with the dispute buttons, not "Refund after payout", not in Stripe): the buyer would be paid twice. The bank's decision settles it.
+6. If you lose, the money is gone either way. Think about whether the seller was at fault (fake or double-sold ticket): then block them. Don't try to refund the buyer on top of a lost chargeback; the money was already taken back from Spare by the bank.
 
 Two things that lower the risk: the first purchase by a new buyer can be card with 3D Secure (set by `FIRST_BUY_CARD`), and a Swap by iDEAL pays instantly only for iDEAL, because card payments can be reversed weeks later.
 
