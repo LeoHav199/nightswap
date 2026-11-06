@@ -36,6 +36,7 @@ INSTANCE_DIR = os.path.join(DATA_DIR, "instance")
 DATABASE = os.path.join(INSTANCE_DIR, "nightswap.sqlite3")
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 TASK_SECRET = env("TASK_SECRET")   # protects /tasks/hourly, which a cron service calls every hour
+JARVIS_FEED_TOKEN = env("JARVIS_FEED_TOKEN")  # lets Leo's own Jarvis assistant read /api/jarvis (counts and event names only)
 BACKUP_KEY = env("BACKUP_KEY")     # #16: encrypts backups (make one with: flask --app app backup-key); keep a copy in a password manager
 LOAD_STARTER_DATA = env("LOAD_STARTER_DATA", "1") == "1"  # a brand-new database starts with starter_data/ (off in tests)
 

@@ -15,7 +15,7 @@ from functools import wraps
 from urllib.parse import quote, urlencode, urlparse
 
 import click
-from flask import (Flask, abort, flash, g, redirect, render_template, request, send_file, session,
+from flask import (Flask, abort, flash, g, jsonify, redirect, render_template, request, send_file, session,
                    url_for)
 from markupsafe import escape
 
@@ -313,7 +313,7 @@ def set_setting(key, value):
 OPEN_WHILE_COMING_SOON = {
     "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
     "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "about", "terms", "privacy", "credits",
-    "stripe_webhook", "hourly_tasks", "emails_stop",
+    "stripe_webhook", "hourly_tasks", "emails_stop", "jarvis_feed",
 }
 
 
@@ -4345,6 +4345,39 @@ def admin_order(public_id, action):
 # --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
+
+@app.route("/api/jarvis")
+def jarvis_feed():
+    """Read-only numbers for Leo's own Jarvis assistant, which announces new sales, disputes and problems.
+    Needs the JARVIS_FEED_TOKEN header; without the setting the page doesn't exist. No names, emails or phone numbers."""
+    sent = request.headers.get("X-Jarvis-Token", "")
+    if not config.JARVIS_FEED_TOKEN or not hmac.compare_digest(sent, config.JARVIS_FEED_TOKEN):
+        abort(404)
+    midnight = datetime.combine(today(), datetime.min.time())
+    since = sqltime(datetime.fromtimestamp(midnight.timestamp(), timezone.utc).replace(tzinfo=None))  # paid_at is stored in UTC
+    day = db.one("""SELECT COUNT(*) AS orders, COALESCE(SUM(quantity),0) AS tickets, COALESCE(SUM(total_cents),0) AS volume,
+                           COALESCE(SUM(fee_cents + seller_fee_cents),0) AS fees
+                    FROM orders WHERE status IN ('paid','released','disputed') AND paid_at >= ?""", since)
+    recent = db.all("""SELECT o.id, o.paid_at, o.quantity, o.total_cents, o.status, l.event_name, l.venue, l.event_date
+                       FROM orders o JOIN listings l ON l.id = o.listing_id
+                       WHERE o.paid_at IS NOT NULL ORDER BY o.paid_at DESC, o.id DESC LIMIT 10""")
+    n = lambda sql, *a: db.one(sql, *a)["n"]
+    resp = jsonify({
+        "coming_soon": coming_soon_on(), "test_mode": payments.is_test_mode(),
+        "today": {"orders": day["orders"], "tickets": day["tickets"], "volume_cents": day["volume"], "fees_cents": day["fees"]},
+        "recent_orders": [{"id": r["id"], "paid_at": r["paid_at"], "quantity": r["quantity"], "total_cents": r["total_cents"],
+                           "status": r["status"], "event": r["event_name"], "venue": r["venue"], "event_date": r["event_date"]} for r in recent],
+        "open_disputes": n("SELECT COUNT(*) AS n FROM orders WHERE status='disputed'"),
+        "open_reports": n("SELECT COUNT(*) AS n FROM reports WHERE status='open'"),
+        "review_queue": n("SELECT COUNT(*) AS n FROM listings WHERE status='review'"),
+        "payout_failures": n("SELECT COUNT(*) AS n FROM orders WHERE status='paid' AND payout_errors >= ?", PAYOUT_MAX_ERRORS),
+        "listings_live": n("SELECT COUNT(*) AS n FROM listings WHERE status='active' AND event_date >= ?", today().isoformat()),
+        "waitlist": n("SELECT COUNT(*) AS n FROM waitlist"),
+        "users": n("SELECT COUNT(*) AS n FROM users WHERE deleted_at IS NULL"),
+    })
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
 
 @app.route("/tasks/hourly", methods=["POST"])
 def hourly_tasks():

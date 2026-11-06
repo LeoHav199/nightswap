@@ -33,6 +33,8 @@ services:
         sync: false
       - key: TASK_SECRET
         generateValue: true
+      - key: JARVIS_FEED_TOKEN     # optional: Leo's Jarvis assistant reads /api/jarvis with it (same value as in Jarvis/.env)
+        sync: false
       # Render asks for these when you create the service:
       - key: ADMIN_EMAILS          # your email, so you can open /admin
         sync: false
