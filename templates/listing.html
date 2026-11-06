@@ -21,7 +21,7 @@
     </dl>
 
     <div class="seller-card">
-      {{ m.avatar(l.seller_avatar, l.seller_name) }}
+      {{ m.avatar(l.seller_name) }}
       <div>
         <div class="seller-name">{{ t('sold_by', name=l.seller_name) }}</div>
         <div class="badges">{{ m.seller_badges(l, stats) }}{% if l.face_checked %}<span class="badge">{{ t('face_checked') }}</span>{% endif %}{% if l.delivery == 'transfer' %}<span class="badge badge-transfer">{{ t('badge_transfer', app=app_name(l.transfer_app)) }}</span>{% endif %}</div>

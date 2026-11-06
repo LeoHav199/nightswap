@@ -299,7 +299,7 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .facts dt { font-size: 13px; color: var(--muted); }
 .facts dd { margin: 2px 0 0; font-weight: 600; }
 .seller-card { display: flex; align-items: center; gap: 14px; margin: 24px 0; }
-.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-weight: 700; flex: none; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--accent); display: grid; place-items: center; font-weight: 700; flex: none; }
 .seller-name { font-weight: 600; }
 .check { color: var(--good); }
 .check::before { content: "✓ "; }
@@ -891,7 +891,7 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .coming-cta { flex: none; font-size: 13px; font-weight: 600; color: var(--accent); }
 .empty-warm { border-top: 0; background: var(--surface); border-radius: var(--radius); padding: 40px 20px; }
 .nav-account { display: inline-flex; align-items: center; gap: 8px; }
-.nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--text); }
+.nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--accent); }
 .lang-menu { position: relative; }
 .lang-menu summary { list-style: none; cursor: pointer; font-size: 13px; font-weight: 600; letter-spacing: .04em; color: var(--muted); padding: 6px 4px; }
 .lang-menu summary::-webkit-details-marker { display: none; }
@@ -959,22 +959,10 @@ a.credit:hover { color: #fff; text-decoration: underline; }
   .src-row { flex-wrap: wrap; }
 }
 
-/* Profile icons and settings ------------------------------------------------- */
-.avatar.has-icon, .nav-avatar.has-icon { overflow: hidden; }
-.has-icon svg { width: 100%; height: 100%; display: block; }
+/* Settings ------------------------------------------------- */
 .settings { display: grid; gap: 16px; max-width: 720px; }
 .settings-block h2 { font: 800 26px/1 var(--display); text-transform: uppercase; margin-bottom: 8px; }
 .settings-block .muted { margin-bottom: 16px; }
-.avatar-form { display: grid; gap: 18px; justify-items: start; }
-.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 10px; width: 100%; }
-.avatar-choice { position: relative; display: grid; place-items: center; cursor: pointer; }
-.avatar-choice input { position: absolute; opacity: 0; inset: 0; }
-.avatar-choice .avatar { width: 52px; height: 52px; font-size: 20px; border: 2px solid transparent; transition: border-color .15s, transform .15s; }
-.avatar-choice input:checked + .avatar { border-color: var(--accent); background: rgba(212, 255, 58, .1); transform: scale(1.06); }
-.avatar-choice input:focus-visible + .avatar { outline: 2px solid var(--accent); outline-offset: 2px; }
-.sound-options { grid-template-columns: repeat(3, 1fr); margin-bottom: 14px; }
-.check-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 15px; }
-.check-row input { width: 20px; height: 20px; accent-color: var(--accent); }
 
 /* "Tonight" pop-up ------------------------------------------------------------ */
 .tonight-pop {
@@ -995,11 +983,6 @@ a.credit:hover { color: #fff; text-decoration: underline; }
   .tonight-pop { left: 12px; right: 12px; width: auto; bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 @media (prefers-reduced-motion: reduce) { .tonight-pop { transition: opacity .2s; transform: none; } }
-.avatar-progress { color: var(--accent); font-weight: 600; margin: -6px 0 16px; }
-.avatar-choice.is-locked { cursor: default; }
-.avatar-choice.is-locked .avatar { opacity: .28; filter: grayscale(1); }
-.lock-tag { position: absolute; right: 2px; bottom: -2px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px;
-  display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; font-weight: 700; }
 
 /* People looking for a ticket -------------------------------------------------- */
 .looking { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 18px; padding: 14px 16px;

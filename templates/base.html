@@ -63,7 +63,7 @@
         <a class="btn btn-accent btn-sm hide-sm" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
         {% if user %}
           <a class="nav-account hide-sm {{ 'is-active' if request.endpoint in ('account', 'account_data') }}" href="{{ url_for('account') }}" aria-label="{{ t('nav_account') }}">
-            {{ m.avatar(user.avatar, user.first_name, 'nav-avatar') }}{{ t('nav_account') }}</a>
+            {{ m.avatar(user.first_name, 'nav-avatar') }}{{ t('nav_account') }}</a>
         {% else %}
           <a class="nav-account hide-sm" href="{{ url_for('login') }}">{{ t('nav_login') }}</a>
         {% endif %}

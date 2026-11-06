@@ -9,7 +9,7 @@
       {% for th in threads %}
         {% set selling = th.seller_id == user.id %}
         <li><a class="inbox-row {{ 'is-unread' if th.unread }}" href="{{ url_for('thread_page', thread_id=th.id) }}">
-          {{ m.avatar(th.buyer_avatar if selling else th.seller_avatar, th.buyer_name if selling else th.seller_name) }}
+          {{ m.avatar(th.buyer_name if selling else th.seller_name) }}
           <span class="sg-main">
             <strong>{{ th.buyer_name if selling else th.seller_name }} <span class="muted small">· {{ t('role_buyer') if selling else t('role_seller') }}</span></strong>
             <span>{{ th.event_name or th.venue }} · {{ fmt_date(th.event_date) }}</span>

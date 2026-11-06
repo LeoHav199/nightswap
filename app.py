@@ -20,7 +20,6 @@ from flask import (Flask, abort, flash, g, redirect, render_template, request, s
 from markupsafe import escape
 
 import art
-import avatars
 import backup
 import config
 import db
@@ -367,7 +366,7 @@ def browse(where="", *args):
     """Active listings with at least one ticket for sale, plus seller details."""
     sql = """
     SELECT * FROM (
-      SELECT l.*, u.first_name AS seller_name, u.avatar AS seller_avatar, u.phone_verified_at, u.student_verified_at, u.student_school,
+      SELECT l.*, u.first_name AS seller_name, u.phone_verified_at, u.student_verified_at, u.student_school,
              u.created_at AS seller_since,
              (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available') AS available
       FROM listings l JOIN users u ON u.id = l.seller_id
@@ -379,7 +378,7 @@ def browse(where="", *args):
 
 def listing_with_seller(listing_id):
     return db.one(
-        """SELECT l.*, u.first_name AS seller_name, u.avatar AS seller_avatar, u.created_at AS seller_since, u.phone_verified_at,
+        """SELECT l.*, u.first_name AS seller_name, u.created_at AS seller_since, u.phone_verified_at,
                   u.student_verified_at, u.student_school,
                   (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available') AS available,
                   (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'held') AS held
@@ -1076,7 +1075,6 @@ def template_globals():
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"), "test_lock": g.get("test_lock"),
         "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
-        "avatar_icons": avatars.ICONS, "avatar_choices": avatars.CHOICES, "avatar_viewbox": avatars.VIEWBOX,
         "tonight_pop": tonight_pop(),
         "company": company(), "instagram": config.INSTAGRAM,
     }
@@ -2323,7 +2321,7 @@ def inbox():
     uid = g.user["id"]
     threads = db.all(
         """SELECT th.*, l.venue, l.event_name, l.event_date, l.poster_file,
-                  b.first_name AS buyer_name, s.first_name AS seller_name, b.avatar AS buyer_avatar, s.avatar AS seller_avatar,
+                  b.first_name AS buyer_name, s.first_name AS seller_name,
                   (SELECT COUNT(*) FROM messages m WHERE m.thread_id = th.id AND m.read_at IS NULL
                      AND m.sender_id IS NOT NULL AND m.sender_id != ?) AS unread,
                   (SELECT m.id FROM messages m WHERE m.thread_id = th.id
@@ -3120,24 +3118,11 @@ def settings_emails():
     return redirect(url_for("settings") + "#emails")
 
 
-@app.route("/settings", methods=["GET", "POST"])
+@app.route("/settings")
+@login_required
 def settings():
-    """Profile icon (earned by selling, saved on the account) and tap sounds (saved on this device by the page's script)."""
-    sales = sales_count(g.user["id"]) if g.user else 0
-    if request.method == "POST":
-        if not g.user:
-            return redirect(url_for("login", next=url_for("settings")))
-        key = request.form.get("avatar", "")
-        db.run("UPDATE users SET avatar=? WHERE id=?", key if key in avatars.unlocked(sales) else None, g.user["id"])
-        flash(t("avatar_saved"), "ok")
-        return redirect(url_for("settings"))
-    return render_template("settings.html", sales=sales, unlocked=avatars.unlocked(sales), next_at=avatars.next_unlock(sales),
-                           unlock_at=avatars.UNLOCK_AT)
-
-
-def sales_count(user_id):
-    """Tickets someone has sold (paid or paid out; refunds don't count). Unlocks profile icons."""
-    return db.one("SELECT COALESCE(SUM(quantity), 0) AS n FROM orders WHERE seller_id=? AND status IN ('paid', 'released')", user_id)["n"]
+    """Which emails someone gets, and signing out on every device."""
+    return render_template("settings.html")
 
 
 @app.route("/account")
