@@ -45,7 +45,7 @@ for path in ["i18n.py", "notify.py", "app.py"] + sorted(glob.glob("locales/*.py"
 for code in i18n.LANGS:  # the loaded texts too, so escapes like — are caught
     sources["strings[%s]" % code] = "\n".join(str(v) for v in i18n.STRINGS.get(code, {}).values())
 
-ok(len(sources) > 50 and all(p in sources for p in ("notify.py", "i18n.py", "templates/terms/nl.html", "templates/how/es.html", "templates/privacy/de.html", "locales/fr.py", "locales/de.py", "locales/es.py")),"the lint looks at templates, notify.py and all 5 languages (%d sources)" % len(sources))
+ok(len(sources) > 50 and all(p in sources for p in ("notify.py", "i18n.py", "templates/terms/nl.html", "templates/how/es.html", "templates/privacy/de.html", "locales/fr.py", "locales/de.py", "locales/es.py")), "the lint looks at templates, notify.py and all 5 languages (%d sources)" % len(sources))
 ok(all(len(sources["strings[%s]" % c]) > 1000 for c in i18n.LANGS), "all 5 languages have texts to check")
 for name, text in sources.items():
     found = lint(name, text)
@@ -62,3 +62,4 @@ for sample in ("Fee €1.99", "double the face value", "120% of face value", "Pr
 ok(any(lint("templates/other.html", "{{ v.photo_credit or '—' }}")), "the credits placeholder is allowed only in credits.html")
 
 print("\n%d failed" % len(fails) if fails else "\nall passed")
+sys.exit(1 if fails else 0)
