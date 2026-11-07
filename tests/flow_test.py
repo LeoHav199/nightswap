@@ -12,6 +12,8 @@ config.ADMIN_EMAILS = {"admin@example.com"}
 import app as A
 app = A.app; app.config["TESTING"] = True
 import seed
+from datetime import date as _date, timedelta as _td
+D0, D1 = _date.today().isoformat(), (_date.today() + _td(days=1)).isoformat()  # test dates move with today (fixed dates broke the next day)
 with app.app_context(): A.db.init(); seed.run()
 
 def csrf(c):
@@ -30,14 +32,14 @@ seller = app.test_client(); buyer = app.test_client()
 r = seller.get("/"); ok(r.status_code == 200 and "Thursday Student Night" in r.get_data(as_text=True), "home lists tickets")
 ok(seller.post("/login", data={"email": "x@y.nl"}).status_code == 400, "POST without csrf rejected")
 login(seller, "seller@test.nl", "Femke")
-r = seller.get("/sell"); ok(r.status_code == 302 and "/account/phone" in r.location, "sell requires phone")
+r = seller.get("/sell"); ok(r.status_code == 200 and "data-phone-step" in r.get_data(as_text=True), "sell shows the form with the phone check at the end (tests/sell_phone_test.py)")
 r = seller.post("/account/phone", data={"phone": "06 1234 5678", "next": "/sell", "_csrf": csrf(seller)}, follow_redirects=True)
 code = re.search(r"code is (\d{6})", r.get_data(as_text=True)).group(1)
 r = seller.post("/account/phone/verify", data={"code": code, "_csrf": csrf(seller)})
 ok(r.location.endswith("/sell"), "phone verified, back to sell")
 pdf = b"%PDF-1.4 unique test ticket"
 def post(face, price, data=pdf):
-    return seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "venue": "Perron", "event_date": "2026-11-07", "face_value": face, "price": price,
+    return seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "venue": "Perron", "event_date": D0, "face_value": face, "price": price,
         "event_name": "Test Night", "adult": "yes", "ticket": (io.BytesIO(data), "t.pdf"), "poster": (io.BytesIO(b"\x89PNG fake poster"), "p.png"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 r = post("20", "25"); ok("maximum for this ticket is €24" in r.get_data(as_text=True), "price cap enforced (face value + 20%)")
 ok(A.max_price(2000) == 2400 and A.max_price(1550) == 1860, "sellers may ask up to 20% above face value")
@@ -48,10 +50,10 @@ r = post("20", "18", b"not a pdf"); ok("Upload a PDF" in r.get_data(as_text=True
 
 r = buyer.get("/t/%d" % lid); ok("€19.50" in r.get_data(as_text=True), "detail shows total incl €1 fee")
 r = buyer.get("/"); ok("Test Night" in r.get_data(as_text=True) and "/posters/" in r.get_data(as_text=True), "home shows event card with poster")
-r = buyer.get("/?day=2026-11-07"); ok("Test Night" in r.get_data(as_text=True), "day tab filters to that night")
-r = buyer.get("/?day=2026-11-08")  # (on 7 Nov after 12:00 the "Tonight" pop-up names it on every tab, so leave that out)
+r = buyer.get("/?day=" + D0); ok("Test Night" in r.get_data(as_text=True), "day tab filters to that night")
+r = buyer.get("/?day=" + D1)  # (the "Tonight" pop-up names tonight's event on every page after 12:00, so leave it out)
 ok("Test Night" not in re.sub(r'<div class="tonight-pop".*?</div>', "", r.get_data(as_text=True), flags=re.S), "other day excludes it")
-r = buyer.get("/event?venue=Perron&date=2026-11-07&name=Test+Night"); ok(r.status_code == 200 and "€19.50" in r.get_data(as_text=True), "event page lists ticket")
+r = buyer.get("/event?venue=Perron&date=" + D0 + "&name=Test+Night"); ok(r.status_code == 200 and "€19.50" in r.get_data(as_text=True), "event page lists ticket")
 import re as _re
 pf = _re.search(r"/posters/([0-9a-f]+\.png)", buyer.get("/").get_data(as_text=True)).group(1)
 ok(buyer.get("/posters/" + pf).status_code == 200, "poster served publicly")

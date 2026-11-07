@@ -198,6 +198,31 @@
       <label class="consent"><input type="checkbox" name="adult" value="yes" {{ 'checked' if form.get('adult') == 'yes' }} required><span>{{ t('adult_confirm') }}</span></label>
       {{ m.field_error(errors, 'adult') }}
     {% endif %}
+    {# Last step: confirm the phone (only the first time). The code is checked from this page, so the files stay in the form. #}
+    {% if not phone_ok %}
+    <fieldset class="field phone-step" data-phone-step data-send="{{ url_for('phone_send') }}" data-check="{{ url_for('phone_check') }}" data-needed="{{ t('err_phone_first') }}" data-fail="{{ t('err_phone_network') }}">
+      <legend class="label">{{ t('sell_phone_label') }}</legend>
+      {% if phone_sms_needed %}
+        <p class="hint">{{ t('phone_sms_soon') }}</p>
+      {% else %}
+        <p class="hint">{{ t('phone_sub') }}</p>
+        <div class="phone-row" data-phone-number>
+          <input type="tel" name="phone" value="{{ phone_raw }}" autocomplete="tel" placeholder="06 12345678" aria-label="{{ t('phone_number') }}" data-phone-input>
+          <button class="btn btn-ghost" type="button" data-phone-send>{{ t('send_code') }}</button>
+        </div>
+        <div data-phone-code hidden>
+          <p class="hint" data-phone-note aria-live="polite"></p>
+          <div class="phone-row">
+            <input class="code-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" aria-label="{{ t('code') }}" data-phone-code-input>
+            <button class="btn btn-accent" type="button" data-phone-confirm>{{ t('verify') }}</button>
+          </div>
+        </div>
+        <p class="hint" data-phone-done role="status" hidden>{{ t('phone_ok') }}</p>
+        <noscript><p class="hint"><a href="{{ url_for('phone', next=url_for('sell')) }}">{{ t('sell_phone_nojs') }}</a></p></noscript>
+      {% endif %}
+      <p class="field-error" data-phone-error role="alert" {{ 'hidden' if not errors.get('phone') }}>{{ errors.get('phone', '') }}</p>
+    </fieldset>
+    {% endif %}
     <p class="receive-line">{{ t('you_receive') }} <strong data-receive>–</strong> <span class="muted small">{{ t('per_ticket') }}</span></p>
     <button class="btn btn-accent btn-block btn-lg" type="submit"{{ ' disabled' if sales_paused }}>{{ t('post_ticket') }}</button>
     <p class="muted small center">{{ t('sell_agree_pre') }} <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>.</p>

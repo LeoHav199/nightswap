@@ -666,6 +666,60 @@
     syncDelivery();
   }
 
+  // Last step of the form: confirm the phone (first time only). The code goes by a small request, so the page,
+  // and the ticket files already picked in it, stay as they are. The server still refuses a listing without it.
+  var phoneStep = sell.querySelector("[data-phone-step]");
+  var phoneVerified = !phoneStep;
+  if (phoneStep && phoneStep.querySelector("[data-phone-send]")) {
+    var pInput = phoneStep.querySelector("[data-phone-input]"), pSend = phoneStep.querySelector("[data-phone-send]");
+    var pCodeBox = phoneStep.querySelector("[data-phone-code]"), pCode = phoneStep.querySelector("[data-phone-code-input]");
+    var pConfirm = phoneStep.querySelector("[data-phone-confirm]"), pNote = phoneStep.querySelector("[data-phone-note]");
+    var pError = phoneStep.querySelector("[data-phone-error]"), pDone = phoneStep.querySelector("[data-phone-done]");
+    var pCsrf = (sell.querySelector('input[name="_csrf"]') || {}).value || document.body.dataset.csrf || "";
+    var showPhoneError = function (text) { pError.textContent = text || ""; pError.hidden = !text; };
+    var phoneCall = function (url, body, button) {
+      showPhoneError("");
+      button.disabled = true;
+      return fetch(url, { method: "POST", credentials: "same-origin",
+                          headers: { "Content-Type": "application/json", "X-CSRF-Token": pCsrf }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json(); })
+        .catch(function () { return { ok: false, error: phoneStep.dataset.fail || "" }; })
+        .then(function (res) { button.disabled = false; return res; });
+    };
+    pSend.addEventListener("click", function () {
+      phoneCall(phoneStep.dataset.send, { phone: pInput.value }, pSend).then(function (res) {
+        if (!res.ok) return showPhoneError(res.error);
+        if (res.verified) { phoneVerified = true; return; }
+        pNote.textContent = (res.note || "") + (res.dev ? " " + res.dev : "");
+        pCodeBox.hidden = false;
+        pCode.focus();
+      });
+    });
+    pConfirm.addEventListener("click", function () {
+      phoneCall(phoneStep.dataset.check, { code: pCode.value }, pConfirm).then(function (res) {
+        if (!res.ok) return showPhoneError(res.error);
+        phoneVerified = true;
+        pCodeBox.hidden = true;
+        phoneStep.querySelector("[data-phone-number]").hidden = true;
+        pDone.hidden = false;
+      });
+    });
+    // Enter in these two fields goes to their own button, not to "Post ticket".
+    [[pInput, pSend], [pCode, pConfirm]].forEach(function (pair) {
+      pair[0].addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); pair[1].click(); }
+      });
+    });
+    sell.addEventListener("submit", function (e) {
+      if (phoneVerified) return;
+      e.preventDefault();
+      var btn = sell.querySelector("button[type=submit]");
+      if (btn) setTimeout(function () { btn.disabled = false; }, 10);  // the double-submit guard already switched it off
+      showPhoneError(phoneStep.dataset.needed || "");
+      (pCodeBox.hidden ? pInput : pCode).focus();
+    });
+  }
+
   function cents(value) {
     var v = (value || "").replace(/[€\s]/g, "").replace(",", ".");
     if (!/^\d{1,4}(\.\d{1,2})?$/.test(v)) return null;
