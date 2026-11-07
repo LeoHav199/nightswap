@@ -2607,7 +2607,7 @@ def sell():
     if request.method == "POST":
         # The phone is confirmed last, at the end of the form (7 Nov 2026). Nothing is saved without it (#24).
         if not g.user["phone_verified_at"]:
-            errors["phone"] = t("err_phone_first")
+            errors["phone"] = t("phone_sms_soon") if sms_needed() else t("err_phone_first")
         if not g.user["adult_confirmed_at"]:
             if form.get("adult") != "yes":
                 errors["adult"] = t("err_adult")
