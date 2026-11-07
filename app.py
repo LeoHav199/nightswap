@@ -312,7 +312,7 @@ def set_setting(key, value):
 # These pages stay reachable for everyone (sign-in for admins, legal pages, payments and cron).
 OPEN_WHILE_COMING_SOON = {
     "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
-    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "about", "terms", "privacy", "credits",
+    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "help_page", "about", "terms", "privacy", "credits",
     "stripe_webhook", "hourly_tasks", "emails_stop", "jarvis_feed",
 }
 
@@ -1494,7 +1494,7 @@ def venue_page(slug):
 
 @app.route("/sitemap.xml")
 def sitemap():
-    urls = [base_url() + url_for("index"), base_url() + url_for("how")]
+    urls = [base_url() + url_for("index"), base_url() + url_for("how"), base_url() + url_for("help_page")]
     if g.sees_site:  # in coming-soon mode visitors are sent to the sign-up page from venue and event pages
         cities = {c.lower() for c in config.ENABLED_CITIES}
         urls += [base_url() + url_for("venue_page", slug=v["slug"]) for v in db.all("SELECT slug, city FROM venues")
@@ -3392,6 +3392,13 @@ def about():
 @app.route("/how-it-works")
 def how():
     return render_template("how.html")
+
+
+@app.route("/help")
+def help_page():
+    """Plain answers for a buyer stuck at the door or a seller waiting for money, plus how to reach us.
+    The answers come from How it works and the terms; the numbers come from the code, so they stay in step."""
+    return render_template("help.html", door_hour=DOOR_REPORT_UNTIL_HOUR, reply_hours=DISPUTE_REPLY_HOURS)
 
 
 @app.route("/terms")

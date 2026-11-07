@@ -29,7 +29,7 @@ for code in ("nl", "fr", "de", "es"):
     ok(not bad, "%s uses the same {placeholders} as English (%s)" % (code, "; ".join(bad[:20])))
 
 # The long pages have one file per language.
-for page in ("how", "terms", "privacy"):
+for page in ("how", "help", "terms", "privacy"):
     gone = [code for code in i18n.LANGS if not os.path.exists(os.path.join("templates", page, code + ".html"))]
     ok(not gone, "templates/%s has a file for every language (%s missing)" % (page, ", ".join(gone) or "none"))
 

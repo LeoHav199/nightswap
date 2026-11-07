@@ -316,6 +316,9 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .report summary { cursor: pointer; color: var(--muted); font-weight: 500; }
 .report summary:hover { color: var(--text); }
 .report .form { margin-top: 14px; }
+.order-help { margin-top: 18px; }
+.order-help a { color: var(--muted); }
+.order-help a:hover { color: var(--text); }
 
 .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; font-size: 14px; color: var(--muted); }
 .timeline li { position: relative; padding-left: 24px; }
