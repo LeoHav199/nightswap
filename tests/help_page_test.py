@@ -32,6 +32,8 @@ ok("before 06:00" in page and "after Swap you can't report a problem at the door
    "it states the 06:00 limit and that Swap ends door reports")
 ok("%d hours to answer" % A.DISPUTE_REPLY_HOURS in page, "the seller's reply time comes from the code")
 ok("%d hours after the night" % config.PAYOUT_DELAY_HOURS in page, "the payout timing comes from the settings")
+ok("{{" not in page and "{%" not in page and "()" not in page.split('id="ticket"')[1].split("</p>")[0],
+   "no template code left on the page, and the ticket-app list is filled in")
 ok("I sold my ticket twice" in page and "How do I cancel?" in page and "cancelled or moved" in page, "the questions from the proposal are there")
 ok('href="mailto:hello@sparetickets.eu"' in page and "usually within a few hours" in page, "the email address and the reply time we already promise on About")
 ok('href="/account#tickets"' in page, "a button to the buyer's tickets, where the report form is")
