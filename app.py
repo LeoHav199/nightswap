@@ -1074,6 +1074,7 @@ def template_globals():
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"), "test_lock": g.get("test_lock"),
+        "noindex": bool(g.get("coming_soon")),  # coming-soon mode: nothing goes into search engines
         "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
         "tonight_pop": tonight_pop(),
         "company": company(), "instagram": config.INSTAGRAM,
@@ -1287,6 +1288,14 @@ def in_city_view(row, city):
     return row["city"].lower() == city.lower() or row["category"] in config.NATIONAL_CATEGORIES
 
 
+def city_unlisted(city, category=None):
+    """True for a city that isn't open yet (not in ENABLED_CITIES): its pages stay out of search engines.
+    Festivals and concerts show in every city, so they are never unlisted."""
+    if category in config.NATIONAL_CATEGORIES:
+        return False
+    return (city or "").lower() not in {c.lower() for c in config.ENABLED_CITIES}
+
+
 def art_url(event_date, venue, name, category):
     """Generated artwork for an event without a poster (see art.py)."""
     return url_for("event_art", k="%s|%s|%s" % (event_date, venue.lower(), (name or "").lower()),
@@ -1446,6 +1455,7 @@ def event_page():
     )
     venue_row = get_venue(ev["venue"], ev["city"])
     return render_template("event.html", ev=ev, rows=rows, stats=seller_stats(r["seller_id"] for r in rows),
+                           unlisted=city_unlisted(ev["city"], ev["category"]),
                            alert=alert, looking=looking_count(ev["date"], ev["venue"], ev["name"]), past=ev["date"] < today().isoformat(), venue=venue_row, e=ev.get("event"), cancelled=cancelled,
                            directions=directions_url(venue_row) if venue_row else None, starts_at=starts_at(ev))
 
@@ -1458,7 +1468,7 @@ def venue_page(slug):
         abort(404)
     rows = browse("AND lower(l.venue) = lower(?) AND lower(l.city) = lower(?)", venue["name"], venue["city"])
     evs = group_events(rows, event_rows("AND lower(venue) = lower(?) AND lower(city) = lower(?)", venue["name"], venue["city"]))
-    return render_template("venue.html", venue=venue, events=annotate_activity(evs), credit=photo_credit(venue),
+    return render_template("venue.html", venue=venue, unlisted=city_unlisted(venue["city"]), events=annotate_activity(evs), credit=photo_credit(venue),
                            colour=venue_colour(venue["name"]), directions=directions_url(venue))
 
 

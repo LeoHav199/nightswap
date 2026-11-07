@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
 {% block title %}{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }} · Spare{% endblock %}
+{% block canonical %}{{ event_url(ev.venue, ev.date, ev.name, external=True) }}{% endblock %}
 {% block head %}
   <meta property="og:title" content="{{ ev.name or ev.venue }} · {{ fmt_date(ev.date) }}">
   <meta property="og:description" content="{{ t('og_event_free', venue=ev.venue, n=ev.count) if price_free else (t('og_event', venue=ev.venue, n=ev.count) if price_cap == 100 else t('og_event_pct', venue=ev.venue, n=ev.count, pct=price_markup)) }}">

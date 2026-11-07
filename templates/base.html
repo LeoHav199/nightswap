@@ -17,6 +17,8 @@
   <link rel="preload" href="/static/fonts/big-shoulders-display-latin-48e1b4.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {# Search engines: one address per page on the real domain (BASE_URL), never the Render address. Coming-soon mode and cities that are not open yet stay out of search. Language is a cookie, so there is one URL per page and no hreflang alternates. #}
+  {% if noindex or unlisted %}<meta name="robots" content="noindex">{% else %}<link rel="canonical" href="{% block canonical %}{{ base_url }}{{ request.path }}{% endblock %}">{% endif %}
   {% block head %}{% endblock %}
   {# Link previews (WhatsApp, Instagram, search): the branded card from tools/make_icons.py. Event and venue pages show their own photo instead. #}
   {% block og %}
