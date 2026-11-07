@@ -334,6 +334,25 @@ def coming_soon_on():
     return get_setting("coming_soon") == "1"
 
 
+# Pause sales (approved 7 Nov 2026): for incidents and deploys on a busy night. Stops new purchases and new listings;
+# order pages, door mode, Swap, reports, messages, payouts and the hourly task keep working. Set at /admin → Launch.
+PAUSE_MSG_MAX = 200
+
+
+def sales_paused():
+    return get_setting("sales_paused") == "1"
+
+
+def paused_note():
+    """The calm banner text while sales are paused (None otherwise): the standard line in the visitor's language,
+    plus the admin's optional short message (Dutch for Dutch visitors, English for everyone else)."""
+    if not sales_paused():
+        return None
+    first, other = ("nl", "en") if g.get("lang") == "nl" else ("en", "nl")
+    extra = get_setting("sales_paused_msg_" + first) or get_setting("sales_paused_msg_" + other) or ""
+    return {"text": t("sales_paused"), "extra": extra}
+
+
 def login_required(view):
     @wraps(view)
     def wrapper(*args, **kwargs):
@@ -1074,6 +1093,7 @@ def template_globals():
         "base_url": base_url(),
         "unread": unread_count(g.user["id"]) if g.get("user") else 0,
         "coming_soon": g.get("coming_soon"), "test_lock": g.get("test_lock"),
+        "sales_paused": paused_note(),
         "noindex": bool(g.get("coming_soon")),  # coming-soon mode: nothing goes into search engines
         "transfer_apps": config.TRANSFER_APPS, "app_name": app_name,
         "tonight_pop": tonight_pop(),
@@ -1595,6 +1615,9 @@ def buy(listing_id):
     back = safe_next(request.form.get("back"), url_for("listing_page", listing_id=listing_id))
     if not l:
         abort(404)
+    if sales_paused():  # checkouts already started still finish; nothing new starts
+        flash(t("sales_paused"), "error")
+        return redirect(back)
     if l["seller_id"] == g.user["id"]:
         flash(t("err_own_ticket"), "error")
         return redirect(back)
@@ -2606,7 +2629,9 @@ def sell():
 
     form = request.form
     errors = {}
-    if request.method == "POST":
+    if request.method == "POST" and sales_paused():
+        flash(t("sales_paused"), "error")  # the form comes back with what they typed (files need picking again)
+    elif request.method == "POST":
         if not g.user["adult_confirmed_at"]:
             if form.get("adult") != "yes":
                 errors["adult"] = t("err_adult")
@@ -3421,7 +3446,9 @@ def admin():
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
                            waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
                            review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files,
-                           checks=launch_checks(disk), stuck=stuck)
+                           checks=launch_checks(disk), stuck=stuck, paused=sales_paused(),
+                           pause_msgs={k: get_setting("sales_paused_msg_" + k) or "" for k in ("en", "nl")},
+                           pause_msg_max=PAUSE_MSG_MAX)
 
 
 def launch_checks(disk):
@@ -3468,9 +3495,19 @@ def admin_backup():
 @app.route("/admin/launch", methods=["POST"])
 @admin_required
 def admin_launch():
-    """Coming-soon switch and the friends' preview link."""
+    """Coming-soon switch, the friends' preview link and the pause-sales switch."""
     action = request.form.get("action")
-    if action == "coming_soon":
+    if action == "pause":
+        for lang_ in ("en", "nl"):
+            set_setting("sales_paused_msg_" + lang_, " ".join(request.form.get("msg_" + lang_, "").split())[:PAUSE_MSG_MAX])
+        set_setting("sales_paused", "1")
+        app.logger.warning("Sales paused by %s", g.user["email"])
+        flash("Sales are paused: nobody can buy or list. Order pages, Swap, reports and payouts keep working.", "ok")
+    elif action == "resume":
+        set_setting("sales_paused", "0")
+        app.logger.warning("Sales resumed by %s", g.user["email"])
+        flash("Sales are open again.", "ok")
+    elif action == "coming_soon":
         set_setting("coming_soon", "1")
         if not get_setting("preview_code"):
             set_setting("preview_code", secrets.token_urlsafe(8))

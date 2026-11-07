@@ -684,6 +684,7 @@ STRINGS = {
     "mail_transfer_reminder_body": "Hi {name},\n\ndu hast dein Ticket für {title} verkauft, es aber noch nicht als übertragen markiert. Öffne {app}, übertrage es an {tname} ({temail}) und tippe dann auf \"Ich habe es übertragen\":\n\n{url}\n\nDu bekommst dein Geld, sobald es übertragen ist.\n\nSpare",
     "test_lock_bar": "Testmodus: keine echten Tickets einstellen oder kaufen. Zahlungen sind noch nicht echt.",
     "err_test_lock": "Spare ist noch nicht für echte Tickets geöffnet. Verkaufen geht, sobald Zahlungen live sind.",
+    "sales_paused": "Der Verkauf ist kurz pausiert. Deine Tickets und Swap funktionieren weiterhin.",
     "sessions_title": "Angemeldete Geräte",
     "sessions_hint": "Du bleibst auf jedem Gerät 90 Tage angemeldet. Handy verloren oder am Laptop von jemand anderem angemeldet? Melde dich überall ab.",
     "sessions_btn": "Überall abmelden",

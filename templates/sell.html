@@ -11,6 +11,7 @@
   <form class="panel form" method="post" enctype="multipart/form-data" data-sell-form data-once
         data-fee-pct="{{ fee_percent }}" data-fee-min="{{ fee_min }}" data-fee-max="{{ fee_max }}" data-seller-pct="{{ seller_fee_pct }}" data-seller-min="{{ seller_fee_min }}" data-profit-share="{{ profit_share_pct }}" data-cap="{{ price_cap }}" data-lang="{{ lang }}" data-face-official="{{ t('face_official', max='{max}') }}" novalidate>
     {{ m.csrf() }}
+    {{ m.paused_notice() }}
     {% set picked = form.get('venue', '') %}
     {% set picked_event = (preset.id|string) if preset else form.get('event_id', '') %}
 
@@ -198,7 +199,7 @@
       {{ m.field_error(errors, 'adult') }}
     {% endif %}
     <p class="receive-line">{{ t('you_receive') }} <strong data-receive>–</strong> <span class="muted small">{{ t('per_ticket') }}</span></p>
-    <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('post_ticket') }}</button>
+    <button class="btn btn-accent btn-block btn-lg" type="submit"{{ ' disabled' if sales_paused }}>{{ t('post_ticket') }}</button>
     <p class="muted small center">{{ t('sell_agree_pre') }} <a href="{{ url_for('terms') }}">{{ t('footer_terms') }}</a>.</p>
   </form>
 

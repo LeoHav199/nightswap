@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m with context %}
 {% block title %}{{ l.event_name or l.venue }} · {{ fmt_date(l.event_date) }} · Spare{% endblock %}
-{% block body_class %}{{ 'has-buybar' if available and not own }}{% endblock %}
+{% block body_class %}{{ 'has-buybar' if available and not own and not sales_paused }}{% endblock %}
 {% block content %}
 {% set url = base_url ~ url_for('listing_page', listing_id=l.id) %}
 <div class="wrap">
@@ -85,7 +85,8 @@
       <p class="muted">{{ t('reserved_body') if l.held and l.status == 'active' and not past else t('sold_body') }}</p>
       <a class="btn btn-ghost btn-block" href="{{ event_url(l.venue, l.event_date, l.event_name) }}">{{ t('see_event') }}</a>
     {% else %}
-      <form id="buyform" method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once data-buy
+      {{ m.paused_notice() }}
+      <form id="buyform"method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once data-buy
             data-price="{{ l.price_cents }}" data-fee="{{ fee_for(l.price_cents) }}" data-lang="{{ lang }}">
         {{ m.csrf() }}
         {% if l.available > 1 and not l.sold_together %}
@@ -110,7 +111,7 @@
           <div><dt>{{ t('service_fee') }}</dt><dd data-feesum>{{ money(fee_for(l.price_cents) * n) }}</dd></div>
           <div class="breakdown-total"><dt>{{ t('total') }}</dt><dd data-total>{{ money(with_fee(l.price_cents) * n) }}</dd></div>
         </dl>
-        <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('buy_now') }}</button>
+        <button class="btn btn-accent btn-block btn-lg" type="submit"{{ ' disabled' if sales_paused }}>{{ t('buy_now') }}</button>
       </form>
       <p class="pay-methods">{{ t('pay_methods') }}</p>
       {% if not user %}<p class="muted small center">{{ t('login_to_buy') }}</p>{% endif %}
@@ -145,7 +146,7 @@
     {% endif %}
   </aside>
 </div>
-{% if available and not own %}
+{% if available and not own and not sales_paused %}
   {% set n0 = l.available if l.sold_together else 1 %}
   <div class="buybar">
     <div class="buybar-price"><strong data-buybar-total>{{ money(with_fee(l.price_cents) * n0) }}</strong><span>{{ t('incl_fee_short', fee=money(fee_for(l.price_cents))) if n0 == 1 else t('sold_as_set', n=n0) }}</span></div>

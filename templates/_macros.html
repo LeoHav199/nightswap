@@ -54,6 +54,9 @@
 
 {% macro field_error(errors, name) %}{% if errors.get(name) %}<p class="field-error">{{ errors[name] }}</p>{% endif %}{% endmacro %}
 
+{# Sales paused at /admin → Launch: a calm note where buying and listing would start. #}
+{% macro paused_notice() %}{% if sales_paused %}<div class="notice notice-paused" role="status"><p><strong>{{ sales_paused.text }}</strong>{% if sales_paused.extra %} {{ sales_paused.extra }}{% endif %}</p></div>{% endif %}{% endmacro %}
+
 {% macro status_tag(status) %}<span class="tag tag-{{ status }}">{{ t('status_' ~ status) }}</span>{% endmacro %}
 
 {# Trust line for a seller: verified student, phone, track record. #}
