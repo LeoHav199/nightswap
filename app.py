@@ -2601,12 +2601,13 @@ def sell():
     if g.get("test_lock") and not g.is_admin:
         flash(t("err_test_lock"), "error")
         return redirect(url_for("index"))
-    if not g.user["phone_verified_at"]:
-        return redirect(url_for("phone", next=url_for("sell")))
 
     form = request.form
     errors = {}
     if request.method == "POST":
+        # The phone is confirmed last, at the end of the form (7 Nov 2026). Nothing is saved without it (#24).
+        if not g.user["phone_verified_at"]:
+            errors["phone"] = t("err_phone_first")
         if not g.user["adult_confirmed_at"]:
             if form.get("adult") != "yes":
                 errors["adult"] = t("err_adult")
@@ -2832,6 +2833,8 @@ def sell():
                            preset_looking=looking_count(preset["event_date"], preset["venue"], preset["name"]) if preset else 0,
                            today=today().isoformat(), max_date=(today() + timedelta(days=365)).isoformat(),
                            quick_dates=[(today() + timedelta(days=i)).isoformat() for i in range(4)],
+                           phone_ok=bool(g.user["phone_verified_at"]), phone_sms_needed=sms_needed(),
+                           phone_raw=request.form.get("phone") or g.user["phone"] or "",
                            max_tickets=config.MAX_TICKETS_PER_LISTING, new_seller=is_new_seller(g.user["id"]),
                            new_seller_max=config.NEW_SELLER_MAX_TICKETS, new_seller_hours=config.NEW_SELLER_PAYOUT_HOURS,
                            new_seller_sales=config.NEW_SELLER_SALES)
@@ -3013,33 +3016,59 @@ def send_phone_code(number, text):
     return notify.send_email(g.user["email"], text, text)
 
 
+def sms_needed():
+    """Optional (#24): require real text messages on the live site. Off for now: a new seller's first ticket
+    only goes on sale after Stripe's ID check (#28), so the code is emailed until Twilio is set up."""
+    return config.SMS_REQUIRED and not config.SMS_ENABLED and not config.DEV
+
+
+def start_phone_code(raw):
+    """Checks a phone number and sends it a code. Used by the phone page and by the sell form.
+    Returns (number, error, dev_code): an error text when it didn't work, dev_code only in development."""
+    number = normalise_phone(raw)
+    if not number:
+        return None, t("err_phone"), None
+    problem = phone_problem(number)
+    if problem:
+        return None, problem, None
+    if rate_limited("sms-user", 5, 60, g.user["id"]) or rate_limited("sms-ip", 10, 60):
+        return None, t("err_too_many_tries"), None
+    code = issue_code("phone", number)
+    session["phone_pending"] = number
+    dev_code = None
+    if code:
+        sent = send_phone_code(number, t("sms_code", code=code))
+        if not sent and config.DEV:
+            dev_code = code
+    return number, None, dev_code
+
+
+def confirm_phone_code(number, raw_code):
+    """Checks the code for the pending number and marks the phone verified. Returns an error text, or None."""
+    problem = phone_problem(number)  # #24: checked again here, a number may have been blocked since the code went out
+    if problem:
+        return problem
+    if not check_code("phone", number, re.sub(r"\D", "", raw_code or "")):
+        return t("err_code")
+    db.run("UPDATE users SET phone=?, phone_verified_at=? WHERE id=?", number, sqltime(utcnow()), g.user["id"])
+    session.pop("phone_pending", None)
+    return None
+
+
 @app.route("/account/phone", methods=["GET", "POST"])
 @login_required
 def phone():
     nxt = safe_next(request.values.get("next"), url_for("account"))
     error = None
     raw = request.values.get("phone", g.user["phone"] or "")
-    if config.SMS_REQUIRED and not config.SMS_ENABLED and not config.DEV:
-        # Optional (#24): require real text messages on the live site. Off for now: a new seller's first ticket
-        # only goes on sale after Stripe's ID check (#28), so the code is emailed until Twilio is set up.
+    if sms_needed():
         return render_template("phone.html", phone=raw, next=nxt, error=None, sms_needed=True)
     if request.method == "POST":
-        number = normalise_phone(raw)
-        problem = phone_problem(number) if number else None
-        if not number:
-            error = t("err_phone")
-        elif problem:
-            error = problem
-        elif rate_limited("sms-user", 5, 60, g.user["id"]) or rate_limited("sms-ip", 10, 60):
-            error = t("err_too_many_tries")
-        else:
-            code = issue_code("phone", number)
-            session["phone_pending"] = number
+        number, error, dev_code = start_phone_code(raw)
+        if not error:
             session["phone_next"] = nxt
-            if code:
-                sent = send_phone_code(number, t("sms_code", code=code))
-                if not sent and config.DEV:
-                    flash(t("dev_code", code=code), "dev")
+            if dev_code:
+                flash(t("dev_code", code=dev_code), "dev")
             return redirect(url_for("phone_verify"))
     return render_template("phone.html", phone=raw, next=nxt, error=error)
 
@@ -3052,17 +3081,41 @@ def phone_verify():
         return redirect(url_for("phone"))
     error = None
     if request.method == "POST":
-        code = re.sub(r"\D", "", request.form.get("code", ""))
-        problem = phone_problem(number)
-        if problem:
-            error = problem
-        elif check_code("phone", number, code):
-            db.run("UPDATE users SET phone=?, phone_verified_at=? WHERE id=?", number, sqltime(utcnow()), g.user["id"])
-            session.pop("phone_pending", None)
+        error = confirm_phone_code(number, request.form.get("code", ""))
+        if not error:
             flash(t("phone_ok"), "ok")
             return redirect(safe_next(session.pop("phone_next", None), url_for("account")))
-        error = t("err_code")
     return render_template("phone_verify.html", phone=number, error=error)
+
+
+@app.route("/account/phone/send", methods=["POST"])
+@login_required
+def phone_send():
+    """The sell form's phone step: sends the code without leaving the page (the ticket files would be lost)."""
+    if g.user["phone_verified_at"]:
+        return {"ok": True, "verified": True}
+    if sms_needed():
+        return {"ok": False, "error": t("phone_sms_soon")}
+    number, error, dev_code = start_phone_code((request.get_json(silent=True) or {}).get("phone", ""))
+    if error:
+        return {"ok": False, "error": error}
+    note = t("phone_verify_sub", phone=number) if config.SMS_ENABLED else t("phone_verify_sub_email", phone=number, email=g.user["email"])
+    return {"ok": True, "note": note, "dev": t("dev_code", code=dev_code) if dev_code else ""}
+
+
+@app.route("/account/phone/check", methods=["POST"])
+@login_required
+def phone_check():
+    """The sell form's phone step: checks the code. The seller then posts the form as usual."""
+    if g.user["phone_verified_at"]:
+        return {"ok": True}
+    number = session.get("phone_pending")
+    if not number:
+        return {"ok": False, "error": t("err_code")}
+    error = confirm_phone_code(number, (request.get_json(silent=True) or {}).get("code", ""))
+    if error:
+        return {"ok": False, "error": error}
+    return {"ok": True, "message": t("phone_ok")}
 
 
 @app.route("/account/student", methods=["GET", "POST"])

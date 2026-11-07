@@ -1057,6 +1057,15 @@ body.has-search-sheet { overflow: hidden; }
 .receive-line { display: flex; align-items: baseline; gap: 8px; margin: 16px 0 10px; font-size: 15px; }
 .receive-line strong { font-size: 22px; color: var(--accent); }
 
+/* Sell form: the phone is confirmed last, at the end of the form (number, then the code, without leaving the page). */
+.phone-step { border: 1px solid var(--line-strong); border-radius: var(--radius-sm); padding: 16px; margin: 0; min-width: 0; }
+.phone-step legend { padding: 0 6px; }
+.phone-row { display: flex; gap: 8px; align-items: stretch; }
+.phone-row input { flex: 1; min-width: 0; }
+.phone-row .btn { white-space: nowrap; }
+.phone-step .code-input { font-size: 22px !important; height: 50px !important; }
+.phone-step [hidden] { display: none; }
+
 /* Sell form: Today / Tomorrow / the next two days, above the date picker. */
 .date-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .date-chips .chip.is-on { border-color: var(--accent); background: rgba(212, 255, 58, .08); }
