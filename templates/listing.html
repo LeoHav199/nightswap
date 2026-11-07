@@ -86,7 +86,7 @@
       <a class="btn btn-ghost btn-block" href="{{ event_url(l.venue, l.event_date, l.event_name) }}">{{ t('see_event') }}</a>
     {% else %}
       {{ m.paused_notice() }}
-      <form id="buyform"method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once data-buy
+      <form id="buyform" method="post" action="{{ url_for('buy', listing_id=l.id) }}" data-once data-buy
             data-price="{{ l.price_cents }}" data-fee="{{ fee_for(l.price_cents) }}" data-lang="{{ lang }}">
         {{ m.csrf() }}
         {% if l.available > 1 and not l.sold_together %}
