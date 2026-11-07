@@ -2242,8 +2242,14 @@ def handle_stripe_money_event(kind, order, obj):
     """#27: chargebacks and refunds made outside Spare. Spare is liable for losses on its sellers' accounts, so a
     chargeback holds the payout, or takes it back if it was already sent."""
     admin_link = base_url() + url_for("admin") + "#chargebacks"
+    # Stripe can deliver the same event more than once: a chargeback that's already open, or a close that's already
+    # recorded, changes nothing and mails nobody again (a new dispute after one closed is handled as new).
+    if kind == "charge.dispute.created" and order["chargeback_at"] and not order["chargeback_status"]:
+        return
+    if kind == "charge.dispute.closed" and order["chargeback_status"] == obj.get("status"):
+        return
     if kind == "charge.dispute.created":
-        db.run("UPDATE orders SET chargeback_at=? WHERE id=?", sqltime(utcnow()), order["id"])
+        db.run("UPDATE orders SET chargeback_at=?, chargeback_status=NULL WHERE id=?", sqltime(utcnow()), order["id"])
         if order["status"] == "paid":
             db.run("UPDATE orders SET status='disputed', dispute_reason=? WHERE id=?", "Chargeback by the buyer's bank", order["id"])
             what = "The payout is on hold."

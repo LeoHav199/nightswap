@@ -89,15 +89,13 @@ ok(len(chargeback_mails()) == 1 and "payout is on hold" in chargeback_mails()[0]
 with app.app_context(): A.db.run("UPDATE orders SET chargeback_at='2026-01-01 10:00:00' WHERE id=?", held["id"])  # so a rewritten time would show
 before = row(held); SENT.clear()
 r = deliver("charge.dispute.created", dispute("pi_held"), "evt_a")
-# Known gap (needs Leo, it touches payment handling): handle_stripe_money_event doesn't remember the delivery, so a repeat of
-# charge.dispute.created still rewrites chargeback_at and emails the admins again. The money state below must not move.
-same_money = lambda a, b: all(a[k] == b[k] for k in ("status", "dispute_reason", "reversal_ref", "transfer_ref", "chargeback_status", "payout_released_at") if k in a)
-ok(r.status_code == 200 and same_money(row(held), before) and not reversals, "the same chargeback delivered again leaves the order's status and payout alone")
+# A repeat of charge.dispute.created (Stripe retries deliveries) changes nothing at all and mails nobody again.
+ok(r.status_code == 200 and row(held) == before and not reversals and not chargeback_mails(), "the same chargeback delivered again changes nothing and mails nobody")
 r = deliver("charge.dispute.closed", dispute("pi_held", "lost"), "evt_b")
 ok(r.status_code == 200 and row(held)["chargeback_status"] == "lost" and row(held)["status"] == "disputed", "the outcome is recorded, the order stays on hold")
 before = row(held); SENT.clear()
 r = deliver("charge.dispute.closed", dispute("pi_held", "lost"), "evt_b")
-ok(r.status_code == 200 and row(held) == before and not reversals, "the same 'closed' delivered again changes nothing")
+ok(r.status_code == 200 and row(held) == before and not reversals and not SENT, "the same 'closed' delivered again changes nothing and mails nobody")
 
 # --- a chargeback after the payout: the payout is taken back
 paidout = paid_order("pi_paidout"); make_released(paidout, "tr_1")
@@ -107,11 +105,9 @@ now = row(paidout)
 ok(r.status_code == 200 and reversals == [paidout["public_id"]] and now["reversal_ref"] == "trr_1" and now["chargeback_at"], "a signed chargeback on a paid-out order takes the seller's payout back")
 ok(now["status"] == "released" and any("payout was taken back" in s[2] for s in chargeback_mails()), "...and the admins are told it was taken back")
 with app.app_context(): A.db.run("UPDATE orders SET chargeback_at='2026-01-01 10:00:00' WHERE id=?", paidout["id"])
-before = row(paidout); SENT.clear()
+before = row(paidout); SENT.clear(); reversals.clear()
 r = deliver("charge.dispute.created", dispute("pi_paidout", dp="dp_2"), "evt_c")
-# Known gap, as above: a repeat asks Stripe for the reversal again (and mails the admins again). That is safe only because the
-# Stripe call carries the idempotency key "reversal-<order>", which is checked below. The order itself must not move.
-ok(r.status_code == 200 and same_money(row(paidout), before) and row(paidout)["status"] == "released", "the same chargeback delivered again leaves the paid-out order and its reversal alone")
+ok(r.status_code == 200 and row(paidout) == before and not reversals and not chargeback_mails(), "the same chargeback delivered again doesn't ask Stripe again, change the order or mail anyone")
 ok('idempotency_key="reversal-"' in open("payments.py", encoding="utf-8").read(), "...and a repeated reversal request is harmless at Stripe: the call carries an idempotency key per order")
 
 # --- a refund made in the Stripe dashboard
