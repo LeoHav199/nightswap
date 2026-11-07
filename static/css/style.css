@@ -335,6 +335,8 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .tag-paid, .tag-released { color: var(--good); background: rgba(111, 216, 163, .1); }
 .tag-disputed, .tag-pending { color: var(--warn); background: rgba(245, 193, 92, .1); }
 .tag-sold { color: var(--accent); background: rgba(212, 255, 58, .1); }
+.tag-paused { color: #fff; background: #c62828; letter-spacing: .04em; }
+.notice-paused { margin: 0 0 16px; }
 
 /* Account ---------------------------------------------------------------- */
 .account-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }

@@ -49,7 +49,8 @@ r = post("20", "18", b"not a pdf"); ok("Upload a PDF" in r.get_data(as_text=True
 r = buyer.get("/t/%d" % lid); ok("€19.50" in r.get_data(as_text=True), "detail shows total incl €1 fee")
 r = buyer.get("/"); ok("Test Night" in r.get_data(as_text=True) and "/posters/" in r.get_data(as_text=True), "home shows event card with poster")
 r = buyer.get("/?day=2026-11-07"); ok("Test Night" in r.get_data(as_text=True), "day tab filters to that night")
-r = buyer.get("/?day=2026-11-08"); ok("Test Night" not in r.get_data(as_text=True), "other day excludes it")
+r = buyer.get("/?day=2026-11-08")  # (on 7 Nov after 12:00 the "Tonight" pop-up names it on every tab, so leave that out)
+ok("Test Night" not in re.sub(r'<div class="tonight-pop".*?</div>', "", r.get_data(as_text=True), flags=re.S), "other day excludes it")
 r = buyer.get("/event?venue=Perron&date=2026-11-07&name=Test+Night"); ok(r.status_code == 200 and "€19.50" in r.get_data(as_text=True), "event page lists ticket")
 import re as _re
 pf = _re.search(r"/posters/([0-9a-f]+\.png)", buyer.get("/").get_data(as_text=True)).group(1)

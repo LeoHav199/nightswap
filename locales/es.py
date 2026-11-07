@@ -684,6 +684,7 @@ STRINGS = {
     "mail_transfer_reminder_body": "Hola, {name}:\n\nHas vendido tu entrada para {title}, pero aún no la has marcado como transferida. Abre {app}, transfiérela a {tname} ({temail}) y toca \"Ya la he transferido\":\n\n{url}\n\nCobras cuando esté transferida.\n\nSpare",
     "test_lock_bar": "Modo de prueba: no publiques ni compres entradas reales. Los pagos aún no son reales.",
     "err_test_lock": "Spare aún no está abierto a entradas reales. La venta se abrirá cuando los pagos estén activos.",
+    "sales_paused": "Las ventas están en pausa un momento. Tus entradas y Swap siguen funcionando.",
     "sessions_title": "Dispositivos con sesión",
     "sessions_hint": "Sigues con la sesión iniciada 90 días en cada dispositivo. ¿Perdiste el móvil o entraste en el portátil de otra persona? Cierra sesión en todas partes.",
     "sessions_btn": "Cerrar sesión en todas partes",

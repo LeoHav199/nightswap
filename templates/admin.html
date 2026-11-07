@@ -5,6 +5,7 @@
 <div class="wrap narrow-head account-head">
   <div>
     <h1>Admin</h1>
+    {% if paused %}<p><a class="tag tag-paused" href="#pause">PAUSED</a> <span class="muted small">Nobody can buy or list right now.</span></p>{% endif %}
     <p class="muted">{{ stats.n }} paid orders · {{ money(stats.volume) }} volume · {{ money(stats.fees) }} fees</p>
     <p class="muted small">Disk: {% if disk.warn %}<strong class="warn-text">{{ disk.pct }}% full</strong>{% else %}{{ disk.pct }}% full{% endif %} ({{ '%.2f'|format(disk.used) }} of {{ '%.0f'|format(disk.total) }} GB)</p>
   </div>
@@ -45,6 +46,26 @@
         <div class="admin-actions">
           <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Switch to coming-soon mode? Visitors will only see the sign-up page.">{{ m.csrf() }}<input type="hidden" name="action" value="coming_soon"><button class="btn btn-ghost btn-sm">Switch to coming-soon mode</button></form>
         </div>
+      {% endif %}
+    </div>
+    {# Pause sales: for incidents and deploys on a busy night. Buyers who already paid keep everything. #}
+    <div class="panel admin-case" id="pause">
+      {% if paused %}
+        <p><span class="tag tag-paused">PAUSED</span> <strong>New sales are paused.</strong> Nobody can buy or post a listing. Order pages, door mode, Swap, reports, messages and payouts keep working.</p>
+        {% if pause_msgs.en or pause_msgs.nl %}<p class="muted small">Extra message: {{ pause_msgs.en }}{% if pause_msgs.en and pause_msgs.nl %} · {% endif %}{{ pause_msgs.nl }}</p>{% endif %}
+        <div class="admin-actions">
+          <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Open sales again?">{{ m.csrf() }}<input type="hidden" name="action" value="resume"><button class="btn btn-accent btn-sm">Resume sales</button></form>
+        </div>
+      {% else %}
+        <p><strong>Sales are open.</strong> <span class="muted small">Pause them during an incident or a deploy: new purchases and new listings stop, everything buyers already have keeps working.</span></p>
+        <form method="post" action="{{ url_for('admin_launch') }}" data-confirm="Pause all new sales and listings?">{{ m.csrf() }}
+          <input type="hidden" name="action" value="pause">
+          <label class="field"><span class="label">Extra message in English (optional)</span>
+            <input type="text" name="msg_en" maxlength="{{ pause_msg_max }}" value="{{ pause_msgs.en }}" placeholder="Back in about 10 minutes."></label>
+          <label class="field"><span class="label">Extra message in Dutch (optional)</span>
+            <input type="text" name="msg_nl" maxlength="{{ pause_msg_max }}" value="{{ pause_msgs.nl }}" placeholder="Over ongeveer 10 minuten weer terug."></label>
+          <div class="admin-actions"><button class="btn btn-ghost btn-sm">Pause new sales</button></div>
+        </form>
       {% endif %}
     </div>
   </section>
