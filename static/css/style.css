@@ -358,6 +358,13 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .table-list a:hover { background: var(--surface); }
 .tl-main { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .tl-amount { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 60px; text-align: right; }
+/* Account: listings not on sale yet (being checked, or waiting for payout setup), greyed with a label */
+.table-list .tl-waiting { display: flex; align-items: center; gap: 12px; }
+.table-list .tl-waiting > a:first-child { flex: 1; min-width: 0; }
+.tl-waiting strong, .tl-waiting .tl-amount { color: var(--muted); }
+.tl-wait-label { color: var(--warn); }
+.table-list .tl-waiting > .btn { flex: none; gap: 8px; padding: 0 16px; margin-right: 4px; }
+.table-list .tl-waiting > .btn:hover { background: var(--accent-hover); }
 .admin-case { margin-bottom: 12px; }
 .admin-case blockquote { margin: 12px 0; padding: 10px 14px; border-left: 3px solid var(--warn); background: var(--bg); white-space: pre-wrap; }
 .admin-actions { display: flex; gap: 8px; }
@@ -434,6 +441,9 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
   .poster-banner .poster-name { font-size: 30px; }
   .table-list a { flex-wrap: wrap; gap: 8px 12px; }
   .tl-main { flex-basis: 100%; }
+  .table-list .tl-waiting { flex-wrap: wrap; gap: 0; }
+  .table-list .tl-waiting > a:first-child { flex-basis: 100%; }
+  .table-list .tl-waiting > .btn { margin: 0 4px 14px; }
 }
 @media (max-width: 340px) {
   .logo span { display: none; }

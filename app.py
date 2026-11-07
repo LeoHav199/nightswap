@@ -3236,9 +3236,12 @@ def account():
                 g.user = db.one("SELECT * FROM users WHERE id=?", uid)
         except Exception:
             app.logger.exception("Could not check payout status")
+    # Listings waiting for a check (review) or for payout setup (draft) show too, greyed with a label,
+    # so a new seller's first ticket doesn't look lost.
     listings = db.all(
         """SELECT l.*, (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available') AS available
-           FROM listings l WHERE seller_id=? AND status='active' AND event_date >= ? ORDER BY event_date""",
+           FROM listings l WHERE seller_id=? AND status IN ('active', 'review', 'draft') AND event_date >= ?
+           ORDER BY event_date, l.id""",
         uid, today().isoformat(),
     )
     sales = db.all(

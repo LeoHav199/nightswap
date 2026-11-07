@@ -742,6 +742,8 @@ STRINGS = {
     "listed_review": "Danke! Wir prüfen zuerst den Originalpreis: Dein Ticket geht in den Verkauf, sobald das erledigt ist, meist innerhalb weniger Stunden.",
     "listing_in_review": "Wartet auf eine kurze Prüfung des Originalpreises. Wir schreiben dir, sobald es im Verkauf ist.",
     "status_review": "Wird geprüft",
+    "listing_wait_review": "Wartet auf unsere Prüfung",
+    "listing_wait_draft": "Im Verkauf, sobald die Auszahlung eingerichtet ist",
     "mail_listing_live_subject": "Dein Ticket ist im Verkauf: {title}",
     "mail_listing_live_body": "Hi {name},\n\nwir haben dein Ticket für {title} geprüft, es ist jetzt im Verkauf.",
     "dsa_what_listing_refused": "wir haben dein Ticket für {title} nicht in den Verkauf genommen.",

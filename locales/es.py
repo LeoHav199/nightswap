@@ -742,6 +742,8 @@ STRINGS = {
     "listed_review": "¡Gracias! Primero comprobamos el precio original: tu entrada se pondrá a la venta en cuanto terminemos, normalmente en unas horas.",
     "listing_in_review": "Esperando una comprobación rápida del precio original. Te escribiremos cuando esté a la venta.",
     "status_review": "En revisión",
+    "listing_wait_review": "Esperando nuestra revisión",
+    "listing_wait_draft": "A la venta cuando configures tus cobros",
     "mail_listing_live_subject": "Tu entrada está a la venta: {title}",
     "mail_listing_live_body": "Hola, {name}:\n\nHemos comprobado tu entrada para {title} y ya está a la venta.",
     "dsa_what_listing_refused": "no hemos puesto a la venta tu entrada para {title}.",

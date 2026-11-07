@@ -66,11 +66,13 @@
     {% if listings %}
       <ul class="table-list">
         {% for l in listings %}
-        <li>
+        {% set waiting = l.status in ('review', 'draft') %}
+        <li{% if waiting %} class="tl-waiting"{% endif %}>
           <a href="{{ url_for('listing_page', listing_id=l.id) }}">
             <span class="tl-main"><strong>{{ l.event_name or l.venue }}</strong><span class="muted small">{{ l.venue }} · {{ fmt_date(l.event_date) }}</span></span>
-            <span class="muted small">{{ t('n_left_short', n=l.available) }}</span><span class="tl-amount">{{ money(l.price_cents) }}</span>
+            {% if waiting %}<span class="tl-wait-label small">{{ t('listing_wait_' ~ l.status) }}</span>{% else %}<span class="muted small">{{ t('n_left_short', n=l.available) }}</span>{% endif %}<span class="tl-amount">{{ money(l.price_cents) }}</span>
           </a>
+          {% if l.status == 'draft' and not user.payouts_ready %}<a class="btn btn-accent btn-sm" href="{{ url_for('payouts_setup') }}">{{ t('set_up_payouts') }}</a>{% endif %}
         </li>
         {% endfor %}
       </ul>

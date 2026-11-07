@@ -742,6 +742,8 @@ STRINGS = {
     "listed_review": "Merci ! On vérifie d'abord le prix d'origine : ton billet sera en vente dès que c'est fait, en général en quelques heures.",
     "listing_in_review": "En attente d'une vérification rapide du prix d'origine. On t'écrit dès qu'il est en vente.",
     "status_review": "En vérification",
+    "listing_wait_review": "En attente de notre vérification",
+    "listing_wait_draft": "En vente dès que tes versements sont configurés",
     "mail_listing_live_subject": "Ton billet est en vente : {title}",
     "mail_listing_live_body": "Salut {name},\n\nOn a vérifié ton billet pour {title} : il est maintenant en vente.",
     "dsa_what_listing_refused": "on n'a pas mis en vente ton billet pour {title}.",
