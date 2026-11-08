@@ -78,7 +78,8 @@ ok('class="small order-help"><a href="/help">Help and answers</a>' in html(buyer
 ok('href="/help">Help and answers' in html(seller.get("/orders/" + pub)), "the seller's order page links to /help")
 doors = datetime.now() - timedelta(hours=1)
 with app.app_context():
-    A.db.run("UPDATE listings SET event_date=?, start_time=? WHERE id=?", doors.date().isoformat(), doors.strftime("%H:%M"), lid)
+    # door mode runs from noon on the event day to noon the day after, so before noon "tonight" is yesterday's event
+    A.db.run("UPDATE listings SET event_date=?, start_time=? WHERE id=?", (datetime.now() - timedelta(hours=12)).date().isoformat(), doors.strftime("%H:%M"), lid)
 door_page = html(buyer.get("/orders/" + pub))
 ok("is-door" in door_page and 'href="/help">Help and answers' in door_page, "door mode on the night still links to /help")
 ok('id="tickets"' in html(buyer.get("/account")), "the account page has the #tickets anchor the help page links to")
