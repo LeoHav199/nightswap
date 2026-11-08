@@ -7,6 +7,11 @@
     <h1>Admin</h1>
     {% if paused %}<p><a class="tag tag-paused" href="#pause">PAUSED</a> <span class="muted small">Nobody can buy or list right now.</span></p>{% endif %}
     <p class="muted">{{ stats.n }} paid orders · {{ money(stats.volume) }} volume · {{ money(stats.fees) }} fees</p>
+    {% set h_ok, h_min = hourly %}
+    <p class="small" id="hourly">
+      <span class="tag {{ 'tag-released' if h_ok else 'tag-paused' }}">Hourly task: {% if h_min is none %}never ran{% else %}last ran {% if h_min < 60 %}{{ h_min }} min{% elif h_min < 2880 %}{{ h_min // 60 }} h {{ h_min % 60 }} min{% else %}{{ h_min // 1440 }} days{% endif %} ago{% endif %}</span>
+      {% if not h_ok %}<span class="muted">Payouts and reminders aren't running. See "The hourly task is late" in the admin guide.</span>{% endif %}
+    </p>
     <p class="muted small">Disk: {% if disk.warn %}<strong class="warn-text">{{ disk.pct }}% full</strong>{% else %}{{ disk.pct }}% full{% endif %} ({{ '%.2f'|format(disk.used) }} of {{ '%.0f'|format(disk.total) }} GB)</p>
   </div>
   <a class="btn btn-accent btn-sm" href="{{ url_for('admin_events') }}">Events</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_users') }}">Users</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_sources') }}">Links &amp; QR codes</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_backup') }}">Download backup</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_venues') }}">Venues &amp; posters</a> <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_totp_setup') }}">Authenticator</a> <form method="post" action="{{ url_for('admin_order', public_id='-', action='payouts') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Run due payouts now</button></form>

@@ -313,7 +313,7 @@ def set_setting(key, value):
 OPEN_WHILE_COMING_SOON = {
     "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
     "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "help_page", "about", "terms", "privacy", "credits",
-    "stripe_webhook", "hourly_tasks", "emails_stop", "jarvis_feed",
+    "stripe_webhook", "hourly_tasks", "emails_stop", "jarvis_feed", "health",
 }
 
 
@@ -351,6 +351,20 @@ def paused_note():
     first, other = ("nl", "en") if g.get("lang") == "nl" else ("en", "nl")
     extra = get_setting("sales_paused_msg_" + first) or get_setting("sales_paused_msg_" + other) or ""
     return {"text": t("sales_paused"), "extra": extra}
+
+
+# Heartbeat (approved 8 Nov 2026): if cron-job.org stops calling /tasks/hourly nothing breaks visibly, sellers just
+# aren't paid. /health turns "late" so an outside monitor (UptimeRobot) emails Leo; /admin shows a red pill.
+HOURLY_LATE_HOURS = 3
+
+
+def hourly_status():
+    """(ok, minutes since the hourly task last finished, or None if it never ran). Uses `hourly_last_run` (UTC)."""
+    last = parse_sqltime(get_setting("hourly_last_run"))
+    if not last:
+        return False, None
+    minutes = max(0, int((utcnow() - last).total_seconds() // 60))
+    return minutes < HOURLY_LATE_HOURS * 60, minutes
 
 
 def login_required(view):
@@ -946,8 +960,8 @@ def send_resell_reminders():
 # Request setup
 # --------------------------------------------------------------------------
 
-# Stripe, the cron job and Render's health check must keep working on any address.
-HOST_REDIRECT_EXEMPT = {"/webhooks/stripe", "/tasks/hourly", "/robots.txt"}
+# Stripe, the cron job, Render's health check and the uptime monitor must keep working on any address.
+HOST_REDIRECT_EXEMPT = {"/webhooks/stripe", "/tasks/hourly", "/robots.txt", "/health"}
 
 
 @app.before_request
@@ -963,6 +977,8 @@ def canonical_host():
 
 @app.before_request
 def before():
+    if request.endpoint == "health":
+        return None  # no session, no settings lookups: it must answer even in coming-soon mode or with a broken database
     lang = request.cookies.get("lang")
     if lang not in i18n.LANGS:
         lang = request.accept_languages.best_match(list(i18n.LANGS)) or "en"
@@ -3517,7 +3533,7 @@ def admin():
                            review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files,
                            checks=launch_checks(disk), stuck=stuck, paused=sales_paused(),
                            pause_msgs={k: get_setting("sales_paused_msg_" + k) or "" for k in ("en", "nl")},
-                           pause_msg_max=PAUSE_MSG_MAX)
+                           pause_msg_max=PAUSE_MSG_MAX, hourly=hourly_status())
 
 
 def launch_checks(disk):
@@ -3526,7 +3542,7 @@ def launch_checks(disk):
     admins = db.all("SELECT email, totp_secret FROM users WHERE email IN (%s)" % ",".join("?" * len(config.ADMIN_EMAILS)),
                     *config.ADMIN_EMAILS) if config.ADMIN_EMAILS else []
     last_hourly = get_setting("hourly_last_run")
-    hourly_ok = bool(last_hourly) and parse_sqltime(last_hourly) > utcnow() - timedelta(hours=2)
+    hourly_ok = hourly_status()[0]
     waiting = db.one("SELECT COUNT(*) AS n FROM listings WHERE status='review'")["n"]
     return [
         ("BASE_URL set, and this page is served from it", host_ok, config.BASE_URL or "not set"),
@@ -3541,7 +3557,7 @@ def launch_checks(disk):
         ("Every admin has an authenticator app", bool(admins) and all(a["totp_secret"] for a in admins),
          ", ".join(a["email"] for a in admins if not a["totp_secret"]) or ""),
         ("Email sending (SMTP)", bool(config.SMTP_HOST), ""),
-        ("Hourly task ran in the last 2 hours", hourly_ok, last_hourly or "never"),
+        ("Hourly task ran in the last %d hours" % HOURLY_LATE_HOURS, hourly_ok, (last_hourly + " UTC") if last_hourly else "never"),
         ("Disk below %d%%" % round(DISK_ALERT * 100), not disk["warn"], "%d%% full" % disk["pct"]),
         ("Listings waiting for a check", waiting == 0, "%d waiting" % waiting),
     ]
@@ -4495,6 +4511,21 @@ def jarvis_feed():
         "waitlist": n("SELECT COUNT(*) AS n FROM waitlist"),
         "users": n("SELECT COUNT(*) AS n FROM users WHERE deleted_at IS NULL"),
     })
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.route("/health")
+def health():
+    """For an outside uptime monitor: 200 "ok" when the database answers and the hourly task ran in the last
+    HOURLY_LATE_HOURS, otherwise 503 "late". Says nothing else. (Render's own check stays on /robots.txt, so a late
+    cron job never makes Render think the server is broken.)"""
+    try:
+        good = hourly_status()[0]
+    except Exception:
+        app.logger.exception("Health check: database error")
+        good = False
+    resp = app.response_class("ok" if good else "late", status=200 if good else 503, mimetype="text/plain")
     resp.headers["Cache-Control"] = "no-store"
     return resp
 

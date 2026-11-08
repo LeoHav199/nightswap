@@ -8,11 +8,12 @@ The rule behind almost everything: **Spare holds the buyer's money until the buy
 
 Open /admin and look from the top:
 
-1. **Launch check**: everything should be green. Red means something is not set up or not running (see the cases below). If "Hourly task ran in the last 2 hours" is red, see "The site is down or something doesn't run".
-2. **Payouts that need a manual look** (appears under the Launch check only when there is one): see case 2.
-3. **Reported problems**: see case 1.
-4. **Listings to check**: see case 4.
-5. **Reported listings**, **Flagged messages** and **Chargebacks**: see case 3 for chargebacks. Reported listings have three buttons: *Remove listing* and *Block seller* both need a reason (the seller gets it by email), *Nothing wrong* closes the report.
+1. **Hourly task** (the pill at the top, under "Admin"): green says "last ran 12 min ago". Red means it hasn't run for 3 hours or more: see "The hourly task is late" in case 5.
+2. **Launch check**: everything should be green. Red means something is not set up or not running (see the cases below).
+3. **Payouts that need a manual look** (appears under the Launch check only when there is one): see case 2.
+4. **Reported problems**: see case 1.
+5. **Listings to check**: see case 4.
+6. **Reported listings**, **Flagged messages** and **Chargebacks**: see case 3 for chargebacks. Reported listings have three buttons: *Remove listing* and *Block seller* both need a reason (the seller gets it by email), *Nothing wrong* closes the report.
 
 You also get an email for most of these (problem reported, seller replied, listing to check, chargeback, payout needs a look, crash). Keep those emails and hello@sparetickets.eu where you will see them.
 
@@ -152,9 +153,26 @@ Don't leave listings waiting: someone is trying to sell a ticket for a night tha
 | Visitors only see the sign-up page | /admin → Launch | The site is in coming-soon mode: press *Open the site to everyone*. |
 | Nobody gets sign-in codes or emails | Launch check: *Email sending (SMTP)*. In Render's Shell: `flask --app app test-email you@example.com` | Check the iCloud app-specific password on Render's Environment page. |
 | Payments go through but orders stay unpaid | Launch check: *A Stripe webhook arrived* | In Stripe → Developers → Webhooks: failed deliveries? The signing secret on Render must match the live webhook. |
-| Payouts and reminders stopped | Launch check: *Hourly task ran in the last 2 hours* | cron-job.org: is the job "Nightswap hourly" on, and does it get a 200? The header `X-Task-Secret` must equal TASK_SECRET on Render. Nothing is lost: payouts and reminders catch up on the next run. |
+| Payouts and reminders stopped | The red *Hourly task* pill on /admin, or an UptimeRobot email | See "The hourly task is late" below. |
 | Everyone seems to come from one address, rate limits hit real users | /admin → Network check | `TRUST_PROXY_HOPS` should be 2. |
 | Disk above 70% (you get an email) | /admin shows the disk usage | Ticket files are deleted 14 days after an event once the order is done, so it should shrink by itself; if it keeps growing, ask Claude to look, or raise the disk size on Render. |
+
+**The hourly task is late.** Payouts, the "Inside? Slide Swap" reminder, resell reminders, the nightly backup and the disk warning all run from one job on cron-job.org that calls Spare every hour. If it stops, nothing looks broken: sellers just aren't paid. So Spare has a page, https://sparetickets.eu/health, that says `ok` while the job ran in the last 3 hours and `late` (error 503) otherwise. It shows nothing else. The red pill on /admin means the same thing.
+
+When it is late:
+1. Log in to cron-job.org and open the job "Nightswap hourly". Is it switched on? Look at its history: what did the last runs get back?
+2. **404** means the secret doesn't match: the header `X-Task-Secret` in the job must equal TASK_SECRET on Render's Environment page. Copy it again from Render into the job (don't paste it into a chat).
+3. **Timeouts or 5xx** mean the site itself is down: see the steps at the top of this case.
+4. No runs at all: the job is off, or cron-job.org has an outage (check their status page). Run it by hand once: in cron-job.org open the job and press *Test run*. If cron-job.org itself is down, Render's Shell can pay sellers and send reminders with `flask --app app release-payouts` and `flask --app app send-reminders` (the pill stays red until the real job runs again).
+5. Refresh /admin: the pill turns green as soon as a full run finishes. Nothing is lost: payouts and reminders catch up on the next run.
+
+**Set up the outside monitor once** (free, so you get an email even if you don't open /admin):
+1. Sign up at uptimerobot.com with your own email.
+2. *Add New Monitor* → type **HTTP(s)**, name "Spare hourly task", URL `https://sparetickets.eu/health`, interval 5 minutes.
+3. Under alert contacts tick your email (and the app's push, if you install it). Save.
+4. It should say "Up". It turns "Down" and emails you when the page answers `late` or the whole site is down.
+
+Leave Render's own health check on `/robots.txt`: if it pointed at /health, Render would treat a late cron job as a broken server.
 
 **While the site is down on a party night:** buyers who already opened their order page may still see it, because paid order pages are kept on their phone for offline use. Post on Instagram (@sparetickets.eu) that you know and are fixing it, and answer hello@sparetickets.eu.
 
