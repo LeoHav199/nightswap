@@ -274,6 +274,7 @@
     {% elif is_buyer and order.status == 'disputed' %}
       <div class="notice"><p>{{ t('report_received') }}</p></div>
     {% endif %}
+    <p class="small order-help"><a href="{{ url_for('help_page') }}">{{ t('help_link') }}</a></p>
   </section>
 
   <aside class="panel">

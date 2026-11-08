@@ -312,7 +312,7 @@ def set_setting(key, value):
 # These pages stay reachable for everyone (sign-in for admins, legal pages, payments and cron).
 OPEN_WHILE_COMING_SOON = {
     "static", "index", "waitlist_join", "waitlist_leave", "preview", "set_lang", "login", "login_verify", "logout",
-    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "about", "terms", "privacy", "credits",
+    "admin_verify", "robots", "sitemap", "manifest", "service_worker", "offline", "how", "help_page", "about", "terms", "privacy", "credits",
     "stripe_webhook", "hourly_tasks", "emails_stop", "jarvis_feed",
 }
 
@@ -1494,7 +1494,7 @@ def venue_page(slug):
 
 @app.route("/sitemap.xml")
 def sitemap():
-    urls = [base_url() + url_for("index"), base_url() + url_for("how")]
+    urls = [base_url() + url_for("index"), base_url() + url_for("how"), base_url() + url_for("help_page")]
     if g.sees_site:  # in coming-soon mode visitors are sent to the sign-up page from venue and event pages
         cities = {c.lower() for c in config.ENABLED_CITIES}
         urls += [base_url() + url_for("venue_page", slug=v["slug"]) for v in db.all("SELECT slug, city FROM venues")
@@ -3236,9 +3236,12 @@ def account():
                 g.user = db.one("SELECT * FROM users WHERE id=?", uid)
         except Exception:
             app.logger.exception("Could not check payout status")
+    # Listings waiting for a check (review) or for payout setup (draft) show too, greyed with a label,
+    # so a new seller's first ticket doesn't look lost.
     listings = db.all(
         """SELECT l.*, (SELECT COUNT(*) FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available') AS available
-           FROM listings l WHERE seller_id=? AND status='active' AND event_date >= ? ORDER BY event_date""",
+           FROM listings l WHERE seller_id=? AND status IN ('active', 'review', 'draft') AND event_date >= ?
+           ORDER BY event_date, l.id""",
         uid, today().isoformat(),
     )
     sales = db.all(
@@ -3392,6 +3395,13 @@ def about():
 @app.route("/how-it-works")
 def how():
     return render_template("how.html")
+
+
+@app.route("/help")
+def help_page():
+    """Plain answers for a buyer stuck at the door or a seller waiting for money, plus how to reach us.
+    The answers come from How it works and the terms; the numbers come from the code, so they stay in step."""
+    return render_template("help.html", door_hour=DOOR_REPORT_UNTIL_HOUR, reply_hours=DISPUTE_REPLY_HOURS)
 
 
 @app.route("/terms")

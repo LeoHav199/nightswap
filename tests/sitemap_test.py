@@ -40,7 +40,7 @@ admin.post("/admin/launch", data={"action": "coming_soon", "_csrf": csrf(admin)}
 ok(visitor.get("/event?venue=Maassilo&date=2099-01-01&name=x").status_code == 302, "coming-soon: event pages send visitors to the sign-up page")
 r = visitor.get("/sitemap.xml")
 sm = locs(r)
-ok(r.status_code == 200 and len(sm) == 2 and not any("/event?" in u or "/venues/" in u for u in sm),
+ok(r.status_code == 200 and len(sm) == 3 and not any("/event?" in u or "/venues/" in u for u in sm),
    "coming-soon: sitemap lists no event or venue pages visitors cannot see")
 ok(any(u.endswith("/how-it-works") for u in sm), "coming-soon: the pages visitors can open are still listed")
 ok(any("Halloween+Rave" in u for u in locs(admin.get("/sitemap.xml"))), "coming-soon: admins still get the full list")
