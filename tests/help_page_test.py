@@ -76,10 +76,10 @@ r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); r = buyer.post(r
 pub = r.location.split("/")[2].split("?")[0]
 ok('class="small order-help"><a href="/help">Help and answers</a>' in html(buyer.get("/orders/" + pub)), "the buyer's order page links to /help")
 ok('href="/help">Help and answers' in html(seller.get("/orders/" + pub)), "the seller's order page links to /help")
-doors = datetime.now() - timedelta(hours=1)
+night = date.today() if datetime.now().hour >= 12 else date.today() - timedelta(days=1)
 with app.app_context():
     # door mode runs from noon on the event day to noon the day after, so before noon "tonight" is yesterday's event
-    A.db.run("UPDATE listings SET event_date=?, start_time=? WHERE id=?", (datetime.now() - timedelta(hours=12)).date().isoformat(), doors.strftime("%H:%M"), lid)
+    A.db.run("UPDATE listings SET event_date=?, start_time='12:00' WHERE id=?", night.isoformat(), lid)
 door_page = html(buyer.get("/orders/" + pub))
 ok("is-door" in door_page and 'href="/help">Help and answers' in door_page, "door mode on the night still links to /help")
 ok('id="tickets"' in html(buyer.get("/account")), "the account page has the #tickets anchor the help page links to")

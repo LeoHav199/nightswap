@@ -40,7 +40,7 @@ ok(c.get("/posters/%s?w=333" % name).mimetype == "image/jpeg", "an unknown width
 ok(c.get("/posters/%s?w=800" % ("cd" * 16 + ".jpg")).status_code == 404, "a missing photo is still a 404")
 with app.test_request_context():
     app.preprocess_request()
-    out = render_template_string("{% import '_macros.html' as m with context %}{{ m.poster('X', 'Maassilo', '2026-11-06', None, '#123', 'card', '" + name + "') }}")
+    out = render_template_string("{% import '_macros.html' as m with context %}{{ m.poster('X', 'Maassilo', '" + (date.today() + timedelta(days=3)).isoformat() + "', None, '#123', 'card', '" + name + "') }}")
 ok("?w=800" in out and "480w" in out and "1280w" in out and 'sizes="(max-width: 640px) 50vw' in out,
    "event cards ask for the photo at the phone's size (srcset 480/800/1280)")
 
