@@ -57,7 +57,8 @@ ok(r.status_code == 200 and off("quiet@test.nl") is not None, "the one-click POS
 good = path.rsplit("/", 1)[1]
 key = app.config["SECRET_KEY"]; keen_id = uid_of("keen@test.nl")
 bad = {
-    "a changed character": good[:-1] + ("A" if good[-1] != "A" else "B"),
+    # first character of the signature: the last base64 character can carry spare bits, so changing it may not change the signature
+    "a changed character": good.rsplit(".", 1)[0] + "." + ("A" if good.rsplit(".", 1)[1][0] != "A" else "B") + good.rsplit(".", 1)[1][1:],
     "a cut-off token": good[:-3],
     "an extra tail": good + "x",
     "the id swapped for another user": URLSafeSerializer(key, salt="emails-stop").dumps(keen_id).split(".")[0] + "." + good.split(".")[-1],
