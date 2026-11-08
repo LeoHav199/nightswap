@@ -56,7 +56,7 @@ Follow step 8 of `docs/launch-day.md` (a €5 ticket, bought with iDEAL, then re
 
 ## 8. Open the doors
 - [ ] /admin → **Launch** → **Open the site to everyone**. Check in a private window that the full site shows.
-- [ ] /admin → **Waitlist** → **Send launch email (next 20)**, once. That is the first batch of 20; the page says how many are still to go.
+- [ ] /admin → **Launch** → **See the list** (the waitlist page) → **Send launch email (next 20)**, once. That is the first batch of 20; the page says how many are still to go.
 - [ ] Check that the first emails arrive (not in spam) and that the links work, then press the button again for the next 20 whenever you are happy. Each email has a remove-me link.
 
 ## 9. The deploy ban starts tomorrow evening
