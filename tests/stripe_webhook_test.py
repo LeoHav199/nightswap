@@ -116,7 +116,7 @@ def failing_reverse(order):
     reversals.append(order["public_id"]); raise RuntimeError("balance_insufficient")
 payments.reverse_transfer = failing_reverse
 app.logger.disabled = True  # the app logs the refusal with a traceback, which run_all.sh would mistake for a crash
-failed =paid_order("pi_failed"); make_released(failed, "tr_3")
+failed = paid_order("pi_failed"); make_released(failed, "tr_3")
 reversals.clear(); SENT.clear()
 r = deliver("charge.dispute.created", dispute("pi_failed", dp="dp_5"), "evt_i")
 now = row(failed)
@@ -127,7 +127,7 @@ ok(now["status"] == "released" and now["chargeback_at"] and not now["reversal_re
 page = html(admin.get("/admin"))
 cb_section = page.split('id="chargebacks"')[1].split("</section>")[0]
 ok(failed["public_id"] in cb_section, "...and /admin lists it under Chargebacks")
-cb_row = [li for li in cb_section.split("<li>") if "/order/%s" % failed["public_id"] in li or failed["public_id"] in li][0]
+cb_row = [li for li in cb_section.split("<li>") if failed["public_id"] in li][0]
 ok("payout taken back" not in cb_row and "payout taken back" in cb_section, "...without claiming the payout was taken back (the earlier order that was taken back still says so)")
 ok("/admin/orders/%s/refund_after_payout" % failed["public_id"] in page, "...and the 'Refund after payout' form is still offered so an admin can finish it")
 before = row(failed); SENT.clear(); reversals.clear()
