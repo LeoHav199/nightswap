@@ -51,7 +51,10 @@ def sale(code):
     r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); r = buyer.post(r.location, data={"_csrf": csrf(buyer)})
     return lid, r.location.split("/")[2].split("?")[0]
 def tonight(lid):  # the doors opened an hour ago
-    doors = datetime.now() - timedelta(hours=1)
+    now = datetime.now()
+    doors = now - timedelta(hours=1)
+    if now.hour >= 6 and doors.hour < 6:  # (06:00 to 07:00: an hour ago was the closed night before, so the doors opened at 06:00)
+        doors = now.replace(hour=6, minute=0)
     day = doors.date() - timedelta(days=1) if doors.hour < 6 else doors.date()  # doors before 06:00 belong to the night of the day before
     run("UPDATE listings SET event_date=?, start_time=? WHERE id=?", day.isoformat(), doors.strftime("%H:%M"), lid)
 def report(pub, kind, photo=True):
