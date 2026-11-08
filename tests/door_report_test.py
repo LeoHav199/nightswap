@@ -29,12 +29,14 @@ def run(sql, *a):
 
 # The deadline: 06:00 after the doors, Amsterdam time
 with app.app_context():
-    l = {"event_id": None, "event_date": "2026-11-20", "start_time": "22:00"}
+    day = date.today() + timedelta(days=10)  # any day gives the same answer
+    next_morning = datetime.combine(day + timedelta(days=1), datetime.min.time()).replace(hour=6)
+    l = {"event_id": None, "event_date": day.isoformat(), "start_time": "22:00"}
     until = A.door_report_until(l).replace(tzinfo=A.timezone.utc).astimezone().replace(tzinfo=None)
-    ok(until == datetime(2026, 11, 21, 6, 0), "doors at 22:00 on the 20th: door problems can be reported until 06:00 on the 21st")
+    ok(until == next_morning, "doors at 22:00: door problems can be reported until 06:00 the next morning")
     l["start_time"] = "01:00"
     until = A.door_report_until(l).replace(tzinfo=A.timezone.utc).astimezone().replace(tzinfo=None)
-    ok(until == datetime(2026, 11, 21, 6, 0), "doors at 01:00 (the night after the 20th): still until 06:00 on the 21st")
+    ok(until == next_morning, "doors at 01:00 (the same night, after midnight): still until 06:00 the next morning")
 
 seller, buyer, admin = app.test_client(), app.test_client(), app.test_client()
 login(seller, "s@student.eur.nl", "Sam"); login(buyer, "b@test.nl", "Bea"); login(admin, "admin@example.com", "Ad")
@@ -50,7 +52,8 @@ def sale(code):
     return lid, r.location.split("/")[2].split("?")[0]
 def tonight(lid):  # the doors opened an hour ago
     doors = datetime.now() - timedelta(hours=1)
-    run("UPDATE listings SET event_date=?, start_time=? WHERE id=?", doors.date().isoformat(), doors.strftime("%H:%M"), lid)
+    day = doors.date() - timedelta(days=1) if doors.hour < 6 else doors.date()  # doors before 06:00 belong to the night of the day before
+    run("UPDATE listings SET event_date=?, start_time=? WHERE id=?", day.isoformat(), doors.strftime("%H:%M"), lid)
 def report(pub, kind, photo=True):
     data = {"kind": kind, "reason": "The scanner said the ticket was already used.", "_csrf": csrf(buyer)}
     if photo: data["photos"] = (io.BytesIO(png(colour="red")), "door.png")
@@ -72,13 +75,12 @@ ok("You slid Swap" in report(pub2, "already_scanned") and one("SELECT status FRO
    "after Swap a door problem can't be reported")
 ok('value="door_rejected"' not in html(buyer.get("/orders/" + pub2)), "after Swap the door options are gone from the form")
 
-# The next afternoon: door problems are closed, other problems aren't
+# The morning after (06:00 has passed): door problems are closed, other problems aren't
 lid3, pub3 = sale("T-DOOR-3")
-yesterday = date.today() - timedelta(days=1)
-run("UPDATE listings SET event_date=?, start_time='22:00' WHERE id=?", yesterday.isoformat(), lid3)
-if datetime.now().hour >= 6:  # (run before 06:00, the night of 'yesterday' is still on)
-    ok("only be reported on the night itself" in report(pub3, "door_rejected"), "after 06:00 the next day a door problem is refused")
-    ok('value="door_rejected"' not in html(buyer.get("/orders/" + pub3)), "and the door options are gone from the form")
+two_days_ago = date.today() - timedelta(days=2)  # (the night of yesterday would still be on before 06:00 today)
+run("UPDATE listings SET event_date=?, start_time='22:00' WHERE id=?", two_days_ago.isoformat(), lid3)
+ok("only be reported on the night itself" in report(pub3, "door_rejected"), "after 06:00 the next day a door problem is refused")
+ok('value="door_rejected"' not in html(buyer.get("/orders/" + pub3)), "and the door options are gone from the form")
 report(pub3, "wrong_event", photo=False)
 ok(one("SELECT status FROM orders WHERE public_id=?", pub3)["status"] == "disputed", "other problems can still be reported until the payout")
 

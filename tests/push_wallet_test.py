@@ -82,8 +82,9 @@ import wallet
 ok(wallet.enabled(), "Wallet switches on when certificates are configured")
 with app.app_context():
     seller = A.db.run("INSERT INTO users (email, first_name) VALUES ('s@t.nl', 'Sam')")
-    lid = A.db.run("INSERT INTO listings (seller_id, venue, event_name, event_date, face_value_cents, price_cents) VALUES (?, 'Maassilo', 'Halloween Rave', '2026-10-31', 3000, 3000)", seller)
-    oid = A.db.run("INSERT INTO orders (public_id, listing_id, buyer_id, seller_id, price_cents, fee_cents, total_cents, status, expires_at, payout_due_at) VALUES ('ORD1', ?, ?, ?, 3000, 100, 3100, 'paid', datetime('now'), '2026-11-03 00:00:00')", lid, uid, seller)
+    night = datetime.date.today() - datetime.timedelta(days=8)  # a night that is over, whatever day the test runs
+    lid = A.db.run("INSERT INTO listings (seller_id, venue, event_name, event_date, face_value_cents, price_cents) VALUES (?, 'Maassilo', 'Halloween Rave', ?, 3000, 3000)", seller, night.isoformat())
+    oid = A.db.run("INSERT INTO orders (public_id, listing_id, buyer_id, seller_id, price_cents, fee_cents, total_cents, status, expires_at, payout_due_at) VALUES ('ORD1', ?, ?, ?, 3000, 100, 3100, 'paid', datetime('now'), ?)", lid, uid, seller, (night + datetime.timedelta(days=3)).isoformat() + " 00:00:00")
     A.db.run("INSERT INTO tickets (listing_id, file, file_hash, code_hash, code_text, code_format, status, order_id) VALUES (?, 'f.pdf', 'h', 'ch', 'TKT-8F3A-22910', 'QR', 'sold', ?)", lid, oid)
     tid = A.db.one("SELECT id FROM tickets WHERE order_id=?", oid)["id"]
 page = c.get("/orders/ORD1").get_data(as_text=True)
