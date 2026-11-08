@@ -421,7 +421,8 @@ MAIL_WORKS[0] = True; SENT.clear()
 page = html(boss.get("/admin/authenticator"))
 secret = re.search(r'class="totp-secret">([A-Z2-7]+)<', page).group(1)
 ok("<svg" in page and "otpauth" not in page, "#23 the setup page shows a QR code to scan")
-r = boss.post("/admin/authenticator", data={"code": totp.code_at(secret, totp.current_step()), "_csrf": csrf(boss)})
+linked_step = totp.current_step()  # reused below, so a 30-second rollover can't turn the "already used" code into a fresh one
+r = boss.post("/admin/authenticator", data={"code": totp.code_at(secret, linked_step), "_csrf": csrf(boss)})
 codes = re.findall(r"<code>([a-z2-9]{4}-[a-z2-9]{4})</code>", html(r))
 ok(len(codes) == 8, "#23 linking the app shows 8 one-time recovery codes")
 ok(any("authenticator set up" in sub for to, sub, b in SENT), "#23 the admins get an email when an authenticator is linked")
@@ -432,10 +433,10 @@ def expire(c):
     with c.session_transaction() as sess: sess["admin_ok_until"] = 0
     return c
 boss2 = expire(boss)
-used = totp.code_at(secret, totp.current_step())
+used = totp.code_at(secret, linked_step)
 boss2.post("/admin/verify", data={"code": used, "next": "/admin", "_csrf": csrf(boss2)})
 ok(boss2.get("/admin").status_code == 302, "#23 a code that was already used is refused")
-boss2.post("/admin/verify", data={"code": totp.code_at(secret, totp.current_step() + 1), "next": "/admin", "_csrf": csrf(boss2)})
+boss2.post("/admin/verify", data={"code": totp.code_at(secret, linked_step + 1), "next": "/admin", "_csrf": csrf(boss2)})
 ok(boss2.get("/admin").status_code == 200, "#23 the next code works (one step of clock drift allowed)")
 boss3 = expire(boss)
 boss3.post("/admin/verify", data={"code": codes[0], "next": "/admin", "_csrf": csrf(boss3)})
