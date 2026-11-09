@@ -62,12 +62,13 @@ Events are real records (`events` table): name, venue, city, category, date, doo
 | Setting | Default | Meaning |
 |---|---|---|
 | `NIGHTSWAP_FEE_PERCENT` | `8` | Buyer fee per ticket, % of the price |
-| `NIGHTSWAP_FEE_MIN_CENTS` | `150` | Minimum buyer fee per ticket (EUR 1.50) |
+| `NIGHTSWAP_FEE_MIN_CENTS` | `199` | Minimum buyer fee per ticket (EUR 1.99) |
 | `NIGHTSWAP_SELLER_FEE_PERCENT` | `5` | Seller fee per ticket, % of the price, taken from the payout |
 | `NIGHTSWAP_SELLER_FEE_MIN_CENTS` | `100` | Minimum seller fee per ticket (EUR 1.00) |
+| `NIGHTSWAP_PROFIT_SHARE_PERCENT` | `10` | Extra seller fee: % of whatever the price is above the face value (0 = off) |
 | `NIGHTSWAP_FEE_MAX_CENTS` | `0` | Optional maximum fee per ticket (0 = none) |
-| `NIGHTSWAP_PRICE_CAP_PERCENT` | `120` | Max price as % of face value (120 = up to 20% above) |
-| `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `48` | Latest payout, in hours after the event night (earlier when the buyer confirms) |
+| `NIGHTSWAP_PRICE_CAP_PERCENT` | `200` | Max price as % of face value (200 = at most double, 120 = up to 20% above, 0 = no cap) |
+| `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `24` | Latest payout, in hours after the event night (earlier when the buyer confirms) |
 
 The venue list is in `config.py` (`VENUES`). Sellers can also type another venue.
 
