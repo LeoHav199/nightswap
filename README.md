@@ -16,11 +16,11 @@ Add your email to `ADMIN_EMAILS` in `.env` to see `/admin`.
 
 ## How money moves
 
-1. The buyer pays ticket price + buyer fee (default 8%, at least €1.50) through Stripe Checkout (iDEAL or card).
+1. The buyer pays ticket price + buyer fee (default 8%, at least €1.99) through Stripe Checkout (iDEAL or card).
 2. The money stays on Spare's Stripe balance. A ticket file can be downloaded right away; a ticket in an app is transferred by the seller with the app's own button (see "Two kinds of tickets").
-3. The seller is paid the ticket price minus the seller fee (default 5%, at least €1; orders from before 28 Oct 2026 have no seller fee):
+3. The seller is paid the ticket price minus the seller fee (default 5%, at least €1) and a profit share (default 10% of whatever the price is above the face value; orders from before 28 Oct 2026 have no seller fee):
    - straight away when the buyer confirms on the day of the event that the ticket worked (`rate_order` → `release_payout`), or
-   - at the latest `PAYOUT_DELAY_HOURS` (default 48) after the event night (`release_due_payouts`, run by the hourly task).
+   - at the latest `PAYOUT_DELAY_HOURS` (default 24) after the event night (`release_due_payouts`, run by the hourly task).
    Until then the buyer can report a problem, which puts the payout on hold for review in `/admin`. App tickets are never paid out before the seller has marked them as transferred (or the buyer confirmed they arrived).
 4. Spare keeps both fees.
 
@@ -62,12 +62,13 @@ Events are real records (`events` table): name, venue, city, category, date, doo
 | Setting | Default | Meaning |
 |---|---|---|
 | `NIGHTSWAP_FEE_PERCENT` | `8` | Buyer fee per ticket, % of the price |
-| `NIGHTSWAP_FEE_MIN_CENTS` | `150` | Minimum buyer fee per ticket (EUR 1.50) |
+| `NIGHTSWAP_FEE_MIN_CENTS` | `199` | Minimum buyer fee per ticket (EUR 1.99) |
 | `NIGHTSWAP_SELLER_FEE_PERCENT` | `5` | Seller fee per ticket, % of the price, taken from the payout |
 | `NIGHTSWAP_SELLER_FEE_MIN_CENTS` | `100` | Minimum seller fee per ticket (EUR 1.00) |
+| `NIGHTSWAP_PROFIT_SHARE_PERCENT` | `10` | Seller profit share: % of the price above the face value, taken from the payout (0 = off) |
 | `NIGHTSWAP_FEE_MAX_CENTS` | `0` | Optional maximum fee per ticket (0 = none) |
-| `NIGHTSWAP_PRICE_CAP_PERCENT` | `120` | Max price as % of face value (120 = up to 20% above) |
-| `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `48` | Latest payout, in hours after the event night (earlier when the buyer confirms) |
+| `NIGHTSWAP_PRICE_CAP_PERCENT` | `200` | Max price as % of face value (200 = up to double; 0 = no cap) |
+| `NIGHTSWAP_PAYOUT_DELAY_HOURS` | `24` | Latest payout, in hours after the event night (earlier when the buyer confirms) |
 
 The venue list is in `config.py` (`VENUES`). Sellers can also type another venue.
 
