@@ -16,11 +16,11 @@ Add your email to `ADMIN_EMAILS` in `.env` to see `/admin`.
 
 ## How money moves
 
-1. The buyer pays ticket price + buyer fee (default 8%, at least €1.50) through Stripe Checkout (iDEAL or card).
+1. The buyer pays ticket price + buyer fee (default 8%, at least €1.99) through Stripe Checkout (iDEAL or card).
 2. The money stays on Spare's Stripe balance. A ticket file can be downloaded right away; a ticket in an app is transferred by the seller with the app's own button (see "Two kinds of tickets").
-3. The seller is paid the ticket price minus the seller fee (default 5%, at least €1; orders from before 28 Oct 2026 have no seller fee):
+3. The seller is paid the ticket price minus the seller fee (default 5%, at least €1) and a profit share (default 10% of whatever the price is above the face value; orders from before 28 Oct 2026 have no seller fee):
    - straight away when the buyer confirms on the day of the event that the ticket worked (`rate_order` → `release_payout`), or
-   - at the latest `PAYOUT_DELAY_HOURS` (default 48) after the event night (`release_due_payouts`, run by the hourly task).
+   - at the latest `PAYOUT_DELAY_HOURS` (default 24) after the event night (`release_due_payouts`, run by the hourly task).
    Until then the buyer can report a problem, which puts the payout on hold for review in `/admin`. App tickets are never paid out before the seller has marked them as transferred (or the buyer confirmed they arrived).
 4. Spare keeps both fees.
 

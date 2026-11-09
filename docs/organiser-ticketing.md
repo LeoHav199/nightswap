@@ -52,7 +52,7 @@ Who it's for: student associations, small organisers and venues that now sell th
 - **Reuses:** `payments.transfer_to_seller` with idempotency keys (#26), chargeback handling (#27), the hourly task.
 
 ### Fees (small)
-- First-hand: a fee per ticket paid by the buyer (e.g. 5%, min €0.75) and optionally a small organiser fee. Resale: as now (buyer 8% min €1.50, seller 5% min €1), possibly with a share for the organiser to make them like resale.
+- First-hand: a fee per ticket paid by the buyer (e.g. 5%, min €0.75) and optionally a small organiser fee. Resale: as now (buyer 8% min €1.99, seller 5% min €1 plus a 10% profit share above face value), possibly with a share for the organiser to make them like resale.
 - **Reuses:** `fee_for`, `seller_fee_for`, `config` settings.
 
 ## Database changes (summary)
