@@ -863,6 +863,59 @@ TICKET_FILE_DAYS = 14   # #15: ticket files are deleted this long after the even
 DISK_ALERT = 0.70       # warn the admins when the data disk is this full
 
 
+OFFICIAL_PRICE_DAYS = 30      # look up official prices for events in the next 30 days
+OFFICIAL_PRICE_BUDGET = 12    # seconds per hourly run, so the cron call never times out
+
+
+def _name_key(text):
+    return re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKD", text or "").lower())
+
+
+def fill_official_prices(budget=OFFICIAL_PRICE_BUDGET):
+    """#25 without the typing: upcoming events with no official price get it from their own ticket page (schema.org
+    data, the highest ticket type, the same rule as "Import from link"). Only a match on both date and name counts;
+    an event is looked at once a day at most, and a price set in /admin is never overwritten. Returns how many were filled."""
+    if not config.PRICE_LOOKUP:
+        return 0
+    start = utcnow()
+    rows = db.all("""SELECT id, name, event_date, ticket_url, source_url FROM events
+                     WHERE face_value_max_cents IS NULL AND cancelled_at IS NULL AND event_date BETWEEN ? AND ?
+                       AND (price_checked_at IS NULL OR price_checked_at < ?) AND COALESCE(ticket_url, source_url) IS NOT NULL
+                     ORDER BY event_date""",
+                  today().isoformat(), (today() + timedelta(days=OFFICIAL_PRICE_DAYS)).isoformat(),
+                  sqltime(utcnow() - timedelta(hours=24)))
+    waiting = {r["id"]: r for r in rows}
+    pages, filled = {}, 0
+    for r in rows:
+        if (utcnow() - start).total_seconds() > budget:
+            break
+        if r["id"] not in waiting:
+            continue  # already filled from another event's page
+        for url in [u for u in (r["ticket_url"], r["source_url"]) if u]:
+            if url not in pages:
+                try:
+                    pages[url] = importer.extract(importer.fetch(url, timeout=6), url)
+                except Exception:
+                    pages[url] = []
+            # A venue's page often lists its other nights too: use them for every event still waiting.
+            for found in pages[url]:
+                if not found.get("face_value_max"):
+                    continue
+                for w in list(waiting.values()):
+                    a, b = _name_key(found["name"]), _name_key(w["name"])
+                    if found["event_date"] == w["event_date"] and a and b and (a[:12] in b or b[:12] in a):
+                        cents = parse_money(found["face_value_max"])
+                        if cents and 100 <= cents <= config.MAX_FACE_VALUE_CENTS:
+                            db.run("UPDATE events SET face_value_max_cents=? WHERE id=? AND face_value_max_cents IS NULL",
+                                   cents, w["id"])
+                            filled += 1
+                            waiting.pop(w["id"])
+            if r["id"] not in waiting:
+                break
+        db.run("UPDATE events SET price_checked_at=? WHERE id=?", sqltime(utcnow()), r["id"])
+    return filled
+
+
 def cleanup_ticket_files():
     """#15: deletes ticket files 14 days after the event when nothing can still change: the order was paid out or
     refunded, or the ticket never sold. The hashes stay, so the duplicate check still recognises the ticket."""
@@ -4563,11 +4616,13 @@ def hourly_tasks():
     run("tidy", lambda: (db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1))),
                          db.run("DELETE FROM codes WHERE expires_at < ?", sqltime(utcnow()))) and None)  # expired codes (privacy policy)
     set_setting("hourly_last_run", sqltime(utcnow()))  # #42: shown on /admin's launch check
+    run("prices", fill_official_prices)  # last: it fetches other websites, within a time budget
     released, waiting = results.get("payouts") or (0, 0)
     nudged, asked = results.get("reminders") or (0, 0)
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
             "resell_reminders": results.get("resell"), "transfer_reminders": results.get("transfer"),
-            "backup": results.get("backup"), "ticket_files_deleted": results.get("cleanup"), "failed": failed}
+            "backup": results.get("backup"), "ticket_files_deleted": results.get("cleanup"),
+            "official_prices": results.get("prices"), "failed": failed}
 
 
 @app.cli.command("init-db")

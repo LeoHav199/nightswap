@@ -59,6 +59,7 @@ ADDED_COLUMNS = [
     ("listings", "no_double_sell_at", "TEXT"),   # #28: when the seller promised it's not for sale elsewhere
     ("listings", "review_reason", "TEXT"),          # why a listing waits for an admin (status 'review'): face, code, app
     ("listings", "face_checked", "INTEGER NOT NULL DEFAULT 0"),  # #25: face value matched the official price or proof
+    ("events", "price_checked_at", "TEXT"),  # last time the hourly task looked for the official price on the ticket page
     ("events", "face_value_max_cents", "INTEGER"),  # #25: the official ticket price; face values above it are refused                     # #21: no | changeable | unsure (NULL on older listings)
     ("orders", "transfer_name", "TEXT"),                        # who the buyer is in that app
     ("orders", "transfer_email", "TEXT"),

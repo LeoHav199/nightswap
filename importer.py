@@ -39,7 +39,7 @@ def _check_host(url):
             raise ImportError_("That address isn't a public website.")
 
 
-def fetch(url):
+def fetch(url, timeout=15):
     """Returns the page HTML. Only public http(s) sites; follows a few redirects, each checked."""
     for _ in range(4):
         _check_host(url)
@@ -51,7 +51,7 @@ def fetch(url):
 
         opener = urllib.request.build_opener(NoRedirect)
         try:
-            resp = opener.open(req, timeout=15)
+            resp = opener.open(req, timeout=timeout)
         except urllib.error.HTTPError as exc:
             if exc.code in (301, 302, 303, 307, 308) and exc.headers.get("Location"):
                 url = urllib.parse.urljoin(url, exc.headers["Location"])

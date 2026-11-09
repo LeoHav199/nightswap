@@ -63,6 +63,8 @@ PRICE_CAP_PERCENT = int(env("NIGHTSWAP_PRICE_CAP_PERCENT", "200"))
 # Payouts (5 Nov 2026): Spare holds the money until the buyer is in. The buyer slides "Swap" at the door and the
 # seller is paid straight away; without a swap, the seller is paid automatically this long after the night.
 PAYOUT_DELAY_HOURS = int(env("NIGHTSWAP_PAYOUT_DELAY_HOURS", "24"))
+# The hourly task fills in missing official prices from the events' own ticket pages (off in the tests: no network).
+PRICE_LOOKUP = env("NIGHTSWAP_PRICE_LOOKUP", "1") == "1"
 SWAP_OPENS_AFTER_DOORS_MINUTES = 0   # the buyer can swap from the moment the doors open
 # A swap pays straight away only when the buyer paid by iDEAL: card payments can be reversed by the bank weeks later,
 # so a stolen card plus a fake listing would cost Spare the money. Card orders are paid at the normal time.
