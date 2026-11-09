@@ -110,6 +110,41 @@ r = deliver("charge.dispute.created", dispute("pi_paidout", dp="dp_2"), "evt_c")
 ok(r.status_code == 200 and row(paidout) == before and not reversals and not chargeback_mails(), "the same chargeback delivered again doesn't ask Stripe again, change the order or mail anyone")
 ok('idempotency_key="reversal-"' in open("payments.py", encoding="utf-8").read(), "...and a repeated reversal request is harmless at Stripe: the call carries an idempotency key per order")
 
+# --- a chargeback after the payout, but Stripe can't take the payout back: the admins are told and /admin can act on it
+real_reverse = payments.reverse_transfer
+def failing_reverse(order):
+    reversals.append(order["public_id"]); raise RuntimeError("balance_insufficient")
+payments.reverse_transfer = failing_reverse
+app.logger.disabled = True  # the app logs the refusal with a traceback, which run_all.sh would mistake for a crash
+failed = paid_order("pi_failed"); make_released(failed, "tr_3")
+reversals.clear(); SENT.clear()
+r = deliver("charge.dispute.created", dispute("pi_failed", dp="dp_5"), "evt_i")
+now = row(failed)
+ok(r.status_code == 200 and reversals == [failed["public_id"]], "a chargeback on a paid-out order tries to take the payout back exactly once")
+ok(any("couldn't take back a payout" in s[1] and failed["public_id"] in s[1] and "balance_insufficient" in s[2] for s in SENT), "...and when Stripe refuses, the admins get a 'couldn't take back a payout' email with the reason")
+ok(len(chargeback_mails()) == 1 and "taking it back FAILED" in chargeback_mails()[0][2], "...and the chargeback email says taking it back FAILED")
+ok(now["status"] == "released" and now["chargeback_at"] and not now["reversal_ref"], "...and the order stays released, with the chargeback noted and no reversal recorded")
+page = html(admin.get("/admin"))
+cb_section = page.split('id="chargebacks"')[1].split("</section>")[0]
+ok(failed["public_id"] in cb_section, "...and /admin lists it under Chargebacks")
+cb_row = [li for li in cb_section.split("<li>") if failed["public_id"] in li][0]
+ok("payout taken back" not in cb_row and "payout taken back" in cb_section, "...without claiming the payout was taken back (the earlier order that was taken back still says so)")
+ok("/admin/orders/%s/refund_after_payout" % failed["public_id"] in page, "...and the 'Refund after payout' form is still offered so an admin can finish it")
+before = row(failed); SENT.clear(); reversals.clear()
+r = deliver("charge.dispute.created", dispute("pi_failed", dp="dp_5"), "evt_i")
+ok(r.status_code == 200 and row(failed) == before and not reversals and not SENT, "the same chargeback delivered again doesn't retry the take-back or mail anyone")
+
+# --- no transfer to reverse yet (None instead of an error): same outcome
+app.logger.disabled = False
+payments.reverse_transfer = lambda order: (reversals.append(order["public_id"]) or None)
+notyet = paid_order("pi_notyet"); make_released(notyet, "tr_4")
+reversals.clear(); SENT.clear()
+r = deliver("charge.dispute.created", dispute("pi_notyet", dp="dp_6"), "evt_j")
+now = row(notyet)
+ok(r.status_code == 200 and reversals == [notyet["public_id"]] and now["status"] == "released" and not now["reversal_ref"], "a take-back that finds no transfer yet is tried once and leaves the order released without a reversal")
+ok(any("couldn't take back a payout" in s[1] and "no Stripe transfer to reverse" in s[2] for s in SENT) and any("FAILED" in s[2] for s in chargeback_mails()), "...and the admins are told, never 'taken back'")
+payments.reverse_transfer = real_reverse
+
 # --- a refund made in the Stripe dashboard
 dash = paid_order("pi_dash"); make_released(dash, "tr_2")
 reversals.clear(); SENT.clear()
