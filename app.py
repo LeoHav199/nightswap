@@ -2042,7 +2042,7 @@ def dispute_reply(public_id):
 
 
 def auto_refund_silent_disputes():
-    """#32: rejected at the door or already scanned, and the seller didn't answer within 24 hours: refund the buyer."""
+    """#32: rejected at the door or already scanned, and the seller didn't answer within DISPUTE_REPLY_HOURS (48): refund the buyer."""
     done = 0
     cutoff = sqltime(utcnow() - timedelta(hours=DISPUTE_REPLY_HOURS))
     for o in db.all("""SELECT * FROM orders WHERE status='disputed' AND seller_replied_at IS NULL AND disputed_at < ?
