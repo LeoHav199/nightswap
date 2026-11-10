@@ -10,6 +10,9 @@
 <div class="wrap account">
   <div class="admin-actions">
     <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_waitlist', format='csv') }}">Download as spreadsheet (CSV)</a>
+    <form method="post" action="{{ url_for('admin_waitlist_test') }}">{{ m.csrf() }}
+      <select name="lang" aria-label="Language of the test email">{% for code in ['en', 'nl', 'fr', 'de', 'es'] %}<option value="{{ code }}">{{ code }}</option>{% endfor %}</select>
+      <button class="btn btn-ghost btn-sm">Send me a test</button></form>
     {% if waiting %}
       <form method="post" action="{{ url_for('admin_waitlist_notify') }}" data-confirm="Send the launch email to the next {{ [waiting, 20]|min }} people? Only do this once the site is open.">{{ m.csrf() }}<button class="btn btn-accent btn-sm">Send launch email (next {{ [waiting, 20]|min }})</button></form>
     {% endif %}

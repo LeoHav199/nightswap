@@ -22,9 +22,11 @@ URL_LINE = re.compile(r"^https?://\S+$")
 CODE_LINE = re.compile(r"(\b\d{6}\b)")
 
 
-def email_html(subject, body):
-    """Branded HTML version of a plain-text email: logo, paragraphs, links as buttons."""
+def email_html(subject, body, buttons=None):
+    """Branded HTML version of a plain-text email: logo, paragraphs, links as buttons.
+    buttons: {url: label} for links that shouldn't say "Open Spare"; buttons after the first are outlined."""
     parts = []
+    shown = 0
 
     def flush(lines):
         if not lines:
@@ -43,9 +45,12 @@ def email_html(subject, body):
             if URL_LINE.match(ln):
                 flush(lines)
                 lines = []
-                parts.append('<p style="margin:8px 0 24px"><a href="%s" style="display:inline-block;background:#d4ff3a;color:#15132b;'
-                             'font-weight:700;text-decoration:none;padding:13px 22px;border-radius:999px">Open Spare</a></p>'
-                             % html.escape(ln, quote=True))
+                look = ("background:#d4ff3a;color:#15132b" if not shown
+                        else "background:transparent;color:#d4ff3a;border:2px solid #d4ff3a")
+                parts.append('<p style="margin:8px 0 24px"><a href="%s" style="display:inline-block;%s;'
+                             'font-weight:700;text-decoration:none;padding:13px 22px;border-radius:999px">%s</a></p>'
+                             % (html.escape(ln, quote=True), look, html.escape((buttons or {}).get(ln, "Open Spare"))))
+                shown += 1
             else:
                 lines.append(ln)
         flush(lines)
@@ -78,8 +83,9 @@ def _logo_img():
             'style="vertical-align:-6px;margin-right:4px;border:0">' % html.escape(config.BASE_URL.rstrip("/"), quote=True))
 
 
-def send_email(to, subject, body, attachments=(), headers=None):
-    """attachments: (filename, bytes) pairs, e.g. the nightly backup. headers: extra ones, e.g. List-Unsubscribe."""
+def send_email(to, subject, body, attachments=(), headers=None, buttons=None):
+    """attachments: (filename, bytes) pairs, e.g. the nightly backup. headers: extra ones, e.g. List-Unsubscribe.
+    buttons: {url: label} for the HTML version (see email_html)."""
     if not config.SMTP_HOST:
         current_app.logger.warning("EMAIL (not sent, no SMTP configured) to=%s subject=%s\n%s", to, subject, body)
         return False
@@ -91,7 +97,7 @@ def send_email(to, subject, body, attachments=(), headers=None):
     for name, value in (headers or {}).items():
         msg[name] = value
     msg.set_content(body)
-    msg.add_alternative(email_html(subject, body), subtype="html")
+    msg.add_alternative(email_html(subject, body, buttons), subtype="html")
     for filename, data in attachments:
         msg.add_attachment(data, maintype="application", subtype="octet-stream", filename=filename)
     try:

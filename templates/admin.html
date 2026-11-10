@@ -86,6 +86,17 @@
       </div>
     {% else %}<p class="muted">Nothing reported.</p>{% endfor %}
   </section>
+  <section class="account-section" id="prices">
+    <h2>Events without an official price{% if unpriced %} <span class="count">{{ unpriced|length }}</span>{% endif %}</h2>
+    <p class="muted small">Next {{ unpriced_days }} days. The site fills most prices in by itself; these pages don't show one. Look the price up on the ticket page and type the highest ticket type, so new listings don't wait for you.</p>
+    {% for e in unpriced %}
+      <form class="panel admin-case admin-actions" method="post" action="{{ url_for('admin_event_price', event_id=e.id) }}">{{ m.csrf() }}
+        <p style="flex:1 1 260px;margin:0"><strong>{{ e.name }}</strong> · {{ e.venue }} · {{ fmt_date(e.event_date) }}{% if e.ticket_url or e.source_url %} · <a href="{{ e.ticket_url or e.source_url }}" target="_blank" rel="noopener">ticket page</a>{% endif %}{% if e.waiting %} · <strong>{{ e.waiting }} listing{{ 's' if e.waiting != 1 }} waiting</strong>{% endif %}</p>
+        <input type="text" name="price" inputmode="decimal" placeholder="€" aria-label="Official price for {{ e.name }}" required style="width:90px">
+        <button class="btn btn-accent btn-sm">Save</button>
+      </form>
+    {% else %}<p class="muted">Every event in the next {{ unpriced_days }} days has an official price.</p>{% endfor %}
+  </section>
   <section class="account-section" id="review">
     <h2>Listings to check{% if review %} <span class="count">{{ review|length }}</span>{% endif %}</h2>
     {% for l in review %}

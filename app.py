@@ -3539,6 +3539,26 @@ def preview(code):
 # Admin
 # --------------------------------------------------------------------------
 
+UNPRICED_DAYS = 14  # /admin lists events in the next two weeks that still have no official price
+
+
+@app.route("/admin/event-price/<int:event_id>", methods=["POST"])
+@admin_required
+def admin_event_price(event_id):
+    """Sets an event's official price from the /admin list. New listings for it then skip the face-value check
+    by hand; listings already waiting stay in "Listings to check"."""
+    e = db.one("SELECT id, name FROM events WHERE id=?", event_id)
+    if not e:
+        abort(404)
+    cents = parse_money(request.form.get("price"))
+    if cents is None or cents < 100 or cents > config.MAX_FACE_VALUE_CENTS:
+        flash("That isn't a valid price. Type it in euros, for example 24.50.", "error")
+    else:
+        db.run("UPDATE events SET face_value_max_cents=? WHERE id=?", cents, event_id)
+        flash("Official price for %s set to %s." % (e["name"], money(cents)), "ok")
+    return redirect(url_for("admin") + "#prices")
+
+
 @app.route("/admin")
 @admin_required
 def admin():
@@ -3581,7 +3601,14 @@ def admin():
     disk = {"pct": round(used * 100), "used": used_bytes / 1e9, "total": total / 1e9, "warn": used >= DISK_ALERT}
     stuck = db.all("""SELECT o.public_id, o.payout_errors, o.payout_last_error, s.email AS seller_email FROM orders o
                       JOIN users s ON s.id = o.seller_id WHERE o.status='paid' AND o.payout_errors >= ?""", PAYOUT_MAX_ERRORS)
+    unpriced = db.all("""SELECT e.id, e.name, e.venue, e.event_date, e.ticket_url, e.source_url,
+                                (SELECT COUNT(*) FROM listings l WHERE l.event_id = e.id AND l.status='review') AS waiting
+                         FROM events e WHERE e.face_value_max_cents IS NULL AND e.cancelled_at IS NULL
+                           AND e.status IN ('published', 'review') AND e.event_date BETWEEN ? AND ?
+                         ORDER BY e.event_date, e.name""",
+                      today().isoformat(), (today() + timedelta(days=UNPRICED_DAYS)).isoformat())
     return render_template("admin.html", disputed=disputed, recent=recent, stats=stats, flagged=flagged, reports=reports,
+                           unpriced=unpriced, unpriced_days=UNPRICED_DAYS,
                            waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
                            review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files,
                            checks=launch_checks(disk), stuck=stuck, paused=sales_paused(),
@@ -3675,6 +3702,31 @@ def admin_waitlist():
     return render_template("admin_waitlist.html", rows=rows)
 
 
+def launch_email(lang, token):
+    """The launch email: (subject, body, headers, buttons). A second "Sell a ticket" button, because a site
+    that opens with few tickets loses the buyers the email brings in."""
+    leave = base_url() + url_for("waitlist_leave", token=token)
+    sell_url = base_url() + url_for("sell")
+    body = i18n.t(lang, "mail_launch_body", url=base_url() + url_for("index"), sell=sell_url, leave=leave)
+    # #17: mail apps show an "unsubscribe" button for this; one click (RFC 8058) removes the address.
+    unsubscribe = {"List-Unsubscribe": "<%s>, <mailto:%s?subject=unsubscribe>" % (leave, config.SUPPORT_EMAIL),
+                   "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"}
+    return i18n.t(lang, "mail_launch_subject"), body, unsubscribe, {sell_url: i18n.t(lang, "mail_btn_sell")}
+
+
+@app.route("/admin/waitlist/test", methods=["POST"])
+@admin_required
+def admin_waitlist_test():
+    """Sends the launch email to the admin's own address only, to see it before anyone on the list does."""
+    lang = request.form.get("lang") if request.form.get("lang") in i18n.LANGS else "en"
+    subject, body, headers, buttons = launch_email(lang, "test")
+    if notify.send_email(g.user["email"], subject, body, headers=headers, buttons=buttons):
+        flash("Test launch email (%s) sent to %s. Nobody on the list got it." % (lang, g.user["email"]), "ok")
+    else:
+        flash("The test email couldn't be sent. Check the email settings.", "error")
+    return redirect(url_for("admin_waitlist"))
+
+
 @app.route("/admin/waitlist/notify", methods=["POST"])
 @admin_required
 def admin_waitlist_notify():
@@ -3682,12 +3734,8 @@ def admin_waitlist_notify():
     sent = 0
     for r in db.all("SELECT * FROM waitlist WHERE notified_at IS NULL ORDER BY id LIMIT 20"):
         lang = r["lang"] if r["lang"] in i18n.LANGS else "en"
-        leave = base_url() + url_for("waitlist_leave", token=r["token"])
-        body = i18n.t(lang, "mail_launch_body", url=base_url() + url_for("index"), leave=leave)
-        # #17: mail apps show an "unsubscribe" button for this; one click (RFC 8058) removes the address.
-        unsubscribe = {"List-Unsubscribe": "<%s>, <mailto:%s?subject=unsubscribe>" % (leave, config.SUPPORT_EMAIL),
-                       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"}
-        if notify.send_email(r["email"], i18n.t(lang, "mail_launch_subject"), body, headers=unsubscribe):
+        subject, body, headers, buttons = launch_email(lang, r["token"])
+        if notify.send_email(r["email"], subject, body, headers=headers, buttons=buttons):
             db.run("UPDATE waitlist SET notified_at=? WHERE id=?", sqltime(utcnow()), r["id"])
             sent += 1
     left = db.one("SELECT COUNT(*) AS n FROM waitlist WHERE notified_at IS NULL")["n"]
