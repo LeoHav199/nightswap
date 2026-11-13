@@ -42,8 +42,8 @@ ok(A.with_extra(i18n.t("en", "mail_bought_body"), "EXTRA").endswith("EXTRA\n\nTh
 c = app.test_client()
 for path in ("/privacy", "/terms"):
     page = html(c.get(path))
-    ok("Spare vof" in page and "Lombardkade 47A, 3011 ZC Rotterdam" in page and "[KVK" not in page and "[VAT" not in page and "[COMPANY" not in page,
-       "%s shows Spare vof and its address, without placeholders" % path)
+    ok("Spare Tickets vof" in page and "Lombardkade 47A, 3011 ZC Rotterdam" in page and "[KVK" not in page and "[VAT" not in page and "[COMPANY" not in page,
+       "%s shows Spare Tickets vof and its address, without placeholders" % path)
 ok("KvK" not in html(c.get("/privacy")).split("Who is responsible")[1].split("</p>")[0], "no empty 'KvK' until the number is set")
 config.KVK_NUMBER = "12345678"
 ok("KvK 12345678" in html(c.get("/privacy")) and "KvK 12345678" in html(c.get("/terms")), "the KvK number appears once it's set")

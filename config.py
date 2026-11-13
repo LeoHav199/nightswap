@@ -135,7 +135,7 @@ SUPPORT_EMAIL = env("SUPPORT_EMAIL", "hello@sparetickets.eu")
 INSTAGRAM = env("NIGHTSWAP_INSTAGRAM", "sparetickets.eu")  # Spare's own (anonymous) account, linked in the footer and on /about; "" hides it
 # Who runs Spare, shown in the footer, emails, terms and privacy policy (#19, #20). Fill in after the KvK registration;
 # until then the pages show [placeholders].
-COMPANY_NAME = env("COMPANY_NAME", "Spare vof")  # Leo and Ilyas's general partnership (vof), 50/50 since 5 Nov 2026
+COMPANY_NAME = env("COMPANY_NAME", "Spare Tickets vof")  # Leo and Ilyas's general partnership (vof), 50/50; KvK registered the name "Spare Tickets" (Nov 2026)
 COMPANY_ADDRESS = env("COMPANY_ADDRESS", "Lombardkade 47A, 3011 ZC Rotterdam")  # also the address in the KVK register
 KVK_NUMBER = env("KVK_NUMBER")
 VAT_NUMBER = env("VAT_NUMBER")
