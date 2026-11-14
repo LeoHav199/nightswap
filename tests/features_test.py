@@ -49,14 +49,15 @@ def sell(c, files, price="18", face="20", name="QR Night", day=D, venue="Perron"
 seller, buyer, other = app.test_client(), app.test_client(), app.test_client()
 # --- Student verification
 login(seller, "femke@student.eur.nl", "Femke")
-ok("Verified · Erasmus" in html(seller.get("/account")), "signing up with a uni email verifies student status")
+with app.app_context(): ok(A.db.one("SELECT student_school FROM users WHERE email=?", "femke@student.eur.nl")["student_school"].startswith("Erasmus"), "signing up with a uni email verifies student status")
+ok("Student status" not in html(seller.get("/account")), "the account page no longer shows student status (removed 14 Nov 2026)")
 login(buyer, "jesse@gmail.com", "Jesse")
 r = buyer.post("/account/student", data={"email": "jesse@gmail.com", "_csrf": csrf(buyer)})
 ok("university email" in html(r), "non-university email rejected")
 r = buyer.post("/account/student", data={"email": "jesse@hr.nl", "_csrf": csrf(buyer)}, follow_redirects=True)
 code = re.search(r"code is (\d{6})", html(r)).group(1)
 buyer.post("/account/student/verify", data={"code": code, "_csrf": csrf(buyer)})
-ok("Hogeschool Rotterdam" in html(buyer.get("/account")), "student verification by code works")
+with app.app_context(): ok(A.db.one("SELECT student_school FROM users WHERE email=?", "jesse@gmail.com")["student_school"].startswith("Hogeschool Rotterdam"), "student verification by code works")
 r = other.get("/"); login(other, "x@gmail.com", "Xan")
 r = other.post("/account/student", data={"email": "jesse@hr.nl", "_csrf": csrf(other)})
 ok("already linked" in html(r), "same student email can't be used twice")
@@ -96,7 +97,7 @@ ok("Price updated to €15.50" in html(r), "price edit saved")
 
 # --- Buy several tickets together
 page = html(buyer.get("/event?venue=Perron&date=%s&name=QR+Night" % D))
-ok('name="qty"' in page and "Verified student" in page, "event page offers quantity and shows student badge")
+ok('name="qty"' in page and "Verified student" not in page, "event page offers quantity; no student badge (removed 14 Nov 2026)")
 r = buyer.post("/t/%d/buy" % lid, data={"qty": "2", "_csrf": csrf(buyer)})
 pub = r.location.split("/")[2]
 r = buyer.post(r.location, data={"_csrf": csrf(buyer)}, follow_redirects=True)

@@ -30,14 +30,6 @@
 
   <div class="panel status-card student-card">
     <div>
-      <div class="status-label">{{ t('student_status') }}</div>
-      <div>{% if user.student_verified_at %}<span class="check">{{ t('student_verified_as', school=user.student_school) }}</span>{% else %}<span class="muted">{{ t('student_not_verified') }}</span>{% endif %}</div>
-    </div>
-    {% if not user.student_verified_at %}<a class="btn btn-accent btn-sm" href="{{ url_for('student') }}">{{ t('verify') }}</a>{% endif %}
-  </div>
-
-  <div class="panel status-card student-card">
-    <div>
       <div class="status-label">{{ t('push_label') }}</div>
       <div class="muted small">{{ t('push_explain') }}</div>
     </div>
