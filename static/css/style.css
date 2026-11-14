@@ -281,6 +281,8 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .breakdown-total { padding-top: 10px; border-top: 1px solid var(--line); }
 .breakdown-total dt { color: var(--text); font-weight: 600; }
 .breakdown-total dd { font: 800 26px/1 var(--display); }
+.summary .breakdown-total dd { font-size: 22px; }
+.buyer-pays-line { margin: -4px 0 16px; }
 
 .steps-mini { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 6px; }
 

@@ -231,10 +231,11 @@
   <aside class="panel summary">
     <h2 class="panel-title">{{ t('summary_title') }}</h2>
     <dl class="breakdown">
-      <div><dt>{{ t('you_receive') }}</dt><dd data-receive>–</dd></div>
-      <div><dt>{{ t('buyer_pays') }}</dt><dd data-buyer-pays>–</dd></div>
+      <div><dt>{{ t('sum_your_price') }}</dt><dd data-sum-price>–</dd></div>
       <div><dt>{{ t('your_fee') }}</dt><dd data-seller-fee data-label="{{ seller_fee_label }}">{{ seller_fee_label }}</dd></div>
+      <div class="breakdown-total"><dt>{{ t('you_receive') }}</dt><dd data-receive>–</dd></div>
     </dl>
+    <p class="muted small buyer-pays-line">{{ t('buyer_pays') }} <strong data-buyer-pays>–</strong> <span data-buyer-note data-template="{{ t('sum_buyer_incl', fee='{fee}') }}"></span></p>
     <ol class="steps-mini">
       <li>{{ t('sell_step_1_payouts') if not user.payouts_ready else t('sell_step_1') }}</li>
       <li>{{ t('sell_step_2') }}</li>

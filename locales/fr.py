@@ -92,6 +92,8 @@ STRINGS = {
     "you_receive": "Tu reçois",
     "buyer_pays": "L'acheteur paie",
     "your_fee": "Tes frais",
+    "sum_your_price": "Ton prix",
+    "sum_buyer_incl": "dont {fee} de frais acheteur",
     "sell_step_1": "Ton billet est mis en vente tout de suite, ou après une vérification rapide du prix d'origine si on ne connaît pas encore le prix de l'événement.",
     "sell_step_2": "Quand il est vendu, on t'envoie un e-mail. L'acheteur le télécharge, ou tu le transfères dans ton appli.",
     "sell_step_3": "Tu es payé dès que l'acheteur fait glisser Swap à l'entrée (s'il a payé par iDEAL), et au plus tard {hours} heures après la soirée.",

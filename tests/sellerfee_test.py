@@ -23,13 +23,13 @@ def login(c, email, name):
 # --- The default fees (what Spare launches with)
 ok(config.FEE_PERCENT == 8 and config.FEE_MIN_CENTS == 199, "buyers: 8%, minimum €1.99")
 ok(config.PROFIT_SHARE_PERCENT == 10, "sellers also share 10% of anything above the face value")
-ok(config.SELLER_FEE_PERCENT == 5 and config.SELLER_FEE_MIN_CENTS == 100, "sellers: 5%, minimum €1")
+ok(config.SELLER_FEE_PERCENT == 5 and config.SELLER_FEE_MIN_CENTS == 99, "sellers: 5%, minimum €0.99")
 with app.test_request_context():
     ok(A.fee_for(1000) == 199 and A.fee_for(2000) == 199 and A.fee_for(5000) == 400, "buyer fee: €10 → €1.99, €20 → €1.99, €50 → €4")
-    ok(A.seller_fee_for(1000) == 100 and A.seller_fee_for(2000) == 100 and A.seller_fee_for(3000) == 150 and A.seller_fee_for(5000) == 250,
-       "seller fee: €10 → €1, €20 → €1, €30 → €1.50, €50 → €2.50")
+    ok(A.seller_fee_for(1000) == 99 and A.seller_fee_for(2000) == 100 and A.seller_fee_for(3000) == 150 and A.seller_fee_for(5000) == 250,
+       "seller fee: €10 → €0.99, €20 → €1, €30 → €1.50, €50 → €2.50")
     ok(A.seller_fee_for(50) == 50, "the seller fee never exceeds the ticket price")
-    ok(A.seller_fee_for(2000, 2000) == 100 and A.seller_fee_for(1500, 2000) == 100,
+    ok(A.seller_fee_for(2000, 2000) == 100 and A.seller_fee_for(1500, 2000) == 99,
        "selling at or below face value: no profit share")
     ok(A.seller_fee_for(3000, 2000) == 250 and A.seller_fee_for(6000, 3000) == 600,
        "profit share: €30 for a €20 ticket → €1.50 + €1; €60 for a €30 ticket → €3 + €3")
@@ -50,8 +50,8 @@ seller.post("/account/phone/verify", data={"code": re.search(r"code is (\d{6})",
 admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Fee Night", "venue": "Perron", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Fee Night'")
 sell_page = html(seller.get("/sell?event=%d" % ev["id"]))
-ok('data-seller-pct="5.0"' in sell_page and 'data-seller-min="100"' in sell_page and 'data-profit-share="10.0"' in sell_page
-   and "5% (min. €1), plus 10% of anything above the face value" in sell_page,
+ok('data-seller-pct="5.0"' in sell_page and 'data-seller-min="99"' in sell_page and 'data-profit-share="10.0"' in sell_page
+   and "5% (min. €0.99), plus 10% of anything above the face value" in sell_page,
    "the sell form knows the seller fee, to show 'you receive' live")
 r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
     "ticket": (io.BytesIO(b"%PDF-1.4 fee"), "f.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
@@ -96,9 +96,9 @@ ok("if the buyer slides swap" in html(buyer.get("/how-it-works")).lower(), "How 
 
 # --- Explained honestly
 how = html(buyer.get("/how-it-works"))
-ok("5% (min. €1), plus 10% of anything above the face value per ticket, taken from the payout" in how and "8% (min. €1.99)" in how and ">Free<" not in how, "How it works lists both fees")
+ok("5% (min. €0.99), plus 10% of anything above the face value per ticket, taken from the payout" in how and "8% (min. €1.99)" in how and ">Free<" not in how, "How it works lists both fees")
 terms = html(buyer.get("/terms"))
-ok("seller fee of 5% (min. €1), plus 10% of anything above the face value" in terms and "Sellers pay no fees" not in terms, "the terms mention the seller fee")
+ok("seller fee of 5% (min. €0.99), plus 10% of anything above the face value" in terms and "Sellers pay no fees" not in terms, "the terms mention the seller fee")
 ok("Selling is free" not in html(seller.get("/sell")), "no more 'selling is free'")
 
 print("FAILED:", fails or "none")

@@ -24,20 +24,20 @@ def eur(cents):
 
 # --- The launch settings. Changing one of these on purpose means changing this test too.
 ok(config.FEE_PERCENT == 8 and config.FEE_MIN_CENTS == 199 and config.FEE_MAX_CENTS == 0, "buyer fee settings: 8%, minimum €1.99, no maximum")
-ok(config.SELLER_FEE_PERCENT == 5 and config.SELLER_FEE_MIN_CENTS == 100, "seller fee settings: 5%, minimum €1")
+ok(config.SELLER_FEE_PERCENT == 5 and config.SELLER_FEE_MIN_CENTS == 99, "seller fee settings: 5%, minimum €0.99")
 ok(config.PROFIT_SHARE_PERCENT == 10, "profit share setting: 10%")
 
 # (price, face value, buyer fee, seller fee), all in cents, worked out by hand:
 #   buyer fee  = max(199, round-half-up(8% of price))
-#   seller fee = max(100, round-half-up(5% of price)) + round-half-up(10% of (price - face)) when price > face
+#   seller fee = max(99, round-half-up(5% of price)) + round-half-up(10% of (price - face)) when price > face
 CASES = [
     # the four main prices with a face value below the price
-    (500, 300, 199, 120),     # €5 on €3: 0.40 -> min 1.99; 0.25 -> min 1.00 + 10% of 2.00 = 0.20
+    (500, 300, 199, 119),     # €5 on €3: 0.40 -> min 1.99; 0.25 -> min 0.99 + 10% of 2.00 = 0.20
     (2000, 1000, 199, 200),   # €20 on €10: 1.60 -> min 1.99; 1.00 + 10% of 10 = 1.00
     (4000, 2500, 320, 350),   # €40 on €25: 3.20; 2.00 + 10% of 15 = 1.50
     (10000, 5000, 800, 1000), # €100 on €50: 8.00; 5.00 + 10% of 50 = 5.00
     # at or below the face value: no profit share
-    (500, 500, 199, 100),
+    (500, 500, 199, 99),
     (2000, 2000, 199, 100),
     (2000, 2500, 199, 100),
     (4000, 4000, 320, 200),
@@ -96,8 +96,8 @@ attrs = {}
 for key in ("fee-pct", "fee-min", "fee-max", "seller-pct", "seller-min", "profit-share"):
     m = re.search(r'data-%s="([\d.]+)"' % key, sell_page)
     attrs[key] = float(m.group(1)) if m else None
-ok(all(v is not None for v in attrs.values()) and attrs == {"fee-pct": 8, "fee-min": 199, "fee-max": 0, "seller-pct": 5, "seller-min": 100, "profit-share": 10},
-   "the sell page hands the browser 8 / 199 / no max / 5 / 100 / 10 (got %s)" % attrs)
+ok(all(v is not None for v in attrs.values()) and attrs == {"fee-pct": 8, "fee-min": 199, "fee-max": 0, "seller-pct": 5, "seller-min": 99, "profit-share": 10},
+   "the sell page hands the browser 8 / 199 / no max / 5 / 99 / 10 (got %s)" % attrs)
 if all(v is not None for v in attrs.values()):
     for price, face, bfee, sfee in CASES:
         ok(js_buyer_fee(price, attrs) == bfee and js_seller_fee(price, face, attrs) == sfee,

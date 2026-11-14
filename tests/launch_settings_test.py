@@ -14,7 +14,7 @@ SETTINGS = [
     ("NIGHTSWAP_FEE_PERCENT", "FEE_PERCENT", "8"),
     ("NIGHTSWAP_FEE_MIN_CENTS", "FEE_MIN_CENTS", "199"),
     ("NIGHTSWAP_SELLER_FEE_PERCENT", "SELLER_FEE_PERCENT", "5"),
-    ("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "SELLER_FEE_MIN_CENTS", "100"),
+    ("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "SELLER_FEE_MIN_CENTS", "99"),
     ("NIGHTSWAP_PROFIT_SHARE_PERCENT", "PROFIT_SHARE_PERCENT", "10"),
 ]
 MUST_BE_IN_BLUEPRINT = {"TZ", "TRUST_PROXY_HOPS"}   # config.py has no TZ, and its hops default (1) is not the live value
@@ -90,7 +90,7 @@ ok(list(cfg.ENABLED_CITIES) == ["Rotterdam"], "config: ENABLED_CITIES is Rotterd
 ok(cfg.SHOW_ALL_NETHERLANDS is False, "config: SHOW_ALL_NETHERLANDS is off")
 ok(cfg.PRICE_CAP_PERCENT == 200, "config: price cap is 200% (double the face value)")
 ok(cfg.FEE_PERCENT == 8 and cfg.FEE_MIN_CENTS == 199, "config: buyer fee is 8%, minimum €1.99")
-ok(cfg.SELLER_FEE_PERCENT == 5 and cfg.SELLER_FEE_MIN_CENTS == 100, "config: seller fee is 5%, minimum €1")
+ok(cfg.SELLER_FEE_PERCENT == 5 and cfg.SELLER_FEE_MIN_CENTS == 99, "config: seller fee is 5%, minimum €0.99")
 ok(cfg.PROFIT_SHARE_PERCENT == 10, "config: profit share is 10%")
 for flag in SAFETY_FLAGS:
     ok(getattr(cfg, flag, None) is True, "config: %s is True" % flag)

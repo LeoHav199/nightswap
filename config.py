@@ -47,7 +47,7 @@ FEE_MIN_CENTS = int(env("NIGHTSWAP_FEE_MIN_CENTS", "199"))  # €1.99 since 6 No
 FEE_MAX_CENTS = int(env("NIGHTSWAP_FEE_MAX_CENTS", "0"))   # 0 = no maximum
 # Seller fee per ticket, taken from the payout: covers Stripe's per-seller and per-payout costs.
 SELLER_FEE_PERCENT = float(env("NIGHTSWAP_SELLER_FEE_PERCENT", "5"))
-SELLER_FEE_MIN_CENTS = int(env("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "100"))
+SELLER_FEE_MIN_CENTS = int(env("NIGHTSWAP_SELLER_FEE_MIN_CENTS", "99"))  # €0.99 since 14 Nov 2026 (Leo and Ilyas; €1 before)
 # Profit share (Leo and Ilyas, 6 Nov 2026): sellers also pay this percentage of whatever their price is above the
 # face value. Selling at or below face value costs nothing extra. 0 = off.
 PROFIT_SHARE_PERCENT = float(env("NIGHTSWAP_PROFIT_SHARE_PERCENT", "10"))

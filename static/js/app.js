@@ -729,8 +729,11 @@
   function update() {
     var p = cents(price.value), f = cents(face.value);
     receives.forEach(function (el) { el.textContent = p ? money(p - sellerFeeFor(p, f)) : "–"; });
-    if (sellerFeeBox) sellerFeeBox.textContent = p ? money(sellerFeeFor(p, f)) : sellerFeeBox.dataset.label;
+    if (sellerFeeBox) sellerFeeBox.textContent = p ? "−" + money(sellerFeeFor(p, f)) : sellerFeeBox.dataset.label;
     buyerPays.textContent = p ? money(p + feeFor(p)) : "–";
+    var sumPrice = document.querySelector("[data-sum-price]"), buyerNote = document.querySelector("[data-buyer-note]");
+    if (sumPrice) sumPrice.textContent = p ? money(p) : "–";
+    if (buyerNote) buyerNote.textContent = p ? "(" + buyerNote.dataset.template.replace("{fee}", money(feeFor(p))) + ")" : "";
     var over = cap && p && f && p > Math.floor(f * cap / 100);
     price.setAttribute("aria-invalid", over ? "true" : "false");
     price.style.borderColor = over ? "var(--bad)" : "";

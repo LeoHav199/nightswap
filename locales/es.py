@@ -92,6 +92,8 @@ STRINGS = {
     "you_receive": "Recibes",
     "buyer_pays": "El comprador paga",
     "your_fee": "Tu comisión",
+    "sum_your_price": "Tu precio",
+    "sum_buyer_incl": "incl. {fee} de comisión del comprador",
     "sell_step_1": "Tu entrada se pone a la venta al momento, o tras una comprobación rápida del precio original si aún no conocemos el precio del evento.",
     "sell_step_2": "Cuando se venda, te enviamos un email. El comprador la descarga, o tú la transfieres en tu app.",
     "sell_step_3": "Cobras en cuanto el comprador desliza Swap en la puerta (si pagó con iDEAL), y como muy tarde {hours} horas después de la noche.",
