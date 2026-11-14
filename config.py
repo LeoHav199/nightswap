@@ -71,7 +71,7 @@ SWAP_OPENS_AFTER_DOORS_MINUTES = 0   # the buyer can swap from the moment the do
 SWAP_INSTANT_IDEAL_ONLY = env("NIGHTSWAP_SWAP_INSTANT_IDEAL_ONLY", "1") == "1"
 SWAP_REMIND_MINUTES = 45             # "Inside? Swap" push + email this long after the doors open
 # Safety checks from the "Bulletproofing" review. Always on; only older tests that check other things switch them off.
-FACE_PROOF_REQUIRED = True   # #25: no official price known → proof of the price and an admin check before going live
+FACE_PROOF_REQUIRED = env("NIGHTSWAP_FACE_PROOF", "0") == "1"  # #25: no official price known → proof of the price and an admin check before going live. Off since 14 Nov 2026 (Leo: too much friction for sellers); the face value typed in is trusted, and the terms keep "we may ask for proof".
 SMS_REQUIRED = False         # True: on the live site, phones can only be verified by text (needs Twilio). Leo chose
                              # emailed codes until Spare has volume (4 Nov 2026); Stripe's ID check covers identity.
 TICKET_CHECKS = True         # #29: unreadable codes go to an admin, re-saved pictures are caught, app tickets need screenshots

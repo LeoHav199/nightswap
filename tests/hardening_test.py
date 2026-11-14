@@ -3,6 +3,7 @@ import io, os, re, sys, tempfile
 from datetime import date, datetime, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
+config.FACE_PROOF_REQUIRED = True  # off by default since 14 Nov 2026; these checks cover it when switched on
 config.PRICE_CAP_PERCENT = 120  # these checks cover the optional price cap (off by default since 5 Nov 2026)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # switched on in the #28 and #29 sections only

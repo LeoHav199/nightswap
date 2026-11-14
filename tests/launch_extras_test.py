@@ -121,4 +121,8 @@ ok(admin.post("/admin/event-price/999999", data={"price": "20", "_csrf": csrf(ad
 run("UPDATE events SET face_value_max_cents=1000 WHERE face_value_max_cents IS NULL")
 ok("Every event in the next 14 days has an official price" in html(admin.get("/admin")), "an empty list says so")
 
+# --- 3. No price proof upload (Leo, 14 Nov 2026)
+ok(config.FACE_PROOF_REQUIRED is False, "the price proof is off by default")
+ok('name="face_proof"' not in html(user.get("/sell")), "the sell form doesn't ask for an order confirmation screenshot")
+
 print("\n%d failed" % len(fails)); sys.exit(1 if fails else 0)

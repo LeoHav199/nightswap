@@ -4,6 +4,7 @@ import io, os, re, sys, tempfile
 from datetime import date, datetime, timedelta, timezone
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
+config.FACE_PROOF_REQUIRED = True  # off by default since 14 Nov 2026; covered here when switched on
 config.TICKET_CHECKS = False  # (picture checks are covered in hardening_test.py)
 config.STRIPE_SECRET_KEY = ""; config.ADMIN_SECOND_FACTOR = False; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
@@ -34,7 +35,7 @@ def run(sql, *a):
 # --- The new defaults
 ok(config.PRICE_CAP_PERCENT == 200 and config.PAYOUT_DELAY_HOURS == 24 and config.SWAP_OPENS_AFTER_DOORS_MINUTES == 0,
    "defaults: at most double the face value, paid 24 hours after the night, Swap from when the doors open")
-ok(config.FACE_PROOF_REQUIRED and config.NEW_SELLER_LIMITS, "the safety checks stay switched on in the code")
+ok(config.NEW_SELLER_LIMITS, "the new-seller limits stay switched on in the code")
 
 admin, seller, buyer, visitor = (app.test_client() for _ in range(4))
 login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); login(buyer, "b@test.nl", "Bo"); visitor.get("/")

@@ -1156,6 +1156,7 @@ def template_globals():
         "price_cap": config.PRICE_CAP_PERCENT,
         "price_markup": config.PRICE_CAP_PERCENT - 100,  # e.g. 20 for "up to 20% above face value"
         "price_free": not config.PRICE_CAP_PERCENT,      # no cap: sellers set their own price (texts switch to that)
+        "face_proof_on": bool(config.FACE_PROOF_REQUIRED and config.PRICE_CAP_PERCENT),  # the sell form asks for a price proof
         "markup_percent": markup_percent,
         "payout_hours": config.PAYOUT_DELAY_HOURS,
         "new_seller_hours": config.NEW_SELLER_PAYOUT_HOURS, "new_seller_sales": config.NEW_SELLER_SALES,

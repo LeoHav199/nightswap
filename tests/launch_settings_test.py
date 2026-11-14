@@ -18,7 +18,7 @@ SETTINGS = [
     ("NIGHTSWAP_PROFIT_SHARE_PERCENT", "PROFIT_SHARE_PERCENT", "10"),
 ]
 MUST_BE_IN_BLUEPRINT = {"TZ", "TRUST_PROXY_HOPS"}   # config.py has no TZ, and its hops default (1) is not the live value
-SAFETY_FLAGS = ["FACE_PROOF_REQUIRED", "NEW_SELLER_LIMITS", "TICKET_CHECKS"]
+SAFETY_FLAGS = ["NEW_SELLER_LIMITS", "TICKET_CHECKS"]  # FACE_PROOF_REQUIRED is off by Leo's choice since 14 Nov 2026
 
 
 def blueprint_vars(text):
@@ -114,7 +114,6 @@ for name, wrong_bp, wrong_cfg in [
     ("SELLER_FEE_PERCENT in config", {}, {"SELLER_FEE_PERCENT": 4}),
     ("SELLER_FEE_MIN_CENTS in config", {}, {"SELLER_FEE_MIN_CENTS": 50}),
     ("PROFIT_SHARE_PERCENT in config", {}, {"PROFIT_SHARE_PERCENT": 0}),
-    ("FACE_PROOF_REQUIRED off", {}, {"FACE_PROOF_REQUIRED": False}),
     ("NEW_SELLER_LIMITS off", {}, {"NEW_SELLER_LIMITS": False}),
     ("TICKET_CHECKS off", {}, {"TICKET_CHECKS": False}),
 ]:

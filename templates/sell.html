@@ -101,7 +101,7 @@
       </label>
     </div>
 
-    {% if not price_free %}<label class="field face-proof" data-face-proof {{ 'hidden' if preset and preset.face_value_max_cents }}>
+    {% if face_proof_on %}<label class="field face-proof" data-face-proof {{ 'hidden' if preset and preset.face_value_max_cents }}>
       <span class="label">{{ t('face_proof_label') }}</span>
       <span class="file-drop file-drop-sm">
         <input type="file" name="face_proof" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" data-file>
