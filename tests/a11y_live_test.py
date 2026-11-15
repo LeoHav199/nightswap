@@ -108,6 +108,7 @@ ok(note and 'aria-live="polite"' in note[0] and 'id="phone-note"' in note[0], "t
 ok(page.index("data-phone-note") < page.index("data-phone-code ") if "data-phone-code " in page else False, "...placed outside the hidden code box, so it is already on the page when filled in")
 ok(done and 'role="status"' in done[0] and " hidden" not in done[0], "'phone confirmed' is a role=status region that is on the page from the start")
 ok(perr and 'role="alert"' in perr[0] and 'id="phone-error"' in perr[0], "the phone error is role=alert")
+ok(perr and re.search(r'role="alert" hidden>', perr[0]), "...and it starts hidden, with the attribute properly separated")
 ok(len(tags(page, "data-phone-code-input")) == 1 and "aria-describedby=" in tags(page, "data-phone-code-input")[0] and "aria-label=" in tags(page, "data-phone-code-input")[0], "the code field is labelled and described")
 r = fresh.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", "event_id": str(ev["id"]), "face_value": "20", "price": "20", "adult": "yes",
                               "ticket": (io.BytesIO(b"%PDF-1.4 a11y live test 2"), "t.pdf"), "_csrf": csrf(fresh)}, content_type="multipart/form-data")

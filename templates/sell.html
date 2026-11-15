@@ -221,7 +221,7 @@
         <p class="hint" data-phone-done role="status" aria-live="polite" data-text="{{ t('phone_ok') }}"></p>
         <noscript><p class="hint"><a href="{{ url_for('phone', next=url_for('sell')) }}">{{ t('sell_phone_nojs') }}</a></p></noscript>
       {% endif %}
-      <p class="field-error" id="phone-error" data-phone-error role="alert"{{ 'hidden' if not errors.get('phone') }}>{{ errors.get('phone', '') }}</p>
+      <p class="field-error" id="phone-error" data-phone-error role="alert"{{ ' hidden' if not errors.get('phone') }}>{{ errors.get('phone', '') }}</p>
     </fieldset>
     {% endif %}
     <p class="receive-line">{{ t('you_receive') }} <strong data-receive>–</strong> <span class="muted small">{{ t('per_ticket') }}</span></p>
