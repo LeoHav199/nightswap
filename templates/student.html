@@ -10,7 +10,7 @@
     <label class="field">
       <span class="label">{{ t('student_email') }}</span>
       <input type="email" name="email" value="{{ email }}" autocomplete="email" placeholder="123456ab@student.eur.nl" required autofocus>
-      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+      {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
       <span class="hint">{{ t('student_schools', list=', '.join(schools)) }}</span>
     </label>
     <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('send_code') }}</button>

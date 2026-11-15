@@ -76,18 +76,18 @@
       {% if door %}
         {% if can_rate %}
         {# Swap: the buyer slides once they're inside. Spare holds the seller's money until then. #}
-        <div class="swap-card">
-          <strong class="swap-title">{{ t('swap_title') }}</strong>
-          <p class="muted small">{{ t('swap_body') }}</p>
+        <div class="swap-card" role="group" aria-labelledby="swap-title">
+          <strong class="swap-title" id="swap-title">{{ t('swap_title') }}</strong>
+          <p class="muted small" id="swap-desc">{{ t('swap_body') }}</p>
           <form method="post" action="{{ url_for('swap_order', public_id=order.public_id) }}" data-swap-form>
             {{ m.csrf() }}
             <div class="swap-track" data-swap hidden>
               <span class="swap-label" aria-hidden="true">{{ t('swap_slide') }}</span>
               <span class="swap-fill" data-swap-fill aria-hidden="true"></span>
-              <span class="swap-thumb" data-swap-thumb role="slider" tabindex="0" aria-label="{{ t('swap_slide') }}"
+              <span class="swap-thumb" data-swap-thumb role="slider" tabindex="0" aria-label="{{ t('swap_slide') }}" aria-describedby="swap-desc" aria-orientation="horizontal"
                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">→</span>
             </div>
-            <button class="btn btn-accent btn-block" type="submit" data-swap-fallback>{{ t('swap_button') }}</button>
+            <button class="btn btn-accent btn-block" type="submit" aria-describedby="swap-desc" data-swap-fallback>{{ t('swap_button') }}</button>
           </form>
           <p class="small swap-warn">{{ t('swap_wait') }}</p>
           <a class="small" href="{{ url_for('order_page', public_id=order.public_id, report=1) }}#report">{{ t('swap_problem') }}</a>
@@ -204,18 +204,18 @@
     {% if not door %}
     {% if can_rate %}
       {# Swap: the buyer slides once they're inside. Spare holds the seller's money until then. #}
-      <div class="swap-card">
-        <strong class="swap-title">{{ t('swap_title') }}</strong>
-        <p class="muted small">{{ t('swap_body') }}</p>
+      <div class="swap-card" role="group" aria-labelledby="swap-title">
+        <strong class="swap-title" id="swap-title">{{ t('swap_title') }}</strong>
+        <p class="muted small" id="swap-desc">{{ t('swap_body') }}</p>
         <form method="post" action="{{ url_for('swap_order', public_id=order.public_id) }}" data-swap-form>
           {{ m.csrf() }}
           <div class="swap-track" data-swap hidden>
             <span class="swap-label" aria-hidden="true">{{ t('swap_slide') }}</span>
             <span class="swap-fill" data-swap-fill aria-hidden="true"></span>
-            <span class="swap-thumb" data-swap-thumb role="slider" tabindex="0" aria-label="{{ t('swap_slide') }}"
+            <span class="swap-thumb" data-swap-thumb role="slider" tabindex="0" aria-label="{{ t('swap_slide') }}" aria-describedby="swap-desc" aria-orientation="horizontal"
                   aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">→</span>
           </div>
-          <button class="btn btn-accent btn-block" type="submit" data-swap-fallback>{{ t('swap_button') }}</button>
+          <button class="btn btn-accent btn-block" type="submit" aria-describedby="swap-desc" data-swap-fallback>{{ t('swap_button') }}</button>
         </form>
         <p class="small swap-warn">{{ t('swap_wait') }}</p>
         <a class="small" href="{{ url_for('order_page', public_id=order.public_id, report=1) }}#report">{{ t('swap_problem') }}</a>

@@ -1,6 +1,11 @@
 (function () {
   "use strict";
 
+  // Smooth scrolling only for people who haven't asked their device for less motion.
+  function scrollBehavior() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  }
+
   // Fade in posters once loaded (no inline onload handlers: the Content-Security-Policy forbids them).
   function faded(img) { img.classList.add("loaded"); }
   document.querySelectorAll("img[data-fade]").forEach(function (img) { if (img.complete && img.naturalWidth) faded(img); });
@@ -149,7 +154,7 @@
       if (empty) empty.remove();
       chat.insertAdjacentHTML("beforeend", html);
       var end = document.getElementById("end");
-      if (end) end.scrollIntoView({ block: "end", behavior: "smooth" });
+      if (end) end.scrollIntoView({ block: "end", behavior: scrollBehavior() });
     }
     function poll() {
       if (busy || document.hidden) return;
@@ -324,7 +329,7 @@
     if (box) {
       e.preventDefault();
       box.focus();
-      box.scrollIntoView({ block: "center", behavior: "smooth" });
+      box.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     } else if (sheet) {
       e.preventDefault();
       sheet.hidden = false;
@@ -585,7 +590,8 @@
     var fill = form.querySelector("[data-swap-fill]"), fallback = form.querySelector("[data-swap-fallback]");
     if (!track || !thumb) return;
     track.hidden = false;
-    if (fallback) fallback.hidden = true;
+    // The plain button stays in the page for keyboard and screen-reader users: out of sight until it gets focus (CSS .swap-alt).
+    if (fallback) fallback.classList.add("swap-alt");
     var x = 0, startX = 0, dragging = false, sent = false;
     function maxX() { return track.clientWidth - thumb.offsetWidth - 8; }
     function place(v, animate) {
@@ -594,7 +600,9 @@
       fill.classList.toggle("is-back", !!animate);
       thumb.style.left = (4 + x) + "px";
       fill.style.width = (x + thumb.offsetWidth + 4) + "px";
-      thumb.setAttribute("aria-valuenow", String(Math.round(maxX() ? x / maxX() * 100 : 0)));
+      var pct = Math.round(maxX() ? x / maxX() * 100 : 0);
+      thumb.setAttribute("aria-valuenow", String(pct));
+      thumb.setAttribute("aria-valuetext", pct + "%");
     }
     function finish() {
       if (sent) return;
@@ -676,7 +684,10 @@
     var pConfirm = phoneStep.querySelector("[data-phone-confirm]"), pNote = phoneStep.querySelector("[data-phone-note]");
     var pError = phoneStep.querySelector("[data-phone-error]"), pDone = phoneStep.querySelector("[data-phone-done]");
     var pCsrf = (sell.querySelector('input[name="_csrf"]') || {}).value || document.body.dataset.csrf || "";
-    var showPhoneError = function (text) { pError.textContent = text || ""; pError.hidden = !text; };
+    var showPhoneError = function (text) {
+      pError.textContent = text || ""; pError.hidden = !text;  // role="alert": the message is read out when it appears
+      [pInput, pCode].forEach(function (f) { if (text) f.setAttribute("aria-invalid", "true"); else f.removeAttribute("aria-invalid"); });
+    };
     var phoneCall = function (url, body, button) {
       showPhoneError("");
       button.disabled = true;
@@ -701,7 +712,8 @@
         phoneVerified = true;
         pCodeBox.hidden = true;
         phoneStep.querySelector("[data-phone-number]").hidden = true;
-        pDone.hidden = false;
+        pNote.textContent = "";
+        pDone.textContent = pDone.dataset.text || "";  // a live region that is already on the page, so it gets announced
       });
     });
     // Enter in these two fields goes to their own button, not to "Post ticket".

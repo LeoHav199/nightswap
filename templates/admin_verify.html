@@ -9,7 +9,7 @@
     <p class="muted">Open your authenticator app and enter the 6-digit code for Spare. Lost your phone? Enter one of your recovery codes instead.</p>
     <label class="field"><span class="label">Code</span>
       <input class="code-input" type="text" name="code" autocomplete="one-time-code" maxlength="12" required autofocus>
-      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}</label>
+      {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}</label>
     <button class="btn btn-accent btn-block btn-lg" type="submit">Open admin</button>
   </form>
 </div>

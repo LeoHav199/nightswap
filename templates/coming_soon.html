@@ -23,7 +23,7 @@
         <label class="field">
           <span class="label">{{ t('email') }}</span>
           <input type="email" name="email" value="{{ email }}" autocomplete="email" inputmode="email" required>
-          {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+          {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
         </label>
         <fieldset class="cs-interest">
           <legend class="label">{{ t('cs_interest') }}</legend>

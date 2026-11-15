@@ -1046,6 +1046,18 @@ a.credit:hover { color: #fff; text-decoration: underline; }
 .swap-warn { color: var(--warn); }
 .swap-done { color: var(--good); font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .swap-thumb.is-back, .swap-fill.is-back { transition: left .25s ease, width .25s ease; } }
+/* With JavaScript the plain Swap button is out of sight but stays in the tab order: a keyboard or screen-reader user reaches it, and it shows once focused. */
+.swap-alt:not(:focus):not(:active) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.swap-card form { position: relative; }
+
+/* Phone check in the sell form: the two live regions are on the page from the start and empty, so they take no room. */
+.phone-step [data-phone-note]:empty, .phone-step [data-phone-done]:empty { position: absolute; }
+
+/* Less motion, for people whose device asks for it: whatever still moves, fades or slides above is switched off here. */
+@media (prefers-reduced-motion: reduce) {
+  .sg-skeleton, .chat .msg:last-child { animation: none; }
+  .stub, .btn, .poster img, .poster.is-art img, .venue-hero img, .loadbar.done, .ptr { transition: none; }
+}
 
 /* Search sheet: the Search tab opens it over any page other than the homepage. */
 .search-sheet { position: fixed; inset: 0; z-index: 70; background: rgba(10, 9, 24, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);

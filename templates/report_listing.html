@@ -19,7 +19,7 @@
       <label class="field"><span class="label">{{ t('email') }}</span><input type="email" name="email" value="{{ request.form.get('email', '') }}" required>
         <span class="hint">{{ t('report_email_hint') }}</span></label>
     {% endif %}
-    {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+    {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
     <button class="btn btn-accent btn-block" type="submit">{{ t('report_send') }}</button>
     <p class="muted small center">{{ t('report_listing_note') }}</p>
   </form>
