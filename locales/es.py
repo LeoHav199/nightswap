@@ -240,6 +240,7 @@ STRINGS = {
     "see_all_nights": "Ver todas las noches",
     "event_sold_out": "Se han agotado todas las entradas de ese evento.",
     "incl_fee_short": "incl. {fee} de comisión",
+    "incl_fees": "comisión incluida",
     "yours": "Tuya",
     "event_fine": "Pagas al momento y descargas la entrada justo después. El vendedor no cobra hasta {hours} horas después de la fiesta, así que si una entrada no funciona, te devolvemos el dinero.",
     "add_poster": "Añadir el cartel del evento",

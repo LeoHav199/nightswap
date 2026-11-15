@@ -40,6 +40,7 @@
         <div class="stub-price">
           <span class="stub-count">{{ t('n_left', n=ev.count) if ev.count != 1 else t('one_left') }}</span>
           <strong>{{ (t('from') ~ ' ') if ev.count > 1 }}{{ money(with_fee(ev.min_price)) }}</strong>
+          <span class="stub-incl">{{ t('incl_fees') }}</span>
         </div>
       {% else %}
         <div class="stub-price stub-empty">
