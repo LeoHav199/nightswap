@@ -9,8 +9,8 @@
     <p class="muted">{% if sms_enabled %}{{ t('phone_verify_sub', phone=phone) }}{% else %}{{ t('phone_verify_sub_email', phone=phone, email=g.user.email) }}{% endif %}</p>
     <label class="field">
       <span class="label">{{ t('code') }}</span>
-      <input class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus>
-      {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+      <input class="code-input" type="text" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus{% if error %} aria-invalid="true" aria-describedby="code-error"{% endif %}>
+      {% if error %}<p class="field-error" id="code-error" role="alert">{{ error }}</p>{% endif %}
     </label>
     <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('verify') }}</button>
     <p class="small center"><a href="{{ url_for('phone') }}">{{ t('resend_or_change') }}</a></p>

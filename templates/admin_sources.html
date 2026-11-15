@@ -11,7 +11,7 @@
     {{ m.csrf() }}
     <label class="field"><span class="label">Name</span><input type="text" name="label" value="{{ label }}" placeholder="e.g. Flyers at Maassilo, ESN Instagram, Ambassador Sara" required maxlength="80"></label>
     <label class="field"><span class="label">Code in the link <span class="muted">(optional)</span></span><input type="text" name="slug" value="{{ slug }}" placeholder="e.g. maassilo" maxlength="32"></label>
-    {% if error %}<p class="field-error">{{ error }}</p>{% endif %}
+    {% if error %}<p class="field-error" role="alert">{{ error }}</p>{% endif %}
     <button class="btn btn-accent" type="submit">Make link + QR code</button>
   </form>
 

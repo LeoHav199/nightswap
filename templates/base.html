@@ -78,7 +78,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="wrap flashes">
-          {% for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+          {% for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="{{ 'alert' if cat == 'error' else 'status' }}">{{ msg }}</div>{% endfor %}
         </div>
       {% endif %}
     {% endwith %}
