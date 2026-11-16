@@ -196,8 +196,13 @@
     {% if changed and is_buyer and order.status == 'paid' %}
       <div class="notice">
         <p><strong>{{ t('event_changed') }}</strong> {{ changed.change_note }}</p>
+        {% if change_delivered %}
+        <p>{{ t('change_resell_offer') }}</p>
+        <a class="btn btn-ghost btn-sm" href="{{ resell_url }}">{{ t('change_resell_cta') }}</a>
+        {% else %}
         <p>{{ t('change_refund_offer', amount=money(order.total_cents)) }}</p>
         <form method="post" action="{{ url_for('change_refund', public_id=order.public_id) }}" data-confirm="{{ t('change_refund_confirm') }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('change_refund_cta') }}</button></form>
+        {% endif %}
       </div>
     {% endif %}
 

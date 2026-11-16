@@ -1839,6 +1839,8 @@ def order_page(public_id):
                   if tk["code_text"] and tk["code_format"] == "QR"] if order["status"] in PAID_STATES and g.user["id"] == order["buyer_id"] else [],
         changed=(lambda e: e if e and e["changed_at"] and order["paid_at"] and e["changed_at"] >= order["paid_at"] else None)(
             db.one("SELECT * FROM events WHERE id=?", listing["event_id"]) if listing["event_id"] else None),
+        change_delivered=ticket_delivered(order, listing),
+        resell_url=url_for("sell", event=listing["event_id"]) if listing["event_id"] else url_for("sell"),
         venue=get_venue(listing["venue"], listing["city"]),
         directions=directions_url(get_venue(listing["venue"], listing["city"])) if get_venue(listing["venue"], listing["city"]) else None,
         colour=venue_colour(listing["venue"]), is_buyer=is_buyer, is_seller=g.user["id"] == order["seller_id"],
@@ -4189,12 +4191,22 @@ def notify_event_change(event_id, note):
     """After a date/time change: tell ticket holders and sellers; buyers may ask for a refund."""
     e = db.one("SELECT * FROM events WHERE id=?", event_id)
     db.run("UPDATE events SET changed_at=?, change_note=? WHERE id=?", sqltime(utcnow()), note, event_id)
-    for o in db.all("""SELECT o.* FROM orders o JOIN listings l ON l.id = o.listing_id
+    for o in db.all("""SELECT o.*, l.delivery FROM orders o JOIN listings l ON l.id = o.listing_id
                        WHERE l.event_id=? AND o.status IN ('paid', 'disputed')""", event_id):
         db.run("UPDATE orders SET payout_due_at=? WHERE id=?", sqltime(payout_due_for(e["event_date"], o["seller_id"])), o["id"])
         path = url_for("order_page", public_id=o["public_id"])
-        tell(o["buyer_id"], t("mail_changed_subject", title=e["name"]), t("mail_changed_buyer", title=e["name"], note=note), path)
-        tell(o["seller_id"], t("mail_changed_subject", title=e["name"]), t("mail_changed_seller", title=e["name"], note=note), path)
+        kept = "_kept" if ticket_delivered(o, o) else ""  # a delivered ticket can't be refunded, only sold again
+        tell(o["buyer_id"], t("mail_changed_subject", title=e["name"]), t("mail_changed_buyer" + kept, title=e["name"], note=note), path)
+        tell(o["seller_id"], t("mail_changed_subject", title=e["name"]), t("mail_changed_seller" + kept, title=e["name"], note=note), path)
+
+
+def ticket_delivered(order, listing):
+    """Does the buyer already have the ticket? A file (and its QR) is on the order page the moment it's paid;
+    an app ticket only once the seller has transferred it. A delivered ticket is never refunded after an event
+    change: the buyer would keep a working ticket while the same ticket went back on sale (security review, 16 Nov 2026)."""
+    if listing["delivery"] == "transfer":
+        return bool(order["transferred_at"] or order["received_at"])
+    return True
 
 
 @app.route("/orders/<public_id>/change-refund", methods=["POST"])
@@ -4204,9 +4216,10 @@ def change_refund(public_id):
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
     e = db.one("SELECT * FROM events WHERE id=?", listing["event_id"]) if listing["event_id"] else None
     if (order["buyer_id"] != g.user["id"] or order["status"] != "paid" or not e or not e["changed_at"]
-            or not order["paid_at"] or e["changed_at"] < order["paid_at"] or e["event_date"] < today().isoformat()):
+            or not order["paid_at"] or e["changed_at"] < order["paid_at"] or e["event_date"] < today().isoformat()
+            or ticket_delivered(order, listing)):
         abort(400)
-    # The ticket is still valid for the new date, so it goes back on sale for the seller.
+    # The ticket was never delivered and is still valid for the new date, so it goes back on sale for the seller.
     if not refund_order(order, "refund_changed", ticket_status="available"):
         abort(400)  # already being refunded or paid out
     db.run("UPDATE listings SET status='active' WHERE id=? AND status='sold'", listing["id"])

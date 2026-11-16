@@ -71,6 +71,8 @@ for c in (buyer, buyer2):
     r = c.post("/t/%d/buy" % lids[1 if c is buyer else 2], data={"_csrf": csrf(c)}); c.post(r.location, data={"_csrf": csrf(c)})
 with app.app_context(): orders = {o["buyer_id"]: o for o in A.db.all("SELECT * FROM orders WHERE status='paid'")}
 NEW = (date.today() + timedelta(days=9)).isoformat()
+with app.app_context():  # the first buyer's ticket is an app ticket not yet transferred; the second buyer's is a file (delivered at payment)
+    A.db.run("UPDATE listings SET delivery='transfer', transfer_app='Ticketmaster' WHERE id=?", lids[1])
 SENT.clear()
 admin.post("/admin/events/save", data={"face_value_max": "500", "id": ev["id"], "name": "Big Night", "venue": "Maassilo", "category": "club", "event_date": NEW, "door_time": "23:00", "_csrf": csrf(admin)})
 ok(sum(1 for to, s, _ in SENT if s.startswith("Changed:")) == 4, "date change emails both buyers and both sellers")
@@ -83,6 +85,21 @@ buyer.post("/orders/%s/change-refund" % o1["public_id"], data={"_csrf": csrf(buy
 with app.app_context():
     ok(A.db.one("SELECT status FROM orders WHERE id=?", o1["id"])["status"] == "refunded", "buyer refunded after the change")
     ok(A.db.one("SELECT status FROM listings WHERE id=?", lids[1])["status"] == "active", "the ticket goes back on sale for the seller")
+# Security review 16 Nov 2026: a delivered ticket (a file is delivered at payment) can't be refunded after a change,
+# or the buyer would keep a working ticket while the same ticket went back on sale.
+with app.app_context(): o2 = A.db.one("SELECT * FROM orders WHERE buyer_id=(SELECT id FROM users WHERE email='c@test.nl')")
+page2 = html(buyer2.get("/orders/%s" % o2["public_id"]))
+ok("This event changed" in page2 and "Sell my ticket" in page2 and "Get a full refund" not in page2, "a buyer holding a ticket file is offered resale, not a refund")
+r = buyer2.post("/orders/%s/change-refund" % o2["public_id"], data={"_csrf": csrf(buyer2)})
+with app.app_context():
+    ok(r.status_code == 400 and A.db.one("SELECT status FROM orders WHERE id=?", o2["id"])["status"] == "paid", "a delivered ticket can't be refunded after the change")
+ok(any("The buyer keeps the ticket" in b for _, s_, b in SENT if s_.startswith("Changed:")), "the seller of a delivered ticket is told the buyer keeps it")
+with app.app_context():
+    A.db.run("UPDATE orders SET status='paid' WHERE id=?", o1["id"])  # pretend o1 again, now transferred
+    A.db.run("UPDATE orders SET transferred_at=? WHERE id=?", A.sqltime(A.utcnow()), o1["id"])
+r = buyer.post("/orders/%s/change-refund" % o1["public_id"], data={"_csrf": csrf(buyer)})
+ok(r.status_code == 400, "an app ticket can't be refunded after the change once the seller has transferred it")
+with app.app_context(): A.db.run("UPDATE orders SET status='refunded' WHERE id=?", o1["id"])
 
 # ---- Cancel the event: everyone refunded
 REFUNDS.clear()
