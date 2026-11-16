@@ -317,10 +317,21 @@ OPEN_WHILE_COMING_SOON = {
 }
 
 
+# Robots, link previews (WhatsApp, Telegram, iMessage fetch a page when a link is posted) and monitors aren't people.
+BOT_RE = re.compile(r"bot|crawl|spider|slurp|scrap|preview|facebookexternalhit|whatsapp|telegram|discord|skype|"
+                    r"embedly|monitor|pingdom|headless|lighthouse|curl|wget|python|httpx|okhttp|go-http|java/|"
+                    r"libwww|axios|node-fetch|feedfetcher|validator", re.I)
+
+
+def is_bot():
+    ua = request.headers.get("User-Agent", "")
+    return not ua or bool(BOT_RE.search(ua))
+
+
 def track_source():
     """Remembers which marketing link (?from=esn) brought this visitor, and counts the visit once per session."""
     src = request.args.get("from", "").strip().lower()
-    if request.method != "GET" or not SOURCE_RE.match(src):
+    if request.method != "GET" or not SOURCE_RE.match(src) or is_bot():
         return
     seen = session.get("seen_sources", [])
     if src not in seen and len(seen) < 10:
@@ -328,6 +339,52 @@ def track_source():
                   ON CONFLICT(source, day) DO UPDATE SET visits = visits + 1""", src, today().isoformat())
         session["seen_sources"] = seen + [src]
     session.setdefault("source", src)  # the first link wins
+
+
+# Visit counts (16 Nov 2026, so Leo sees whether a WhatsApp post brings people in): counted on our own server, no
+# third-party scripts and no cookie banner. Only daily totals go into site_stats; the one thing kept per visitor is
+# today's date in the session Spare already uses ("vd"), so a visitor counts once a day. Older than 180 days: deleted.
+STATS_KEEP_DAYS = 180
+STATS_DAYS_SHOWN = 14
+PAGE_KINDS = {"index": "home", "event_page": "event", "listing_page": "listing", "sell": "sell",
+              "how": "how", "help_page": "help"}
+PAGE_KIND_LABELS = [("home", "Home"), ("event", "Event pages"), ("listing", "Ticket pages"), ("sell", "Sell"),
+                    ("how", "How it works"), ("help", "Help"), ("other", "Other pages")]
+STATS_SKIP = {"static", "health", "hourly_tasks", "stripe_webhook", "service_worker", "manifest", "robots", "sitemap",
+              "jarvis_feed", "emails_stop", "waitlist_leave"}
+
+
+def bump_stats(*kinds):
+    """Adds 1 to today's count for each kind. Never breaks the request it's part of."""
+    try:
+        conn = db.get()
+        day = today().isoformat()
+        conn.executemany("""INSERT INTO site_stats (day, kind, n) VALUES (?, ?, 1)
+                            ON CONFLICT(day, kind) DO UPDATE SET n = n + 1""", [(day, k) for k in kinds])
+        conn.commit()
+    except Exception:
+        app.logger.warning("Visit count failed", exc_info=True)
+        try:
+            db.get().rollback()
+        except Exception:
+            pass
+
+
+def count_page_view(resp):
+    """One page view per real page shown to a person; a new visitor the first time a session is seen today."""
+    try:
+        ep = request.endpoint or ""
+        if (request.method != "GET" or resp.status_code != 200 or resp.mimetype != "text/html" or not ep
+                or ep in STATS_SKIP or ep.startswith("admin") or g.get("is_admin") or is_bot()):
+            return
+        kinds = ["view_" + PAGE_KINDS.get(ep, "other")]
+        day = today().isoformat()
+        if session.get("vd") != day:
+            session["vd"] = day
+            kinds.append("visitors")
+        bump_stats(*kinds)
+    except Exception:
+        app.logger.warning("Visit count failed", exc_info=True)
 
 
 def coming_soon_on():
@@ -576,6 +633,7 @@ def mark_paid(order, payment_intent=None):
         sqltime(utcnow()), sqltime(due), payment_intent, order["id"],
     )
     db.run("UPDATE tickets SET status='sold' WHERE order_id=? AND status='held'", order["id"])
+    bump_stats("paid")
     update_listing_status(listing["id"])
     if order["offer_id"]:
         db.run("UPDATE offers SET status='used' WHERE id=?", order["offer_id"])
@@ -1084,6 +1142,8 @@ def security_headers(resp):
     resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
     if not config.DEV:
         resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    if "lang" in g:  # the request setup ran (not /health or a redirect to the right address)
+        count_page_view(resp)
     return resp
 
 
@@ -1742,6 +1802,7 @@ def buy(listing_id):
         flash(t("err_unavailable"), "error")
         return redirect(back)
     order = db.one("SELECT * FROM orders WHERE id=?", order_id)
+    bump_stats("checkout")
 
     if not payments.live():
         return redirect(url_for("test_checkout", public_id=public_id))
@@ -3750,6 +3811,33 @@ def source_link(slug):
     return base_url() + url_for("index", **{"from": slug})
 
 
+@app.route("/admin/stats")
+@admin_required
+def admin_stats():
+    """Visitors per day (last 14 days) and visits per marketing link. Totals only, nothing about who visited."""
+    days = [today() - timedelta(days=i) for i in range(STATS_DAYS_SHOWN)]
+    first = days[-1].isoformat()
+    counts = {}
+    for r in db.all("SELECT day, kind, n FROM site_stats WHERE day >= ?", first):
+        counts.setdefault(r["day"], {})[r["kind"]] = r["n"]
+    rows = []
+    for d in days:
+        c = counts.get(d.isoformat(), {})
+        rows.append({"day": d, "visitors": c.get("visitors", 0),
+                     "views": sum(v for k, v in c.items() if k.startswith("view_")),
+                     "listing": c.get("view_listing", 0), "checkout": c.get("checkout", 0), "paid": c.get("paid", 0)})
+    totals = {k: sum(r[k] for r in rows) for k in ("visitors", "views", "listing", "checkout", "paid")}
+    pages = [(label, sum(counts.get(d.isoformat(), {}).get("view_" + kind, 0) for d in days)) for kind, label in PAGE_KIND_LABELS]
+    labels = {r["slug"]: r["label"] for r in db.all("SELECT slug, label FROM sources")}
+    links = [{"slug": r["source"], "label": labels.get(r["source"]), "today": r["today"], "recent": r["recent"], "all": r["n"]}
+             for r in db.all("""SELECT source, SUM(visits) AS n, SUM(CASE WHEN day >= ? THEN visits ELSE 0 END) AS recent,
+                                       SUM(CASE WHEN day = ? THEN visits ELSE 0 END) AS today
+                                FROM source_visits GROUP BY source ORDER BY recent DESC, n DESC, source""",
+                             first, today().isoformat())]
+    return render_template("admin_stats.html", rows=rows, totals=totals, pages=pages, links=links,
+                           days_shown=STATS_DAYS_SHOWN, keep_days=STATS_KEEP_DAYS)
+
+
 @app.route("/admin/sources", methods=["GET", "POST"])
 @admin_required
 def admin_sources():
@@ -4676,7 +4764,9 @@ def hourly_tasks():
     run("cleanup", cleanup_ticket_files)
     run("disk", check_disk)
     run("tidy", lambda: (db.run("DELETE FROM hits WHERE created_at < ?", sqltime(utcnow() - timedelta(days=1))),
-                         db.run("DELETE FROM codes WHERE expires_at < ?", sqltime(utcnow()))) and None)  # expired codes (privacy policy)
+                         db.run("DELETE FROM codes WHERE expires_at < ?", sqltime(utcnow())),
+                         db.run("DELETE FROM site_stats WHERE day < ?", (today() - timedelta(days=STATS_KEEP_DAYS)).isoformat()))
+                         and None)  # expired codes (privacy policy), visit counts older than 180 days
     set_setting("hourly_last_run", sqltime(utcnow()))  # #42: shown on /admin's launch check
     run("prices", fill_official_prices)  # last: it fetches other websites, within a time budget
     released, waiting = results.get("payouts") or (0, 0)

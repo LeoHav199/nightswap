@@ -269,6 +269,15 @@ CREATE TABLE IF NOT EXISTS source_visits (
   PRIMARY KEY (source, day)
 );
 
+-- Visit counts (16 Nov 2026): one number per day per kind, e.g. ('2026-11-16', 'view_home', 41). No cookies of their
+-- own, no IP addresses, no user ids: only totals. Kinds: visitors, view_<page type>, checkout, paid. Kept 180 days.
+CREATE TABLE IF NOT EXISTS site_stats (
+  day  TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  n    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, kind)
+) WITHOUT ROWID;
+
 -- #24: phone numbers of blocked users can't be verified again (a new email isn't a new person)
 CREATE TABLE IF NOT EXISTS blocked_phones (
   phone      TEXT PRIMARY KEY,

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Visitors · Admin · Spare{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Visitors</h1><p class="muted">How many people came to Spare each day, and how far they got. Counted on our own server: no cookie banner, no outside scripts, nothing about who they are.</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+</div>
+<div class="wrap account">
+  <section class="panel">
+    <h2>Last {{ days_shown }} days</h2>
+    <div class="stats-scroll">
+      <table class="stats-table">
+        <thead><tr><th scope="col">Day</th><th scope="col">Visitors</th><th scope="col">Pages seen</th><th scope="col">Ticket pages</th><th scope="col">Checkouts started</th><th scope="col">Orders paid</th></tr></thead>
+        <tbody>
+          {% for r in rows %}
+          <tr{% if loop.first %} class="stats-today"{% endif %}><th scope="row">{% if loop.first %}Today{% elif loop.index == 2 %}Yesterday{% else %}{{ r.day.strftime('%a %d %b') }}{% endif %}</th><td>{{ r.visitors }}</td><td>{{ r.views }}</td><td>{{ r.listing }}</td><td>{{ r.checkout }}</td><td>{{ r.paid }}</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot><tr><th scope="row">Total</th><td>{{ totals.visitors }}</td><td>{{ totals.views }}</td><td>{{ totals.listing }}</td><td>{{ totals.checkout }}</td><td>{{ totals.paid }}</td></tr></tfoot>
+      </table>
+    </div>
+    <p class="muted small"><strong>Visitors</strong>: each phone or laptop counts once a day. <strong>Ticket pages</strong>: someone opened a ticket for sale. <strong>Checkouts started</strong>: someone pressed Buy. Robots, link previews (like WhatsApp's) and admins aren't counted.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Which pages (last {{ days_shown }} days)</h2>
+    <table class="stats-table stats-narrow">
+      <tbody>{% for label, n in pages %}<tr><th scope="row">{{ label }}</th><td>{{ n }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="links">
+    <h2>Visits per marketing link</h2>
+    {% if links %}
+    <div class="stats-scroll">
+      <table class="stats-table">
+        <thead><tr><th scope="col">Link</th><th scope="col">Today</th><th scope="col">Last {{ days_shown }} days</th><th scope="col">All time</th></tr></thead>
+        <tbody>{% for l in links %}<tr><th scope="row">{{ l.label or l.slug }} <span class="muted small">?from={{ l.slug }}</span></th><td>{{ l.today }}</td><td>{{ l.recent }}</td><td>{{ l.all }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% else %}<p class="muted">No visits through a link yet.</p>{% endif %}
+    <p class="muted small">Make one link per WhatsApp post at <a href="{{ url_for('admin_sources') }}">Links &amp; QR codes</a>. A visit counts once per browser session.</p>
+  </section>
+  <p class="muted small">Day counts are deleted after {{ keep_days }} days.</p>
+</div>
+{% endblock %}

@@ -1104,3 +1104,13 @@ body.has-search-sheet { overflow: hidden; }
 /* Sell form: Today / Tomorrow / the next two days, above the date picker. */
 .date-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .date-chips .chip.is-on { border-color: var(--accent); background: rgba(212, 255, 58, .08); }
+
+/* Admin visitor counts (/admin/stats) */
+.stats-scroll { overflow-x: auto; margin: 0 -4px; }
+.stats-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.stats-table th, .stats-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.stats-table th[scope="row"], .stats-table thead th:first-child { text-align: left; font-weight: 500; }
+.stats-table thead th { font-size: 13px; color: var(--muted); font-weight: 500; }
+.stats-table tfoot th, .stats-table tfoot td { font-weight: 700; border-bottom: 0; }
+.stats-today td, .stats-today th { color: var(--accent); }
+.stats-narrow { max-width: 360px; }
