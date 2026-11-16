@@ -117,6 +117,10 @@
       {% if not user %}<p class="muted small center">{{ t('login_to_buy') }}</p>{% endif %}
       {% if l.name_on_ticket %}<p class="name-answer small"><strong>{{ t('q_name') }}</strong> {{ t('name_shown_' ~ l.name_on_ticket) }}</p>{% endif %}
       <p class="muted small">{{ t('private_seller_note') }}</p>
+      <div class="door-box">
+        <strong>{{ t('door_title') }}</strong>
+        <p>{% if l.delivery != 'transfer' %}{{ t('door_dup') }} {% endif %}{{ t('door_steps') }} <a href="{{ url_for('help_page') }}#door">{{ t('door_more') }} →</a></p>
+      </div>
       <p class="muted small">{{ t('help_fast') }} <a href="mailto:hello@sparetickets.eu">hello@sparetickets.eu</a></p>
       <ul class="assurances">
         <li>{{ t('assure_instant') }}</li>

@@ -308,6 +308,10 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .check::before { content: "✓ "; }
 .buy-box { position: sticky; top: 24px; }
 .pay-methods { text-align: center; font-size: 13px; color: var(--faint); margin: 10px 0 0; }
+.door-box { margin: 16px 0; padding: 14px 16px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--line-strong); font-size: 14px; }
+.door-box strong { display: block; margin-bottom: 4px; }
+.door-box p { margin: 0; color: var(--muted); }
+.door-box a { color: var(--text); }
 .assurances { list-style: none; padding: 16px 0 0; margin: 16px 0 0; border-top: 1px solid var(--line); display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
 
 .notice { background: #1d1709; border-radius: var(--radius-sm); padding: 14px 16px; margin: 20px 0; color: #f0dcae; font-size: 15px; }
@@ -1070,7 +1074,7 @@ body.has-search-sheet { overflow: hidden; }
 
 /* About page and the "made by students" line under the homepage lead. */
 .made-by { margin-top: 10px; font-size: 14px; }
-.made-by a { color: var(--muted); text-decoration: none; }
+.made-by a { color: var(--text); text-decoration: none; }
 .made-by a:hover { color: var(--accent); }
 .about { display: grid; gap: 18px; max-width: 760px; padding-bottom: 48px; }
 .about h2 { font-size: 20px; margin-bottom: 10px; }

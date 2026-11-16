@@ -158,6 +158,10 @@ STRINGS = {
         "assure_instant": "Download your ticket right after paying",
         "assure_refund": "Full refund if it doesn't work, report by {date}",
         "assure_hold": "The seller is only paid after the event",
+        "door_title": "Ticket doesn't work at the door?",
+        "door_dup": "Every ticket on Spare is checked against all other tickets by its QR code or barcode, so the same ticket can't be sold twice here.",
+        "door_steps": "If it still doesn't work, don't slide Swap: report it on the night. The seller isn't paid, and if the ticket was already used or sold twice, you get the full amount back. Refunds usually show within 5 working days.",
+        "door_more": "What to do at the door",
 
         "sell_title": "Sell a ticket",
         "sell_sub": "Takes about a minute. You see what you'll receive before you post.",
@@ -974,6 +978,10 @@ STRINGS = {
         "assure_instant": "Download je ticket direct na betaling",
         "assure_refund": "Geld terug als hij niet werkt, meld het vóór {date}",
         "assure_hold": "De verkoper krijgt pas na het evenement betaald",
+        "door_title": "Werkt je ticket niet aan de deur?",
+        "door_dup": "Elk ticket op Spare wordt via de QR-code of barcode vergeleken met alle andere tickets, dus hetzelfde ticket kan hier niet twee keer verkocht worden.",
+        "door_steps": "Werkt het toch niet? Schuif dan niet Swap, maar meld het nog die avond. De verkoper krijgt niets, en als het ticket al gebruikt of dubbel verkocht was, krijg je het volledige bedrag terug. Een terugbetaling staat meestal binnen 5 werkdagen op je rekening.",
+        "door_more": "Wat je aan de deur doet",
 
         "sell_title": "Ticket verkopen",
         "sell_sub": "Duurt ongeveer een minuut. Je ziet vooraf wat je ontvangt.",

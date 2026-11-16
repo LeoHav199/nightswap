@@ -27,7 +27,7 @@ c = app.test_client()
 r = c.get("/help")
 page = html(r)
 ok(r.status_code == 200 and "<h1>Help</h1>" in page, "/help opens")
-ok(page.count("<details id=") == 8, "eight questions (%d)" % page.count("<details id="))
+ok(page.count("<details id=") == 9, "nine questions (%d)" % page.count("<details id="))
 ok("before 06:00" in page and "after Swap you can't report a problem at the door any more" in page,
    "it states the 06:00 limit and that Swap ends door reports")
 ok("%d hours to answer" % A.DISPUTE_REPLY_HOURS in page, "the seller's reply time comes from the code")
@@ -45,8 +45,8 @@ names = {"nl": "Hulp", "fr": "Aide", "de": "Hilfe", "es": "Ayuda"}
 for code, word in names.items():
     c.get("/lang/%s?next=/" % code)
     p = html(c.get("/help"))
-    ok("<h1>%s</h1>" % word in p and p.count("<details id=") == 8 and "hello@sparetickets.eu" in p,
-       "/help in %s, with all eight questions" % code)
+    ok("<h1>%s</h1>" % word in p and p.count("<details id=") == 9 and "hello@sparetickets.eu" in p,
+       "/help in %s, with all nine questions" % code)
     ok(i18n.t(code, "help_contact") != i18n.t("en", "help_contact"), "the contact line is translated (%s)" % code)
 c.get("/lang/nl?next=/")
 ok("vóór 06:00" in html(c.get("/help")), "the Dutch page states the 06:00 limit")
@@ -85,3 +85,6 @@ ok("is-door" in door_page and 'href="/help">Help and answers' in door_page, "doo
 ok('id="tickets"' in html(buyer.get("/account")), "the account page has the #tickets anchor the help page links to")
 
 print("\n%d failed" % len(fails))
+
+# Trust fixes (16 Nov 2026): "Why not TicketSwap?" in the FAQ, and the door box on listing pages
+ok('id="ticketswap"' in page and "TicketSwap" in page, "FAQ answers why Spare and not TicketSwap")
