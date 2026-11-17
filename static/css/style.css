@@ -1115,3 +1115,18 @@ body.has-search-sheet { overflow: hidden; }
 .stats-table tfoot th, .stats-table tfoot td { font-weight: 700; border-bottom: 0; }
 .stats-today td, .stats-today th { color: var(--accent); }
 .stats-narrow { max-width: 360px; }
+
+/* Payout explainer before Stripe (17 Nov 2026) */
+.po-time { justify-self: start; font-size: 13px; font-weight: 600; background: var(--surface-2); border-radius: 999px; padding: 4px 12px; }
+.po-box { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); }
+.po-box h2 { font-size: 15px; font-weight: 700; margin: 0; }
+.po-box p { margin: 0; }
+.po-have { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.po-have li { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 13px; font-weight: 600; text-align: center; }
+.po-have svg, .po-why svg { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 1.7; }
+.po-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; }
+.po-steps li::marker { color: var(--accent); font-weight: 700; }
+.po-steps span { color: var(--muted); }
+.po-why { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; margin: 0; font-size: 14px; color: var(--muted); }
+.po-why svg { width: 18px; height: 18px; stroke-width: 2; margin-top: 2px; }
+.po-later { justify-self: center; font-size: 14px; color: var(--muted); }

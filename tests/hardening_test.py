@@ -684,7 +684,7 @@ payments.live, payments.payout_onboarding_url = real_live, real_onboard
 with app.app_context(): nl1 = A.db.one("SELECT * FROM listings l JOIN users u ON u.id = l.seller_id WHERE u.email='newbie@test.nl' ORDER BY l.id DESC")
 ok(nl1["status"] == "draft" and nl1["no_double_sell_at"] and "/account/payouts" in r.location, "#28 a new seller's listing waits for payout setup and they're sent to set it up")
 ok(buyer.get("/t/%d" % nl1["id"]).status_code == 404, "#28 ...and buyers can't see it yet")
-newbie.get("/account/payouts")  # (development: payout setup completes straight away)
+newbie.get("/account/payouts/start")  # (development: payout setup completes straight away)
 with app.app_context(): ok(A.db.one("SELECT status FROM listings WHERE id=?", nl1["id"])["status"] == "active", "#28 once payouts are set up, it goes on sale")
 r = newbie_sells(2)
 ok(r.status_code == 200 and "2 tickets on sale at a time" in html(r), "#28 new sellers can have at most 2 tickets on sale")

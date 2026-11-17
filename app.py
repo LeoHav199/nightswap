@@ -3395,13 +3395,24 @@ def account():
 @app.route("/account/payouts")
 @login_required
 def payouts_setup():
+    """A short Spare page before Stripe: how long it takes, what to have ready, what Stripe asks and why (17 Nov 2026,
+    after sellers found Stripe's forms confusing without warning). Its button goes to payouts_start."""
+    if g.user["payouts_ready"]:
+        return redirect(url_for("account"))
+    return render_template("payouts.html")
+
+
+@app.route("/account/payouts/start")
+@login_required
+def payouts_start():
+    """Sends the seller to Stripe's hosted payout setup (also Stripe's refresh link, so a timed-out link goes straight back)."""
     if not payments.live():
         set_payouts_ready(g.user["id"])
         flash(t("payouts_test_ok"), "ok")
         return redirect(url_for("account"))
     try:
         account_id, url = payments.payout_onboarding_url(
-            g.user, base_url() + url_for("payouts_return"), base_url() + url_for("payouts_setup"),
+            g.user, base_url() + url_for("payouts_return"), base_url() + url_for("payouts_start"),
         )
     except Exception:
         app.logger.exception("Stripe onboarding failed")
