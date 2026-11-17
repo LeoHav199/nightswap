@@ -48,6 +48,9 @@ def create_checkout(order, title, buyer_email, success_url, cancel_url, ideal_on
         extra["payment_method_options"] = {"card": {"request_three_d_secure": "any"}}
     session = stripe.checkout.Session.create(
         mode="payment",  # payment methods (iDEAL, card) are chosen in Dashboard → Settings → Payment methods
+        # Always euros (17 Nov 2026): Stripe's Adaptive Pricing showed dollars to a buyer whose connection looked
+        # foreign, and iDEAL only works in euros, so it disappeared too.
+        adaptive_pricing={"enabled": False},
         **extra,
         customer_email=buyer_email,
         line_items=items,
