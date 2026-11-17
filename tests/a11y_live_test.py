@@ -7,6 +7,7 @@ from datetime import date, timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False; config.ADMIN_EMAILS = {"admin@example.com"}
+config.SMS_ENABLED = True  # section 4 checks the text-message code step (without SMS the number is just typed in)
 config.STRIPE_SECRET_KEY = ""; tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up"); config.INSTANCE_DIR = tmp
 config.DATA_DIR = tmp

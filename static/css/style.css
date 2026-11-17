@@ -1130,3 +1130,13 @@ body.has-search-sheet { overflow: hidden; }
 .po-why { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; margin: 0; font-size: 14px; color: var(--muted); }
 .po-why svg { width: 18px; height: 18px; stroke-width: 2; margin-top: 2px; }
 .po-later { justify-self: center; font-size: 14px; color: var(--muted); }
+
+/* Short buy box (17 Nov 2026): one promise line, the rest in "How you're protected" */
+.buy-promise { margin: 14px 0 0; font-size: 14px; font-weight: 600; text-align: center; }
+.protect { margin: 10px 0 0; border-top: 1px solid var(--line); padding-top: 10px; }
+.protect summary { cursor: pointer; text-align: center; font-size: 14px; color: var(--muted); list-style: none; }
+.protect summary::-webkit-details-marker { display: none; }
+.protect summary::after { content: " ▾"; }
+.protect[open] summary::after { content: " ▴"; }
+.protect summary:hover { color: var(--text); }
+.protect .assurances { border-top: 0; margin-top: 4px; }

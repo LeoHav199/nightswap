@@ -43,15 +43,14 @@ def sell_form_problems(page, lang):
             problems.append("%s is missing" % attr)
         elif float(m.group(1)) != float(value):
             problems.append("%s is %s, the setting is %s" % (attr, m.group(1), value))
-    line = re.search(r'<dd data-seller-fee data-label="([^"]*)">([^<]*)</dd>', page)
+    # The fee rule is one line under the summary; the summary row shows the amount once a price is typed (17 Nov 2026).
+    line = re.search(r'<p class="muted small">%s: ([^<]*)</p>' % re.escape(htmllib.escape(i18n.t(lang, "your_fee"), quote=False)), page) \
+        or re.search(r'<p class="muted small">[^<:]*: ([^<]*)</p>\s*<p class="muted small buyer-pays-line">', page)
     label = seller_label(lang)
     if not line:
         problems.append("the seller fee line is missing")
-    else:
-        if htmllib.unescape(line.group(1)) != label:
-            problems.append("data-label is '%s', expected '%s'" % (htmllib.unescape(line.group(1)), label))
-        if htmllib.unescape(line.group(2)).strip() != label:
-            problems.append("the fee line says '%s', expected '%s'" % (htmllib.unescape(line.group(2)).strip(), label))
+    elif htmllib.unescape(line.group(1)).strip() != label:
+        problems.append("the fee line says '%s', expected '%s'" % (htmllib.unescape(line.group(1)).strip(), label))
     return problems
 
 SELLERS = {}  # one signed-in seller per language, reused (sign-in codes are rate limited)

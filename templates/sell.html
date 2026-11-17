@@ -191,15 +191,22 @@
       </label>
     </details>
 
-    <label class="consent"><input type="checkbox" name="no_double_sell" value="yes" {{ 'checked' if form.get('no_double_sell') == 'yes' }} required><span>{{ t('no_double_sell') }}</span></label>
+    {# A first-time seller gets one checkbox for both promises (17 Nov 2026); after that only the double-selling one. #}
+    {% if not user.adult_confirmed_at %}<input type="hidden" name="consent_all" value="1">{% endif %}
+    <label class="consent"><input type="checkbox" name="no_double_sell" value="yes" {{ 'checked' if form.get('no_double_sell') == 'yes' }} required><span>{{ t('consent_all') if not user.adult_confirmed_at else t('no_double_sell') }}</span></label>
     {{ m.field_error(errors, 'no_double_sell') }}
+    {{ m.field_error(errors, 'adult') }}
     {% if new_seller %}<p class="muted small new-seller-note">{{ t('new_seller_note', n=new_seller_max, hours=new_seller_hours, sales=new_seller_sales) }}</p>{% endif %}
-    {% if not user.adult_confirmed_at %}
-      <label class="consent"><input type="checkbox" name="adult" value="yes" {{ 'checked' if form.get('adult') == 'yes' }} required><span>{{ t('adult_confirm') }}</span></label>
-      {{ m.field_error(errors, 'adult') }}
-    {% endif %}
-    {# Last step: confirm the phone (only the first time). The code is checked from this page, so the files stay in the form. #}
-    {% if not phone_ok %}
+    {# Last step, first time only: the phone. Without text messages it's just the number (17 Nov 2026); with them, a code
+       checked from this page, so the files stay in the form. #}
+    {% if not phone_ok and not phone_by_code and not phone_sms_needed %}
+    <label class="field">
+      <span class="label">{{ t('sell_phone_label_plain') }}</span>
+      <input type="tel" name="phone" value="{{ phone_raw }}" autocomplete="tel" inputmode="tel" placeholder="06 12345678" required{% if errors.get('phone') %} aria-invalid="true" aria-describedby="phone-error"{% endif %}>
+      <span class="hint">{{ t('phone_sub_plain') }}</span>
+      {% if errors.get('phone') %}<p class="field-error" id="phone-error" role="alert">{{ errors.get('phone') }}</p>{% endif %}
+    </label>
+    {% elif not phone_ok %}
     <fieldset class="field phone-step" data-phone-step data-send="{{ url_for('phone_send') }}" data-check="{{ url_for('phone_check') }}" data-needed="{{ t('err_phone_first') }}" data-fail="{{ t('err_phone_network') }}">
       <legend class="label">{{ t('sell_phone_label') }}</legend>
       {% if phone_sms_needed %}
@@ -233,9 +240,10 @@
     <h2 class="panel-title">{{ t('summary_title') }}</h2>
     <dl class="breakdown">
       <div><dt>{{ t('sum_your_price') }}</dt><dd data-sum-price>–</dd></div>
-      <div><dt>{{ t('your_fee') }}</dt><dd data-seller-fee data-label="{{ seller_fee_label }}">{{ seller_fee_label }}</dd></div>
+      <div><dt>{{ t('your_fee') }}</dt><dd data-seller-fee>–</dd></div>
       <div class="breakdown-total"><dt>{{ t('you_receive') }}</dt><dd data-receive>–</dd></div>
     </dl>
+    <p class="muted small">{{ t('your_fee') }}: {{ seller_fee_label }}</p>
     <p class="muted small buyer-pays-line">{{ t('buyer_pays') }} <strong data-buyer-pays>–</strong> <span data-buyer-note data-template="{{ t('sum_buyer_incl', fee='{fee}') }}"></span></p>
     <ol class="steps-mini">
       <li>{{ t('sell_step_1_payouts') if not user.payouts_ready else t('sell_step_1') }}</li>

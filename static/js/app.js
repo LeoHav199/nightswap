@@ -741,7 +741,7 @@
   function update() {
     var p = cents(price.value), f = cents(face.value);
     receives.forEach(function (el) { el.textContent = p ? money(p - sellerFeeFor(p, f)) : "–"; });
-    if (sellerFeeBox) sellerFeeBox.textContent = p ? "−" + money(sellerFeeFor(p, f)) : sellerFeeBox.dataset.label;
+    if (sellerFeeBox) sellerFeeBox.textContent = p ? "−" + money(sellerFeeFor(p, f)) : "–";  // the fee rule itself is under the summary
     buyerPays.textContent = p ? money(p + feeFor(p)) : "–";
     var sumPrice = document.querySelector("[data-sum-price]"), buyerNote = document.querySelector("[data-buyer-note]");
     if (sumPrice) sumPrice.textContent = p ? money(p) : "–";
@@ -750,9 +750,12 @@
     price.setAttribute("aria-invalid", over ? "true" : "false");
     price.style.borderColor = over ? "var(--bad)" : "";
   }
-  // Pre-fill the price with the face value: the most common case is selling at cost.
-  face.addEventListener("change", function () {
-    if (!price.value && cents(face.value)) { price.value = face.value; update(); }
+  // Pre-fill the price with the face value: the most common case is selling at cost. It follows the face value as
+  // it's typed until the seller changes the price themselves (17 Nov 2026).
+  var priceTouched = !!price.value;
+  price.addEventListener("input", function () { priceTouched = true; });
+  face.addEventListener("input", function () {
+    if (!priceTouched) { price.value = cents(face.value) ? face.value : ""; update(); }
   });
   face.addEventListener("input", update);
   price.addEventListener("input", update);

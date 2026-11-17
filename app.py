@@ -2769,11 +2769,24 @@ def sell():
     if request.method == "POST" and sales_paused():
         flash(t("sales_paused"), "error")  # the form comes back with what they typed (files need picking again)
     elif request.method == "POST":
-        # The phone is confirmed last, at the end of the form (7 Nov 2026). Nothing is saved without it (#24).
-        if not g.user["phone_verified_at"]:
-            errors["phone"] = t("phone_sms_soon") if sms_needed() else t("err_phone_first")
+        # The phone is asked last, at the end of the form (7 Nov 2026). Nothing is saved without it (#24).
+        # While codes can only go by email (no SMS), a code proves nothing about the phone, and Stripe checks the
+        # phone itself during payout setup: so the number is just typed in, without a code (17 Nov 2026).
+        if not phone_ok(g.user):
+            if sms_needed():
+                errors["phone"] = t("phone_sms_soon")
+            elif config.SMS_ENABLED:
+                errors["phone"] = t("err_phone_first")
+            else:
+                number = normalise_phone(form.get("phone", ""))
+                problem = phone_problem(number) if number else t("err_phone")
+                if problem:
+                    errors["phone"] = problem
+                else:
+                    db.run("UPDATE users SET phone=? WHERE id=?", number, g.user["id"])
         if not g.user["adult_confirmed_at"]:
-            if form.get("adult") != "yes":
+            # One checkbox covers "18+, mine to sell" and "not for sale anywhere else" for a first-time seller (17 Nov 2026).
+            if form.get("adult") != "yes" and not (form.get("consent_all") == "1" and form.get("no_double_sell") == "yes"):
                 errors["adult"] = t("err_adult")
             else:
                 db.run("UPDATE users SET adult_confirmed_at=? WHERE id=?", sqltime(utcnow()), g.user["id"])
@@ -2997,7 +3010,7 @@ def sell():
                            preset_looking=looking_count(preset["event_date"], preset["venue"], preset["name"]) if preset else 0,
                            today=today().isoformat(), max_date=(today() + timedelta(days=365)).isoformat(),
                            quick_dates=[(today() + timedelta(days=i)).isoformat() for i in range(4)],
-                           phone_ok=bool(g.user["phone_verified_at"]), phone_sms_needed=sms_needed(),
+                           phone_ok=phone_ok(g.user), phone_sms_needed=sms_needed(), phone_by_code=config.SMS_ENABLED,
                            phone_raw=request.form.get("phone") or g.user["phone"] or "",
                            max_tickets=config.MAX_TICKETS_PER_LISTING, new_seller=is_new_seller(g.user["id"]),
                            new_seller_max=config.NEW_SELLER_MAX_TICKETS, new_seller_hours=config.NEW_SELLER_PAYOUT_HOURS,
@@ -3162,6 +3175,11 @@ def sign_out_everywhere():
     fresh_session()
     flash(t("signed_out_everywhere"), "ok")
     return redirect(url_for("login"))
+
+
+def phone_ok(user):
+    """Can this seller post? A verified number, or, while codes can't go by text message, any number they gave."""
+    return bool(user["phone_verified_at"] or (user["phone"] and not config.SMS_ENABLED))
 
 
 def phone_problem(number):
@@ -4228,7 +4246,7 @@ def block_user(user_id, reason):
     db.run("UPDATE users SET blocked_at=?, blocked_reason=? WHERE id=?", sqltime(utcnow()), reason[:300] or None, user_id)
     end_all_sessions(user_id)
     blocked = db.one("SELECT phone, phone_verified_at FROM users WHERE id=?", user_id)
-    if blocked and blocked["phone"] and blocked["phone_verified_at"]:  # #24
+    if blocked and blocked["phone"]:  # #24 (also a number given without a code, 17 Nov 2026)
         db.run("INSERT OR IGNORE INTO blocked_phones (phone, user_id) VALUES (?, ?)", blocked["phone"], user_id)
     take_off_sale([r["id"] for r in db.all("SELECT id FROM listings WHERE seller_id=? AND status='active'", user_id)])
     for o in db.all("SELECT id FROM orders WHERE buyer_id=? AND status='pending'", user_id):

@@ -6,6 +6,7 @@ os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config; config.FACE_PROOF_REQUIRED = config.NEW_SELLER_LIMITS = config.TICKET_CHECKS = False  # (checked in hardening_test.py)
 config.ADMIN_SECOND_FACTOR = False
 config.STRIPE_SECRET_KEY = ""
+config.SMS_ENABLED = True  # the code step below is the text-message mode; without SMS the number is just typed in (end of file)
 tmp = tempfile.mkdtemp()
 config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tmp, "up")
 config.ADMIN_EMAILS = {"admin@example.com"}
@@ -112,12 +113,42 @@ page = html(seller.get("/sell"))
 ok("data-phone-step" not in page and 'name="ticket"' in page, "a verified seller no longer sees the phone step")
 
 # SMS_REQUIRED without Twilio on the real site: the step explains instead of sending.
-config.SMS_REQUIRED = True; dev_was, key_was = config.DEV, config.STRIPE_SECRET_KEY
+config.SMS_REQUIRED = True; config.SMS_ENABLED = False; dev_was, key_was = config.DEV, config.STRIPE_SECRET_KEY
 config.DEV = False; config.STRIPE_SECRET_KEY = "sk_live_x"
 page = html(fresh.get("/sell")); res = jpost(fresh, "/account/phone/send", {"phone": "0644444444"})
-config.SMS_REQUIRED = False; config.DEV, config.STRIPE_SECRET_KEY = dev_was, key_was
+config.SMS_REQUIRED = False; config.SMS_ENABLED = True; config.DEV, config.STRIPE_SECRET_KEY = dev_was, key_was
 ok("Selling opens soon" in page and "data-phone-send" not in page and res["ok"] is False, "with SMS_REQUIRED and no Twilio the step says selling opens soon")
 
 # The script and its wiring.
 js = open("static/js/app.js").read()
 ok("data-phone-step" in js and "data-phone-confirm" in js and "X-CSRF-Token" in js, "the sell script drives the phone step")
+
+# ---- Without text messages (the live site today, 17 Nov 2026): just the number, no code, and one checkbox.
+config.SMS_ENABLED = False
+plain = app.test_client(); login(plain, "plain@test.nl", "Pim")
+page = html(plain.get("/sell"))
+ok('name="phone"' in page and "data-phone-step" not in page and "data-phone-send" not in page, "no SMS: the form asks for the number, with no code step")
+ok('name="consent_all"' in page and 'name="adult"' not in page and "I&#39;m 18 or older, the ticket is mine to sell" in page,
+   "a first-time seller gets one checkbox for 18+ and not selling twice")
+ok("Your fee:" in page, "the fee rule is one line under the summary")
+before = listings()
+r = post(plain, adult="", consent_all="1", phone="")
+ok(r.status_code == 200 and listings() == before and "valid" in html(r), "no number: nothing saved, and it says why")
+with app.app_context(): A.db.run("INSERT INTO blocked_phones (phone, user_id) VALUES (?, 0)", "+31655555555")
+r = post(plain, adult="", consent_all="1", phone="06 55555555")
+ok(r.status_code == 200 and listings() == before and "can&#39;t be used" in html(r), "a blocked number is still refused")
+with app.app_context(): A.db.run("DELETE FROM blocked_phones")
+r = post(plain, adult="", consent_all="1", no_double_sell="", phone="0666666666")
+ok(r.status_code == 200 and listings() == before, "the one checkbox is still required")
+r = post(plain, adult="", consent_all="1", phone="0666666666")
+ok(r.status_code == 302 and "/t/" in r.location and listings() == before + 1, "number + the one checkbox: the ticket is posted")
+p = phone_of("plain@test.nl")
+ok(p["phone"] == "+31666666666" and p["phone_verified_at"] is None, "the number is saved, not marked as verified")
+with app.app_context(): adult = A.db.one("SELECT adult_confirmed_at FROM users WHERE email='plain@test.nl'")["adult_confirmed_at"]
+ok(adult, "the one checkbox also records 18+")
+page = html(plain.get("/sell"))
+ok('name="phone"' not in page and 'name="consent_all"' not in page and "isn&#39;t for sale anywhere else" in page,
+   "next time: no phone question, and only the double-selling checkbox")
+with app.app_context():
+    uid = A.db.one("SELECT id FROM users WHERE email='plain@test.nl'")["id"]; A.block_user(uid, "test")
+    ok(A.db.one("SELECT 1 FROM blocked_phones WHERE phone='+31666666666'"), "blocking the seller also blocks the number they typed")
