@@ -3879,21 +3879,29 @@ def launch_email(lang, token):
     that opens with few tickets loses the buyers the email brings in."""
     leave = base_url() + url_for("waitlist_leave", token=token)
     sell_url = base_url() + url_for("sell")
-    body = i18n.t(lang, "mail_launch_body", url=base_url() + url_for("index"), sell=sell_url, leave=leave)
+    home = base_url() + url_for("index")
+    # Headline, three promises, two buttons and a small remove-me link (layout marks: notify.email_html, 17 Nov 2026).
+    body = i18n.t(lang, "mail_launch_body", url=home, sell=sell_url) + "\n\n~ " + i18n.t(lang, "mail_launch_footer", leave=leave)
     # #17: mail apps show an "unsubscribe" button for this; one click (RFC 8058) removes the address.
     unsubscribe = {"List-Unsubscribe": "<%s>, <mailto:%s?subject=unsubscribe>" % (leave, config.SUPPORT_EMAIL),
                    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"}
-    return i18n.t(lang, "mail_launch_subject"), body, unsubscribe, {sell_url: i18n.t(lang, "mail_btn_sell")}
+    return (i18n.t(lang, "mail_launch_subject"), body, unsubscribe,
+            {home: i18n.t(lang, "mail_btn_browse"), sell_url: i18n.t(lang, "mail_btn_sell")})
 
 
 @app.route("/admin/waitlist/test", methods=["POST"])
 @admin_required
 def admin_waitlist_test():
-    """Sends the launch email to the admin's own address only, to see it before anyone on the list does."""
+    """Sends the launch email as a test, to see it before anyone on the list does: to the admin, or to one address
+    typed in (17 Nov 2026), e.g. a mail-tester.com address or a friend's inbox that never got Spare mail."""
     lang = request.form.get("lang") if request.form.get("lang") in i18n.LANGS else "en"
+    to = request.form.get("to", "").strip() or g.user["email"]
+    if not EMAIL_RE.match(to) or len(to) > 254:
+        flash("That doesn't look like an email address.", "error")
+        return redirect(url_for("admin_waitlist"))
     subject, body, headers, buttons = launch_email(lang, "test")
-    if notify.send_email(g.user["email"], subject, body, headers=headers, buttons=buttons):
-        flash("Test launch email (%s) sent to %s. Nobody on the list got it." % (lang, g.user["email"]), "ok")
+    if notify.send_email(to, subject, body, headers=headers, buttons=buttons):
+        flash("Test launch email (%s) sent to %s. Nobody on the list got it." % (lang, to), "ok")
     else:
         flash("The test email couldn't be sent. Check the email settings.", "error")
     return redirect(url_for("admin_waitlist"))

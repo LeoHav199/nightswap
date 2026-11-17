@@ -1,7 +1,7 @@
 """Checks for two launch-week extras (10 Nov 2026, agent proposals Leo approved):
 1. the launch email has a second "Sell a ticket" button, in all 5 languages, and /admin/waitlist can send a test to yourself;
 2. /admin lists events in the next 14 days without an official price, with a box to type it in."""
-import os, re, sys, tempfile
+import os, re, sys, tempfile, html as htmlmod
 from datetime import timedelta
 os.chdir(sys.argv[1]); sys.path.insert(0, sys.argv[1])
 import config
@@ -10,12 +10,13 @@ config.DATABASE = os.path.join(tmp, "t.db"); config.UPLOAD_DIR = os.path.join(tm
 config.ADMIN_EMAILS = {"admin@example.com"}; config.TASK_SECRET = "secret"
 import notify
 real_email_html = notify.email_html
+notify_mod = notify
 sent = []
 def fake_send(to, subject, body, attachments=(), headers=None, buttons=None):
     sent.append({"to": to, "subject": subject, "body": body, "headers": headers, "buttons": buttons})
     return True
 notify.send_email = fake_send
-import app as A
+import app as A, i18n
 app = A.app; app.config["TESTING"] = True
 fails = []
 def ok(c, m):
@@ -46,11 +47,20 @@ with app.test_request_context():
         sell_url = A.base_url() + "/sell"
         ok(sell_url in body.splitlines(), "%s: the plain-text launch email has the sell link on its own line" % lang)
         ok("/waitlist/leave/tok123" in body and "List-Unsubscribe" in headers, "%s: the remove-me link and unsubscribe header stay" % lang)
-        ok(buttons == {sell_url: label}, "%s: the sell button is labelled '%s'" % (lang, label))
+        browse = i18n.t(lang, "mail_btn_browse"); browse_html = htmlmod.escape(browse)
+        ok(buttons == {A.base_url() + "/": browse, sell_url: label}, "%s: the buttons are '%s' and '%s'" % (lang, browse, label))
         page = real_email_html(subject, body, buttons)
-        ok(page.count("border-radius:999px") == 2 and ">Open Spare</a>" in page and ">%s</a>" % label in page,
-           "%s: the HTML email shows two buttons, Open Spare first, then %s" % (lang, label))
-        ok(page.index(">Open Spare</a>") < page.index(">%s</a>" % label), "%s: Open Spare stays the main button" % lang)
+        ok(page.count("border-radius:999px") == 2 and ">%s</a>" % browse_html in page and ">%s</a>" % label in page,
+           "%s: the HTML email shows two buttons, %s first, then %s" % (lang, browse, label))
+        ok(page.index(">%s</a>" % browse_html) < page.index(">%s</a>" % label), "%s: browsing stays the main button" % lang)
+        # The new layout (17 Nov 2026): headline, three promises as a list, preview text, a small remove-me link.
+        ok("<h1" in page and page.count("<li") == 3 and "display:none" in page, "%s: headline, three promises and a hidden preview line" % lang)
+        ok('href="%s/waitlist/leave/tok123"' % A.base_url() in page and ">%s/waitlist" % A.base_url() not in page,
+           "%s: the remove-me link is a short text link, not a long web address" % lang)
+        plain = notify_mod.plain_text(body)
+        ok("^ " not in plain and "# " not in plain and "~ " not in plain and "](" not in plain and "/waitlist/leave/tok123" in plain,
+           "%s: the plain-text version has no layout marks and keeps the remove-me link" % lang)
+        ok(body.rstrip().splitlines()[-3].startswith(i18n.t(lang, "mail_signoff")[:10]), "%s: signed by the team, then the small print" % lang)
         ok("—" not in body, "%s: no em dashes in the launch email" % lang)
     page = real_email_html("x", "Hi\n\nhttps://a.example/x\n\nhttps://a.example/y", {"https://a.example/y": "Second"})
     first, second = page.split("border-radius:999px")[0], page.split("border-radius:999px")[1]
@@ -67,6 +77,14 @@ ok(sent and sent[0]["buttons"] and "Verkoop een ticket" in sent[0]["buttons"].va
 ok(one("SELECT COUNT(*) AS n FROM waitlist WHERE notified_at IS NOT NULL")["n"] == 0, "a test send doesn't mark anyone as emailed")
 ok("Nobody on the list got it" in html(r), "the admin sees the test went only to them")
 ok("Send me a test" in html(admin.get("/admin/waitlist")), "the waitlist page has a Send me a test button")
+sent.clear()
+r = admin.post("/admin/waitlist/test", data={"lang": "en", "to": "check-123@srv1.mail-tester.com", "_csrf": csrf(admin)}, follow_redirects=True)
+ok(len(sent) == 1 and sent[0]["to"] == "check-123@srv1.mail-tester.com" and "sent to check-123@srv1.mail-tester.com" in html(r),
+   "a test can go to another address, e.g. mail-tester")
+sent.clear()
+r = admin.post("/admin/waitlist/test", data={"lang": "en", "to": "not an email", "_csrf": csrf(admin)}, follow_redirects=True)
+ok(not sent and "look like an email address" in html(r), "a typo in the test address sends nothing")
+ok(one("SELECT COUNT(*) AS n FROM waitlist WHERE notified_at IS NOT NULL")["n"] == 0, "test sends never mark anyone as emailed")
 sent.clear()
 ok(user.post("/admin/waitlist/test", data={"lang": "en", "_csrf": csrf(user)}).status_code == 404 and not sent,
    "only an admin can send a test")

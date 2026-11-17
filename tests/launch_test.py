@@ -78,7 +78,7 @@ MAIL_WORKS[0] = True
 r = admin.post("/admin/waitlist/notify", data={"_csrf": csrf(admin)}, follow_redirects=True)
 ok(len(SENT) == 2 and "0 still to go" in html(r), "launch email goes to everyone on the list")
 mail = [b for to, s, b in SENT if to == "sam@student.eur.nl"][0]
-leave = re.search(r"(http\S+/waitlist/leave/\S+)", mail)
+leave = re.search(r"(http[^\s)]+/waitlist/leave/[^\s)]+)", mail)  # (the link sits in [Remove me](...) since 17 Nov 2026)
 ok(leave is not None and "sparetickets.eu" in mail, "launch email has a remove-me link")
 admin.post("/admin/waitlist/notify", data={"_csrf": csrf(admin)})
 ok(len(SENT) == 2, "nobody gets the launch email twice")
