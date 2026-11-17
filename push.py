@@ -60,8 +60,11 @@ def remove(endpoint):
     db.run("DELETE FROM push_subs WHERE endpoint=?", endpoint)
 
 
-def send(user_id, title, body, url="/", tag=None):
-    """Sends to every device the user turned notifications on for. Returns how many got it."""
+def send(user_id, title, body, url="/", tag=None, urgent=False):
+    """Sends to every device the user turned notifications on for. Returns how many got it.
+
+    urgent=True asks the push service to deliver straight away, even to a phone in low-power mode
+    (used for the admins' problem alerts at night)."""
     from pywebpush import WebPushException, webpush
 
     subs = db.all("SELECT * FROM push_subs WHERE user_id=?", user_id)
@@ -78,6 +81,7 @@ def send(user_id, title, body, url="/", tag=None):
                 vapid_claims={"sub": "mailto:" + config.SUPPORT_EMAIL},
                 ttl=6 * 3600,
                 timeout=10,
+                headers={"Urgency": "high"} if urgent else None,
             )
             sent += 1
         except WebPushException as exc:

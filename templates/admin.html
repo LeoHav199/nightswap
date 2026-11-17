@@ -32,6 +32,13 @@
     </ul>
     {% endif %}
   </section>
+  {# Risk 1: reported problems also go to the admins' phones, so nothing waits until morning. #}
+  <section class="account-section" id="alerts">
+    <h2>Phone alerts</h2>
+    <p class="small">Every reported problem pushes an alert to each admin device with notifications on. On an iPhone: open sparetickets.eu in Safari, Share → Add to Home Screen, open Spare from the home screen, sign in and tap the button below.</p>
+    {% if push_missing %}<p class="small warn-text">No alerts yet for: {{ push_missing|join(', ') }}</p>{% else %}<p class="small good">Every admin has alerts on.</p>{% endif %}
+    <div>{{ m.push_toggle() }} <form method="post" action="{{ url_for('admin_push_test') }}" style="display:inline">{{ m.csrf() }}<button class="btn btn-ghost btn-sm">Send a test alert</button></form></div>
+  </section>
   <section class="account-section" id="launch">
     <h2>Launch</h2>
     <div class="panel admin-case">

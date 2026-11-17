@@ -2030,6 +2030,30 @@ def door_report_open(order, listing):
     return not order["swapped_at"] and utcnow() <= door_report_until(listing)
 
 
+DISPUTE_KIND_LABELS = {"door_rejected": "refused at the door", "already_scanned": "ticket already scanned",
+                       "wrong_event": "wrong event", "never_received": "ticket never received", "other": "other"}
+
+
+def admin_ids():
+    if not config.ADMIN_EMAILS:
+        return []
+    return [r["id"] for r in db.all("SELECT id FROM users WHERE email IN (%s)" % ",".join("?" * len(config.ADMIN_EMAILS)),
+                                    *config.ADMIN_EMAILS)]
+
+
+def push_admins(title, body, url, tag=None):
+    """Risk 1 (17 Nov 2026): a phone alert to every admin device, so a report at night isn't missed when the email
+    lands in junk. Only the kind and the event go on the lock screen, never the buyer's words or details.
+    A failing push never stops the report itself."""
+    sent = 0
+    for uid in admin_ids():
+        try:
+            sent += push.send(uid, title, body, url, tag=tag, urgent=True)
+        except Exception:
+            app.logger.exception("Admin push failed")
+    return sent
+
+
 def open_dispute(order, reason, kind="other"):
     """Holds the payout and tells the admins and the seller (#12, #32), who has 24 hours to give their side."""
     if not db.count("UPDATE orders SET status='disputed', dispute_reason=?, dispute_kind=?, disputed_at=? WHERE id=? AND status='paid'",
@@ -2038,6 +2062,8 @@ def open_dispute(order, reason, kind="other"):
     notify.notify_admins("Spare: problem reported (%s)" % order["public_id"],
                          "%s: %s\n\n%s" % (kind, reason, base_url() + url_for("admin_dispute", public_id=order["public_id"])))
     listing = db.one("SELECT * FROM listings WHERE id=?", order["listing_id"])
+    push_admins("Problem reported: " + DISPUTE_KIND_LABELS.get(kind, kind), listing_title(listing),
+                url_for("admin_dispute", public_id=order["public_id"]), tag="dispute-" + order["public_id"])
     add_message(get_thread(listing, order["buyer_id"]), None, "system", "sys_disputed")
     tell(order["seller_id"], t("mail_dispute_seller_subject", title=listing_title(listing)),
          t("mail_dispute_seller_body", title=listing_title(listing), hours=DISPUTE_REPLY_HOURS), url_for("order_page", public_id=order["public_id"]))
@@ -3738,7 +3764,7 @@ def admin():
                            unpriced=unpriced, unpriced_days=UNPRICED_DAYS,
                            waitlist=waitlist, preview_link=preview_link, network=network, disk=disk,
                            review=review, proofs=proofs, chargebacks=chargebacks, review_files=review_files,
-                           checks=launch_checks(disk), stuck=stuck, paused=sales_paused(),
+                           checks=launch_checks(disk), stuck=stuck, push_missing=admin_push_missing(), paused=sales_paused(),
                            pause_msgs={k: get_setting("sales_paused_msg_" + k) or "" for k in ("en", "nl")},
                            pause_msg_max=PAUSE_MSG_MAX, hourly=hourly_status())
 
@@ -3764,10 +3790,29 @@ def launch_checks(disk):
         ("Every admin has an authenticator app", bool(admins) and all(a["totp_secret"] for a in admins),
          ", ".join(a["email"] for a in admins if not a["totp_secret"]) or ""),
         ("Email sending (SMTP)", bool(config.SMTP_HOST), ""),
+        ("Every admin gets phone alerts for reported problems", bool(admins) and not admin_push_missing(),
+         ", ".join(admin_push_missing()) or ""),
         ("Hourly task ran in the last %d hours" % HOURLY_LATE_HOURS, hourly_ok, (last_hourly + " UTC") if last_hourly else "never"),
         ("Disk below %d%%" % round(DISK_ALERT * 100), not disk["warn"], "%d%% full" % disk["pct"]),
         ("Listings waiting for a check", waiting == 0, "%d waiting" % waiting),
     ]
+
+
+def admin_push_missing():
+    """Admin emails with no phone or browser that has Spare's notifications on."""
+    with_push = {r["email"] for r in db.all("SELECT DISTINCT u.email FROM users u JOIN push_subs p ON p.user_id = u.id")}
+    return sorted(e for e in config.ADMIN_EMAILS if e not in with_push)
+
+
+@app.route("/admin/push-test", methods=["POST"])
+@admin_required
+def admin_push_test():
+    """Sends a test alert to every admin device, the same way a reported problem does."""
+    n = push_admins("Test alert from Spare", "This is how a reported problem will look on your phone.",
+                    url_for("admin") + "#alerts", tag="admin-test")
+    flash("Test alert sent to %d device%s." % (n, "" if n == 1 else "s") if n else
+          "No admin device has notifications on yet. Turn them on below, on your phone.", "ok" if n else "error")
+    return redirect(url_for("admin") + "#alerts")
 
 
 @app.route("/admin/backup")
