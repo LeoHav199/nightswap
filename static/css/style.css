@@ -242,15 +242,15 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 /* Panels / forms --------------------------------------------------------- */
 .panel { background: var(--surface); border-radius: var(--radius); padding: 24px; }
 .panel-title { font-size: 18px; font-weight: 600; margin-bottom: 14px; }
-.form { display: grid; gap: 18px; }
+.form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }  /* minmax: a long file name can't stretch the form under the summary (17 Nov 2026) */
 .form h1 { font: 800 36px/1 var(--display); text-transform: uppercase; }
 .form > .muted { margin-top: -8px; }
-.field { display: grid; gap: 6px; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .label { font-size: 14px; font-weight: 600; }
 .optional { font-weight: 400; color: var(--faint); }
 .hint { font-size: 13px; color: var(--faint); }
 .field-error { color: var(--bad); font-size: 14px; margin: 0; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
 .money-input { position: relative; display: block; }
 .money-input span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .money-input input { padding-left: 30px; font-variant-numeric: tabular-nums; }
@@ -264,6 +264,7 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 .file-drop-sm { height: 56px; }
 .file-drop:hover, .file-drop.has-file { border-color: var(--accent); color: var(--text); }
 .file-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-drop-text { min-width: 0; max-width: 100%; padding: 0 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .extra summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); }
 .extra summary:hover { color: var(--text); }
 .extra[open] summary { margin-bottom: 10px; }
