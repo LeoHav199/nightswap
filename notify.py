@@ -76,11 +76,10 @@ def company_line():
 
 
 def _logo_img():
-    # Email apps don't show inline SVG, so use the PNG from the live site (none in local development).
-    if not config.BASE_URL:
-        return ""
-    return ('<img src="%s/static/wallet/logo@2x.png" width="30" height="30" alt="" '
-            'style="vertical-align:-6px;margin-right:4px;border:0">' % html.escape(config.BASE_URL.rstrip("/"), quote=True))
+    """The lime ticket as a plain coloured block, not a picture (17 Nov 2026): spam filters scored the remote logo
+    image with little text against us (SpamAssassin HTML_IMAGE_ONLY_16, mail-tester 9/10)."""
+    return ('<span style="display:inline-block;width:24px;height:15px;background:#d4ff3a;border-radius:4px;'
+            'vertical-align:1px;margin-right:6px"></span>')
 
 
 def send_email(to, subject, body, attachments=(), headers=None, buttons=None):

@@ -355,7 +355,7 @@ ok("the sender deleted their account" in html(buyer.get("/threads/%d" % gtid)), 
 # --- #19: the privacy policy covers what the law asks, matching the code
 priv = html(visitor.get("/privacy"))
 for words, what in (("Spare Tickets vof, Lombardkade 47A", "who's responsible (KvK number added once it's set)"), ("art. 6(1)(b)", "the legal basis for each use"),
-                    ("Stripe", "Stripe"), ("Frankfurt", "Render and where it runs"), ("Brevo", "the email provider"), ("cron-job.org", "cron-job.org"),
+                    ("Stripe", "Stripe"), ("Frankfurt", "Render and where it runs"), ("Resend", "the email provider"), ("cron-job.org", "cron-job.org"),
                     ("7 years", "the 7-year bookkeeping rule"), ("14 days after the event", "when ticket files are deleted"),
                     ("encrypted backup", "backups"), ("Autoriteit Persoonsgegevens", "the right to complain to the AP")):
     ok(words in priv, "#19 the privacy policy covers %s" % what)
