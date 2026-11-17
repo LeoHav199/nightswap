@@ -49,6 +49,17 @@
       {% elif l.status == 'review' %}
         <p class="notice">{{ t('listing_in_review') }}</p>
       {% elif l.status == 'active' and not past and l.available %}
+        {% if l.still_asked_at and not l.still_confirmed_at %}
+          {# The day-before check (send_still_for_sale_checks): sold in a group chat? Take it down before someone pays. #}
+          <div class="nudge still-check">
+            <strong>{{ t('still_title') }}</strong>
+            <p>{{ t('still_body') }}</p>
+            <div class="nudge-options">
+              <form method="post" action="{{ url_for('still_for_sale', listing_id=l.id) }}">{{ m.csrf() }}<button class="btn btn-accent btn-sm" type="submit">{{ t('still_yes') }}</button></form>
+              {% if not l.held %}<form method="post" action="{{ url_for('remove_listing', listing_id=l.id) }}">{{ m.csrf() }}<button class="btn btn-ghost btn-sm" type="submit">{{ t('still_no') }}</button></form>{% endif %}
+            </div>
+          </div>
+        {% endif %}
         {% if suggestions %}
           <div class="nudge">
             <strong>{{ t('nudge_title') }}</strong>
@@ -74,7 +85,7 @@
         {% if not l.held %}
           <form method="post" action="{{ url_for('remove_listing', listing_id=l.id) }}" data-confirm="{{ t('confirm_remove') }}">
             {{ m.csrf() }}
-            <button class="btn-link danger" type="submit">{{ t('remove_listing') }}</button>
+            <button class="btn-link danger" type="submit">{{ t('remove_sold_elsewhere') }}</button>
           </form>
         {% endif %}
       {% elif l.status == 'sold' or not l.available %}

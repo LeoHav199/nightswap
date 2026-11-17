@@ -56,7 +56,9 @@ ADDED_COLUMNS = [
     ("orders", "chargeback_status", "TEXT"),    # Stripe's dispute status when it closed: won | lost | ...
     ("orders", "reversal_ref", "TEXT"),         # the seller's payout taken back (Stripe transfer reversal)         # #26: when a payout was claimed (status 'releasing'), to find stuck ones
     ("tickets", "phash", "TEXT"),                  # #29: perceptual hash of the ticket picture
-    ("listings", "no_double_sell_at", "TEXT"),   # #28: when the seller promised it's not for sale elsewhere
+    ("listings", "no_double_sell_at", "TEXT"),
+    ("listings", "still_asked_at", "TEXT"),      # "still for sale?" sent the day before the event (17 Nov 2026)
+    ("listings", "still_confirmed_at", "TEXT"),  # the seller answered "yes, still for sale"   # #28: when the seller promised it's not for sale elsewhere
     ("listings", "review_reason", "TEXT"),          # why a listing waits for an admin (status 'review'): face, code, app
     ("listings", "face_checked", "INTEGER NOT NULL DEFAULT 0"),  # #25: face value matched the official price or proof
     ("events", "price_checked_at", "TEXT"),  # last time the hourly task looked for the official price on the ticket page

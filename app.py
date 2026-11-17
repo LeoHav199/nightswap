@@ -1067,6 +1067,28 @@ def send_resell_reminders():
     return sent
 
 
+def send_still_for_sale_checks():
+    """The day before an event, from RESELL_HOUR: "Is your ticket still for sale?" to sellers with unsold tickets
+    (17 Nov 2026). A ticket also offered in a group chat and sold there then comes down before a Spare buyer pays for
+    it. Once per listing; skipped for listings posted in the last 12 hours (the seller just said it's for sale).
+    No answer changes nothing: the listing stays up."""
+    if datetime.now().hour < config.RESELL_HOUR:
+        return 0
+    tomorrow = (today() + timedelta(days=1)).isoformat()
+    recent = sqltime(utcnow() - timedelta(hours=12))
+    sent = 0
+    for l in db.all("""SELECT l.* FROM listings l WHERE l.status = 'active' AND l.event_date = ? AND l.still_asked_at IS NULL
+                         AND l.created_at < ?
+                         AND EXISTS (SELECT 1 FROM tickets t WHERE t.listing_id = l.id AND t.status = 'available')""",
+                    tomorrow, recent):
+        db.run("UPDATE listings SET still_asked_at=? WHERE id=?", sqltime(utcnow()), l["id"])
+        title = listing_title(l)
+        tell(l["seller_id"], t("mail_still_subject", title=title), t("mail_still_body", title=title),
+             url_for("listing_page", listing_id=l["id"]), push_title=t("push_still_title"))
+        sent += 1
+    return sent
+
+
 # --------------------------------------------------------------------------
 # Request setup
 # --------------------------------------------------------------------------
@@ -3053,6 +3075,18 @@ def change_price(listing_id):
     return redirect(url_for("listing_page", listing_id=listing_id))
 
 
+@app.route("/t/<int:listing_id>/still", methods=["POST"])
+@login_required
+def still_for_sale(listing_id):
+    """The seller answers "yes, still for sale" to the day-before check; the question goes away."""
+    listing = db.one("SELECT * FROM listings WHERE id=?", listing_id)
+    if not listing or listing["seller_id"] != g.user["id"]:
+        abort(404)
+    db.run("UPDATE listings SET still_confirmed_at=? WHERE id=?", sqltime(utcnow()), listing_id)
+    flash(t("still_thanks"), "ok")
+    return redirect(url_for("listing_page", listing_id=listing_id))
+
+
 @app.route("/t/<int:listing_id>/remove", methods=["POST"])
 @login_required
 def remove_listing(listing_id):
@@ -4787,6 +4821,7 @@ def hourly_tasks():
     run("payouts", release_due_payouts)
     run("reminders", send_reminders)
     run("resell", send_resell_reminders)
+    run("still_for_sale", send_still_for_sale_checks)
     run("transfer", send_transfer_reminders)
     run("buyer_transfer", send_buyer_transfer_reminders)
     run("backup", nightly_backup)
@@ -4801,7 +4836,7 @@ def hourly_tasks():
     released, waiting = results.get("payouts") or (0, 0)
     nudged, asked = results.get("reminders") or (0, 0)
     return {"payouts_released": released, "payouts_waiting": waiting, "nudges": nudged, "rating_requests": asked,
-            "resell_reminders": results.get("resell"), "transfer_reminders": results.get("transfer"),
+            "resell_reminders": results.get("resell"), "still_for_sale_checks": results.get("still_for_sale"), "transfer_reminders": results.get("transfer"),
             "backup": results.get("backup"), "ticket_files_deleted": results.get("cleanup"),
             "official_prices": results.get("prices"), "failed": failed}
 
