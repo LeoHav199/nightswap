@@ -1546,13 +1546,17 @@ def index():
     # line hides while they're small: no made-up activity.
     upcoming = [e for e in shown if not e["count"]]
     week_end = (today() + timedelta(days=6)).isoformat()
-    this_week = [e for e in upcoming if e["date"] <= week_end][:HOME_WEEK_CARDS]
+    # Parties first (24 Nov 2026): Spare is for student parties and club nights, so those lead the cards.
+    party_first = sorted((e for e in upcoming if e["date"] <= week_end),
+                         key=lambda e: (0 if e["category"] in ("student", "club") else 1, e["date"]))
+    this_week = party_first[:HOME_WEEK_CARDS]
     later_list = [e for e in upcoming if e not in this_week]
     week_all = annotate_activity([e for e in evs if e["date"] <= week_end]) if not day and not q else []
     week_events = len(week_all)
     week_waiting = sum(e["waiting"] for e in week_all)
+    show_intro = not g.user and not request.cookies.get("intro_seen") and not q
     resp = app.make_response(render_template(
-        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, this_week=this_week, later_list=later_list,
+        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, show_intro=show_intro, this_week=this_week, later_list=later_list,
         week_events=week_events if week_events >= HOME_STATS_MIN else 0,
         week_waiting=week_waiting if week_waiting >= HOME_STATS_MIN else 0,
         count=sum(e["count"] for e in shown),
@@ -1560,6 +1564,8 @@ def index():
         cat_counts=cat_counts, cities=config.ENABLED_CITIES, show_all_nl=config.SHOW_ALL_NETHERLANDS, tonight=annotate_activity(tonight), starts_at=starts_at))
     if request.args.get("city"):
         resp.set_cookie("city", city, max_age=60 * 60 * 24 * 365, samesite="Lax")
+    if show_intro:
+        resp.set_cookie("intro_seen", "1", max_age=60 * 60 * 24 * 365, samesite="Lax")  # the 3 steps show once
     return resp
 
 

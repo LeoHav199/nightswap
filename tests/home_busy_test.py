@@ -56,5 +56,22 @@ page = html(v.get("/"))
 ok("5 people looking for tickets" in page, "5 people waiting: the waiting count shows too")
 ok("home-stats" not in html(v.get("/?q=week")), "no numbers line on a search")
 
+# ---- First impression (24 Nov 2026)
+fresh = app.test_client()
+page = html(fresh.get("/"))
+ok("Student tickets for Rotterdam nights." in page and "Tickets for tonight" not in page, "no tickets: the title says what Spare is, not 'tickets for tonight'")
+ok(page.count('class="promises"') == 1 and "Money held until after the night" in page and "Refund if it doesn&#39;t work" in page, "three promises under the title")
+ok('class="intro-steps"' in page and "How Spare works" in page, "a first visit shows the 3-step intro")
+ok("intro_seen=1" in fresh.get("/").headers.get("Set-Cookie", "") or 'class="intro-steps"' not in html(fresh.get("/")), "...once: the cookie hides it next time")
+ok('class="intro-steps"' not in html(fresh.get("/")), "second visit: no intro")
+ok('class="pay-badges"' in page and "iDEAL" in page and "Mastercard" in page, "payment badges on the homepage")
+add("Concert Thing", 1)
+admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Student Bash", "venue": "Maassilo", "category": "student",
+                                       "event_date": (date.today() + timedelta(days=6)).isoformat(), "_csrf": csrf(admin)})
+run("UPDATE events SET category='concert' WHERE name='Concert Thing'")
+page = html(fresh.get("/"))
+week = page.split('class="this-week"')[1].split("</section>")[0]
+ok(week.index("Student Bash") < week.index("Concert Thing"), "parties lead the This week cards, even when a concert is sooner")
+
 print("\n%d failed" % len(fails))
 sys.exit(1 if fails else 0)

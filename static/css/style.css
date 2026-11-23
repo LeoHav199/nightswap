@@ -110,8 +110,8 @@ p { margin: 0 0 12px; }
 .flash-dev { border-left-color: var(--warn); color: var(--warn); }
 
 /* Home: headline + search ------------------------------------------------ */
-.home-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px 40px; padding-top: 44px; padding-bottom: 24px; flex-wrap: wrap; }
-.home-head h1 { font: 900 clamp(40px, 6.4vw, 72px)/0.92 var(--display); text-transform: uppercase; max-width: 9.5em; }
+.home-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px 40px; padding-top: 28px; padding-bottom: 18px; flex-wrap: wrap; }
+.home-head h1 { font: 900 clamp(36px, 5vw, 58px)/0.92 var(--display); text-transform: uppercase; max-width: 9.5em; }
 .lead { color: var(--muted); font-size: 17px; margin: 14px 0 0; max-width: 34em; }
 .search { position: relative; width: min(340px, 100%); }
 .search svg { position: absolute; left: 16px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); fill: var(--faint); pointer-events: none; }
@@ -1160,4 +1160,27 @@ body.has-search-sheet { overflow: hidden; }
   .first-seller-more { display: none; }
   .first-seller-bar { padding: 10px 12px; }
   .first-seller-bar p { flex-basis: 150px; }
+}
+
+
+/* First impression (24 Nov 2026): three promises, the 3-step intro for first visits, payment badges */
+.promises { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; }
+.promises li { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--line-strong); color: var(--text); }
+.promises li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+.intro-steps { margin-top: 32px; }
+.intro-steps ol { list-style: none; counter-reset: step; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0 8px; padding: 0; }
+.intro-steps li { counter-increment: step; display: grid; gap: 4px; padding: 14px 16px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.intro-steps li::before { content: counter(step); font: 800 22px/1 var(--display); color: var(--accent); }
+.intro-steps strong { font-size: 15px; }
+.intro-steps span { font-size: 14px; color: var(--muted); }
+.intro-more { font-size: 14px; color: var(--muted); }
+.pay-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 36px 0 8px; font-size: 13px; color: var(--faint); }
+.pay-badge { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--text); font-weight: 700; font-size: 12px; letter-spacing: .02em; }
+.pay-by { margin-left: 4px; }
+@media (max-width: 640px) {
+  .intro-steps ol { grid-template-columns: minmax(0, 1fr); }
+  .promises { gap: 4px 12px; margin-top: 10px; }
+  .promises li { font-size: 12.5px; padding: 0; background: none; border: 0; color: var(--muted); }
+  .home-head .lead { margin-top: 6px; }
 }

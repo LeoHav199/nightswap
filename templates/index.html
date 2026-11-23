@@ -3,8 +3,15 @@
 {% block content %}
 <section class="wrap home-head">
   <div>
-    <h1>{{ t('hero_title_city', city=city) if city != 'all' else t('hero_title_nl') }}</h1>
-    <p class="lead">{{ t('hero_sub_free') if price_free else (t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup)) }}</p>
+    {# The title only promises tonight's tickets when there are tickets; otherwise it says what Spare is (24 Nov 2026). #}
+    {% set honest = not total and not q and not day %}
+    <h1>{% if honest %}{{ t('hero_title_empty', city=city) if city != 'all' else t('hero_title_empty_nl') }}{% else %}{{ t('hero_title_city', city=city) if city != 'all' else t('hero_title_nl') }}{% endif %}</h1>
+    <p class="lead">{% if honest %}{{ t('hero_sub_empty') }}{% else %}{{ t('hero_sub_free') if price_free else (t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup)) }}{% endif %}</p>
+    <ul class="promises">
+      {% if not price_free %}<li>{{ t('promise_cap') if price_cap == 100 else t('promise_cap_pct', pct=price_markup) }}</li>{% endif %}
+      <li>{{ t('promise_hold') }}</li>
+      <li>{{ t('promise_refund') }}</li>
+    </ul>
     {% if week_events %}<p class="home-stats"><span class="live-dot" aria-hidden="true"></span>{{ t('home_stats_events', n=week_events) }}{% if week_waiting %} · {{ t('home_stats_waiting', n=week_waiting) }}{% endif %}</p>{% endif %}
     <p class="made-by"><a href="{{ url_for('about') }}">{{ t('made_by_students') }} {{ t('nav_about') }} →</a></p>
   </div>
@@ -106,6 +113,19 @@
     </section>
   {% endif %}
 
+  {% if show_intro %}
+    {# First visit only (cookie "intro_seen"): how it works in three steps, and how you pay. #}
+    <section class="intro-steps" aria-label="{{ t('nav_how') }}">
+      <h2 class="list-head">{{ t('intro_title') }}</h2>
+      <ol>
+        <li><strong>{{ t('intro_1_title') }}</strong><span>{{ t('intro_1_body') }}</span></li>
+        <li><strong>{{ t('intro_2_title') }}</strong><span>{{ t('intro_2_body') }}</span></li>
+        <li><strong>{{ t('intro_3_title') }}</strong><span>{{ t('intro_3_body', hours=payout_hours) }}</span></li>
+      </ol>
+      <a class="intro-more" href="{{ url_for('how') }}">{{ t('nav_how') }} →</a>
+    </section>
+  {% endif %}
+
   {% if later_list %}
     <section class="coming-up">
       <h2 class="list-head">{{ t('coming_up') if not this_week else t('coming_later') }} <span class="muted">· {{ t('coming_up_sub') }}</span></h2>
@@ -123,5 +143,10 @@
       {% if later_list|length > 6 %}<button class="btn btn-ghost btn-sm" type="button" data-show-more>{{ t('show_more_events', n=later_list|length - 6) }}</button>{% endif %}
     </section>
   {% endif %}
+  <div class="pay-badges" aria-label="{{ t('pay_badges_label') }}">
+    <span class="pay-label">{{ t('pay_badges_label') }}</span>
+    <span class="pay-badge">iDEAL</span><span class="pay-badge">Visa</span><span class="pay-badge">Mastercard</span>
+    <span class="pay-by">{{ t('pay_by_stripe') }}</span>
+  </div>
 </section>
 {% endblock %}

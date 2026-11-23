@@ -45,7 +45,7 @@
       <div class="looking {{ 'looking-empty' if not rows }}">
         <span class="live-dot" aria-hidden="true"></span>
         <p>{% if rows %}{{ t('looking_some_one') if looking == 1 else t('looking_some', n=looking) }}{% else %}{{ t('looking_none_one') if looking == 1 else t('looking_none', n=looking) }}{% endif %}</p>
-        {% if not rows %}<a class="btn btn-accent btn-sm" href="{{ url_for('sell', event=e.id) if e else url_for('sell') }}">{{ t('looking_sell_cta') }}</a>{% endif %}
+        {% if not rows %}<a class="btn btn-ghost btn-sm" href="{{ url_for('sell', event=e.id) if e else url_for('sell') }}">{{ t('looking_sell_cta') }}</a>{% endif %}
       </div>
     {% endif %}
 
@@ -107,11 +107,11 @@
               <button class="btn btn-ghost btn-sm is-on" type="submit">✓ {{ t('alert_on') }}</button>
               {{ m.push_toggle() }}
             {% else %}
-              <button class="btn btn-ghost btn-sm" type="submit">{{ t('alert_cta') }}</button>
+              <button class="btn {{ 'btn-accent' if not rows else 'btn-ghost' }} btn-sm" type="submit">{{ t('alert_cta') }}</button>
             {% endif %}
           </form>
         {% else %}
-          <a class="btn btn-ghost btn-sm" href="{{ url_for('login', next=event_url(ev.venue, ev.date, ev.name)) }}">{{ t('alert_cta') }}</a>
+          <a class="btn {{ 'btn-accent' if not rows else 'btn-ghost' }} btn-sm" href="{{ url_for('login', next=event_url(ev.venue, ev.date, ev.name)) }}">{{ t('alert_cta') }}</a>
         {% endif %}
       {% endif %}
       {{ m.share_button(ev.name or ev.venue, ev.venue, ev.date, (t('from') ~ ' ' ~ money(with_fee(ev.min_price))) if ev.min_price else t('on_nightswap'), url, ev.colour, ev.poster, category=ev.category) }}

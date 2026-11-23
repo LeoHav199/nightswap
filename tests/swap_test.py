@@ -55,7 +55,8 @@ run("UPDATE users SET payouts_ready=1 WHERE email='s@test.nl'")
 r = sell("20", "41")
 ok(r.status_code == 200 and "maximum for this ticket is €40" in html(r), "with the 100% cap a €20 ticket can't be listed for €41")
 home = html(visitor.get("/"))
-ok("Never more than double the face value." in home and "100% above" not in home, "the homepage says 'never more than double'")
+ok(("Never more than double the face value." in home or "Max 2× face value" in home) and "100% above" not in home,
+   "the homepage says 'never more than double' (in the subtitle, or the promise line when there are no tickets)")
 ok("at most double the face value" in html(visitor.get("/terms")) and "2 × face value" in html(visitor.get("/how-it-works")),
    "terms and How it works say 'double'")
 import i18n
