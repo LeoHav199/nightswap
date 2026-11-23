@@ -44,8 +44,9 @@
         </div>
       {% else %}
         <div class="stub-price stub-empty">
-          <span class="stub-count">{{ t('n_waiting', n=ev.waiting) if ev.waiting else t('get_notified') }}</span>
-          <strong>{{ t('no_tickets_yet') }}</strong>
+          {# Leads with what you can do, not with "no tickets yet" on every card (24 Nov 2026). #}
+          <span class="stub-count">{{ t('n_waiting', n=ev.waiting) if ev.waiting else t('be_first_know') }}</span>
+          <strong>{{ t('notify_me_short') }}</strong>
         </div>
       {% endif %}
     </div>

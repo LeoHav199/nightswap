@@ -37,7 +37,7 @@ page = html(v.get("/"))
 week = page.split('class="this-week"')[1].split("</section>")[0] if 'class="this-week"' in page else ""
 ok("Week One" in week and "Week Two" in week and "Far Away" not in week, "this week's events are cards; later ones aren't")
 ok("Far Away" in page.split('class="coming-up"')[1] if 'class="coming-up"' in page else False, "later events stay in the short list")
-ok("No tickets listed yet for these nights" in page and "Be the first to sell" not in page, "a slim line instead of the big empty box")
+ok("Got a ticket you can&#39;t use?" in page and "Be the first to sell" not in page and "No tickets yet" not in page, "a slim seller line instead of the big empty box, and no 'No tickets yet' on the cards")
 ok("home-stats" not in page, "2 events this week: too few, so no numbers line")
 tab = re.search(r'<a class="day-tab[^"]*"[^>]*href="[^"]*day=%s[^"]*"[^>]*>.*?</a>' % d1, page, re.S)
 ok(tab and "day-dot" in tab.group(0) and "is-empty" not in tab.group(0), "a day with an event gets a dot and isn't greyed out")
@@ -72,6 +72,12 @@ run("UPDATE events SET category='concert' WHERE name='Concert Thing'")
 page = html(fresh.get("/"))
 week = page.split('class="this-week"')[1].split("</section>")[0]
 ok(week.index("Student Bash") < week.index("Concert Thing"), "parties lead the This week cards, even when a concert is sooner")
+
+# ---- Less "no tickets" (24 Nov 2026): cards lead with "Notify me", nothing says "no tickets" on the homepage
+page = html(app.test_client().get("/"))
+visible = re.sub(r"<[^>]+>", " ", page)  # (the search box's data-none text only shows for a search that finds nothing)
+ok("no tickets" not in visible.lower(), "the homepage never says 'no tickets' when there are events")
+ok("Notify me" in page and "Be the first to know" in page, "empty cards say Notify me / Be the first to know")
 
 print("\n%d failed" % len(fails))
 sys.exit(1 if fails else 0)

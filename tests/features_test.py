@@ -69,7 +69,7 @@ lid0 = int(re.search(r"/t/(\d+)", r.location).group(1))
 r = other.post("/t/%d/buy" % lid0, data={"_csrf": csrf(other)})
 other.post(r.location, data={"_csrf": csrf(other)})
 ev = "/event?venue=Perron&date=%s&name=Alert+Night" % D
-ok("No tickets right now" in html(buyer.get(ev)), "sold-out event page stays up")
+ok("Be the first to know" in html(buyer.get(ev)), "sold-out event page stays up (and offers alerts)")
 buyer.post("/alerts", data={"venue": "Perron", "date": D, "name": "Alert Night", "_csrf": csrf(buyer)})
 ok("get an email" in html(buyer.get(ev)), "alert switched on")
 SENT.clear()

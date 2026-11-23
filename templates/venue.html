@@ -36,7 +36,7 @@
   {% if events %}
     <ul class="events">{% for ev in events %}{{ m.event_card(ev) }}{% endfor %}</ul>
   {% else %}
-    <div class="empty"><h2>{{ t('venue_empty') }}</h2><p class="muted">{{ t('empty_body') }}</p>
+    <div class="empty"><h2>{{ t('venue_empty') }}</h2><p class="muted">{{ t('venue_empty_body', venue=venue.name) }}</p>
       <div class="empty-actions"><a class="btn btn-accent" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a></div></div>
   {% endif %}
 </div>

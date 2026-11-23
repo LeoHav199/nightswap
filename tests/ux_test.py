@@ -24,7 +24,7 @@ for n in ("Night A", "Night B"):
     admin.post("/admin/events/save", data={"face_value_max": "500", "name": n, "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 home = html(v.get("/"))
 # Since 23 Nov 2026: a slim "no tickets yet" line, and this week's events as photo cards (no big empty box).
-ok("No tickets listed yet for these nights" in home and 'class="this-week"' in home and home.count('class="stub is-empty"') == 2
+ok("Got a ticket you can&#39;t use?" in home and 'class="this-week"' in home and home.count('class="stub is-empty"') == 2
    and "Be the first to sell" not in home, "no tickets anywhere: a slim line plus this week's events as cards")
 ok("All of the Netherlands" not in home and 'id="city"' not in home, "Rotterdam-only: no city picker / all-NL option")
 ok(html(v.get("/?city=all")).count("Night A") >= 1 and "All of the Netherlands" not in html(v.get("/?city=all")), "?city=all falls back to Rotterdam")
