@@ -520,6 +520,8 @@ input[type=date]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor
 /* Event page on phones: a short photo strip and the name once, so the tickets show on the first screen. */
 .event-more { margin-top: 32px; }
 .event-more .event-actions { margin-bottom: 0; }
+.event-more .event-actions:not(:last-child) { margin-bottom: 24px; }  /* buttons above the facts (no tickets): no overlap (24 Nov 2026) */
+.event-actions + .event-facts { margin-top: 0; }
 @media (max-width: 640px) {
   .event { gap: 16px; margin-top: 12px; }
   .event-poster .poster-large { aspect-ratio: 5 / 2; }
