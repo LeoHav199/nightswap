@@ -79,7 +79,7 @@ def _concert(rnd, base, accents):
     return parts
 
 
-STYLES = {"club": _club, "student": _student, "festival": _festival, "concert": _concert}
+STYLES = {"club": _club, "student": _student, "gala": _student, "festival": _festival, "concert": _concert}
 
 
 def svg(key, category, base_colour):

@@ -13,7 +13,7 @@
       <li>{{ t('promise_hold') }}</li>
       <li>{{ t('promise_refund') }}</li>
     </ul>
-    {% if week_events %}<p class="home-stats"><span class="live-dot" aria-hidden="true"></span>{{ t('home_stats_events', n=week_events) }}{% if week_waiting %} · {{ t('home_stats_waiting', n=week_waiting) }}{% endif %}</p>{% endif %}
+    {% if week_events or resold %}<p class="home-stats"><span class="live-dot" aria-hidden="true"></span>{% if week_events %}{{ t('home_stats_events', n=week_events) }}{% if week_waiting %} · {{ t('home_stats_waiting', n=week_waiting) }}{% endif %}{% endif %}{% if resold %}{{ ' · ' if week_events }}{{ t('home_stats_resold', n=resold) }}{% endif %}</p>{% endif %}
     <p class="made-by"><a href="{{ url_for('about') }}">{{ t('made_by_students') }} {{ t('nav_about') }} →</a></p>
   </div>
   <form class="search" method="get" action="{{ url_for('index') }}" role="search">
@@ -26,6 +26,18 @@
     <div class="suggest" id="suggest" role="listbox" hidden></div>
   </form>
 </section>
+
+{% if photo_strip %}
+{# This week's real photos and posters, so the page looks like a night out at first glance (24 Nov 2026). #}
+<div class="wrap photo-strip-wrap"><ul class="photo-strip" aria-label="{{ t('this_week_title') }}">
+  {% for ev in photo_strip %}
+    <li><a href="{{ url_for('event_page', venue=ev.venue, date=ev.date, name=ev.name or '') }}">
+      <img src="{{ url_for('poster', name=ev.poster or ev.photo, w=480) }}" alt="" loading="{{ 'eager' if loop.index <= 3 else 'lazy' }}" decoding="async">
+      <span><small>{{ fmt_date(ev.date, 'dow') }} {{ ev.date[8:10]|int }}</small>{{ ev.name or ev.venue }}</span>
+    </a></li>
+  {% endfor %}
+</ul></div>
+{% endif %}
 
 <section class="wrap filters-row" aria-label="{{ t('filters') }}">
   {% if cities|length > 1 or show_all_nl %}
@@ -40,7 +52,7 @@
   {% endif %}
   <div class="cat-chips">
     <a class="cat {{ 'is-on' if not cat }}" href="{{ url_for('index', day=day or None, q=q or None) }}">{{ t('cat_all') }}</a>
-    {% for c in ['student', 'club', 'festival', 'concert'] %}
+    {% for c in ['student', 'gala', 'club', 'festival', 'concert'] %}
       {% if cat_counts[c] or cat == c %}
         <a class="cat {{ 'is-on' if cat == c }}" href="{{ url_for('index', cat=c, day=day or None, q=q or None) }}">{{ t('cat_' ~ c ~ '_plural') }}</a>
       {% endif %}
@@ -114,6 +126,13 @@
         {% if day or q or cat %}<a class="btn btn-ghost" href="{{ url_for('index') }}">{{ t('see_all_nights') }}</a>{% endif %}
       </div>
     </div>
+  {% endif %}
+
+  {% if most_wanted %}
+    <section class="most-wanted">
+      <h2 class="list-head">{{ t('most_wanted_title') }} <span class="muted">· {{ t('most_wanted_sub') }}</span></h2>
+      <ul class="events">{% for ev in most_wanted %}{{ m.event_card(ev) }}{% endfor %}</ul>
+    </section>
   {% endif %}
 
   {% if this_week %}

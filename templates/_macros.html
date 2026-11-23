@@ -34,7 +34,7 @@
     <div class="stub-body">
       <div class="stub-info">
         <div class="stub-title">{{ ev.name or ev.venue }}</div>
-        <div class="stub-meta">{{ ev.venue }}{% if ev.city != 'Rotterdam' %}, {{ ev.city }}{% endif %} · {{ fmt_date(ev.date) }}{% if ev.category in ('student', 'festival', 'concert') %} · {{ t('cat_' ~ ev.category) }}{% endif %}</div>
+        <div class="stub-meta">{{ ev.venue }}{% if ev.city != 'Rotterdam' %}, {{ ev.city }}{% endif %} · {{ fmt_date(ev.date) }}{% if ev.category in ('student', 'gala', 'festival', 'concert') %} · {{ t('cat_' ~ ev.category) }}{% endif %}</div>
       </div>
       {% if ev.count %}
         <div class="stub-price">

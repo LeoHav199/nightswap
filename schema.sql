@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS listings (
   price_cents      INTEGER NOT NULL,   -- per ticket, what the seller receives
   poster_file      TEXT,               -- optional public event poster inside uploads/posters/
   sold_together    INTEGER NOT NULL DEFAULT 0,  -- 1 when several tickets share one file and can't be split
-  category         TEXT NOT NULL DEFAULT 'club',    -- student | club | festival | concert
+  category         TEXT NOT NULL DEFAULT 'club',    -- student | gala | club | festival | concert
   city             TEXT NOT NULL DEFAULT 'Rotterdam',
   start_time       TEXT,               -- optional HH:MM, used for the "starts in" countdown
   status           TEXT NOT NULL DEFAULT 'active',  -- active | sold | removed
@@ -311,3 +311,13 @@ CREATE TABLE IF NOT EXISTS event_requests (
   notified_at TEXT                           -- when the admins marked it added and the asker was emailed
 );
 CREATE INDEX IF NOT EXISTS event_requests_open ON event_requests (notified_at, name);
+
+-- Follow a venue (24 Nov 2026): told when tickets for any of its events appear.
+CREATE TABLE IF NOT EXISTS venue_follows (
+  id               INTEGER PRIMARY KEY,
+  user_id          INTEGER NOT NULL REFERENCES users (id),
+  venue_id         INTEGER NOT NULL REFERENCES venues (id),
+  last_notified_at TEXT,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (user_id, venue_id)
+);

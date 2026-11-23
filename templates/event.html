@@ -41,6 +41,7 @@
     </p>
     {% if starts_at and not past %}<p class="countdown-line"><span class="countdown" data-countdown="{{ starts_at }}" data-label="{{ t('starts_in') }}" data-started="{{ t('started') }}"></span></p>{% endif %}
 
+    {% if sold_count %}<p class="sold-line">{{ t('sold_on_spare', n=sold_count) }}</p>{% endif %}
     {% if looking and not past and not cancelled %}
       <div class="looking {{ 'looking-empty' if not rows }}">
         <span class="live-dot" aria-hidden="true"></span>

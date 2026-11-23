@@ -1198,3 +1198,20 @@ body.has-search-sheet { overflow: hidden; }
 
 .admin-import textarea { flex: 1; min-width: 0; font: inherit; }
 .import-problems { margin: 8px 0 0; padding-left: 18px; }
+
+
+/* Photo strip, Most wanted (24 Nov 2026) */
+.photo-strip-wrap { margin-top: 4px; }
+.photo-strip { list-style: none; display: flex; gap: 10px; overflow-x: auto; margin: 0; padding: 0 0 6px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.photo-strip::-webkit-scrollbar { display: none; }
+.photo-strip li { flex: 0 0 auto; scroll-snap-align: start; }
+.photo-strip a { position: relative; display: block; width: 148px; height: 104px; border-radius: var(--radius-sm); overflow: hidden; text-decoration: none; background: var(--surface); }
+.photo-strip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-strip span { position: absolute; inset: auto 0 0 0; padding: 18px 8px 6px; font-size: 12px; font-weight: 700; line-height: 1.2; color: #fff;
+  background: linear-gradient(transparent, rgba(10, 8, 25, .85)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.photo-strip small { display: block; font-size: 10px; font-weight: 600; opacity: .8; text-transform: uppercase; letter-spacing: .04em; }
+@media (min-width: 900px) { .photo-strip a { width: 180px; height: 120px; } }
+.most-wanted { margin-top: 28px; }
+.most-wanted .list-head { margin-bottom: 14px; }
+
+.sold-line { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--good); }

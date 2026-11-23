@@ -810,6 +810,32 @@ def notify_alerts(listing):
                   t("push_alert_body", date=fmt_date(listing["event_date"]), price=money(with_fee(listing["price_cents"]))),
                   event_url(listing["venue"], listing["event_date"], listing["event_name"]), tag="alert-%s" % listing["id"])
         db.run("UPDATE alerts SET last_notified_at=? WHERE id=?", sqltime(utcnow()), row["id"])
+    return len(rows) + notify_venue_followers(listing, {row["user_id"] for row in rows})
+
+
+def notify_venue_followers(listing, already):
+    """People who follow this venue (24 Nov 2026) hear about new tickets for any of its events, at most once an hour,
+    unless they already got the event's own alert just now."""
+    venue = get_venue(listing["venue"], listing["city"])
+    if not venue:
+        return 0
+    rows = db.all("""SELECT f.id, f.user_id, u.email, u.first_name, u.optional_emails_off FROM venue_follows f JOIN users u ON u.id = f.user_id
+                     WHERE f.venue_id = ? AND f.user_id != ? AND u.deleted_at IS NULL AND u.blocked_at IS NULL
+                       AND (f.last_notified_at IS NULL OR f.last_notified_at < ?)""",
+                  venue["id"], listing["seller_id"], sqltime(utcnow() - timedelta(hours=1)))
+    rows = [r for r in rows if r["user_id"] not in already]
+    title = listing_title(listing)
+    path = event_url(listing["venue"], listing["event_date"], listing["event_name"])
+    for row in rows:
+        if not row["optional_emails_off"]:
+            send_optional_email(row["user_id"], row["email"], t("mail_follow_subject", title=title, venue=venue["name"]),
+                                t("mail_follow_body", name=row["first_name"], title=title, venue=venue["name"],
+                                  date=fmt_date(listing["event_date"], "long"), price=money(with_fee(listing["price_cents"])),
+                                  url=base_url() + path))
+        push.send(row["user_id"], t("mail_follow_subject", title=title, venue=venue["name"]),
+                  t("push_alert_body", date=fmt_date(listing["event_date"]), price=money(with_fee(listing["price_cents"]))),
+                  path, tag="follow-%s" % listing["id"])
+        db.run("UPDATE venue_follows SET last_notified_at=? WHERE id=?", sqltime(utcnow()), row["id"])
     return len(rows)
 
 
@@ -1567,15 +1593,21 @@ def this_week_page():
     for i in range(7):
         d = (today() + timedelta(days=i)).isoformat()
         day_evs = sorted((e for e in evs if e["date"] == d),
-                         key=lambda e: (0 if e["count"] else 1, 0 if e["category"] in ("student", "club") else 1))
+                         key=lambda e: (0 if e["count"] else 1, 0 if e["category"] in PARTY_CATEGORIES else 1))
         if day_evs:
             days.append({"date": d, "events": day_evs})
-    parties = sum(1 for e in evs if e["category"] in ("student", "club"))
+    parties = sum(1 for e in evs if e["category"] in PARTY_CATEGORIES)
     return render_template("this_week.html", days=days, city=city, n_events=len(evs), n_parties=parties,
                            start=today().isoformat(), end=end, share_url=base_url() + url_for("this_week_page"))
 
 
-HOME_WEEK_CARDS = 8   # photo cards for this week's events without tickets on the homepage
+PARTY_CATEGORIES = ("student", "gala", "club")  # what counts as a party (parties lead the homepage and /this-week)
+HOME_WEEK_CARDS = 8
+TRACK_RECORD_MIN = 25  # "N tickets resold on Spare" shows on the homepage from this many (real paid orders only)
+SOLD_SHOW_MIN = 3      # "N sold on Spare" on an event page from this many
+MOST_WANTED_MIN = 3     # people waiting before an event counts as "most wanted"
+MOST_WANTED_CARDS = 4
+PHOTO_STRIP_MIN, PHOTO_STRIP_MAX = 3, 8  # the photo strip shows from 3 real photos, at most 8   # photo cards for this week's events without tickets on the homepage
 HOME_STATS_MIN = 5    # the "N events this week · N people waiting" line only shows numbers at least this big
 
 
@@ -1632,16 +1664,32 @@ def index():
     week_end = (today() + timedelta(days=6)).isoformat()
     # Parties first (24 Nov 2026): Spare is for student parties and club nights, so those lead the cards.
     party_first = sorted((e for e in upcoming if e["date"] <= week_end),
-                         key=lambda e: (0 if e["category"] in ("student", "club") else 1, e["date"]))
-    this_week = party_first[:HOME_WEEK_CARDS]
-    later_list = [e for e in upcoming if e not in this_week]
+                         key=lambda e: (0 if e["category"] in PARTY_CATEGORIES else 1, e["date"]))
     week_all = annotate_activity([e for e in evs if e["date"] <= week_end]) if not day and not q else []
+    # "Most wanted this week" (24 Nov 2026): real "Notify me" counts, only events at least MOST_WANTED_MIN people want.
+    most_wanted = sorted((e for e in week_all if e["waiting"] >= MOST_WANTED_MIN and not e["count"]),
+                         key=lambda e: (-e["waiting"], e["date"]))[:MOST_WANTED_CARDS]
+    wanted_keys = {(e["date"], e["venue"].lower(), (e["name"] or "").lower()) for e in most_wanted}
+    party_first = [e for e in party_first if (e["date"], e["venue"].lower(), (e["name"] or "").lower()) not in wanted_keys]
+    this_week = party_first[:HOME_WEEK_CARDS]
+    later_list = [e for e in upcoming if e not in this_week and (e["date"], e["venue"].lower(), (e["name"] or "").lower()) not in wanted_keys]
+    # A strip of this week's real photos and posters at the top (no generated art), when there are enough of them.
+    pics = sorted((e for e in week_all if e["poster"] or e["photo"]),
+                  key=lambda e: (0 if e["category"] in PARTY_CATEGORIES else 1, e["date"]))
+    seen_pics, photo_strip = set(), []
+    for e in pics:
+        pic = e["poster"] or e["photo"]
+        if pic not in seen_pics:
+            seen_pics.add(pic); photo_strip.append(e)
+    photo_strip = photo_strip[:PHOTO_STRIP_MAX] if len(photo_strip) >= PHOTO_STRIP_MIN else []
     week_events = len(week_all)
     week_waiting = sum(e["waiting"] for e in week_all)
     show_intro = not g.user and not request.cookies.get("intro_seen") and not q
+    resold = db.one("SELECT COALESCE(SUM(quantity), 0) AS n FROM orders WHERE status IN ('paid', 'released')")["n"]
     welcome = bool(SOURCE_RE.match(request.args.get("from", "").strip().lower())) and not q and not day  # came from our link
     resp = app.make_response(render_template(
-        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, show_intro=show_intro, welcome=welcome, this_week=this_week, later_list=later_list,
+        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, show_intro=show_intro, welcome=welcome,
+        most_wanted=most_wanted, photo_strip=photo_strip, resold=resold if resold >= TRACK_RECORD_MIN and not q and not day else 0, this_week=this_week, later_list=later_list,
         week_events=week_events if week_events >= HOME_STATS_MIN else 0,
         week_waiting=week_waiting if week_waiting >= HOME_STATS_MIN else 0,
         count=sum(e["count"] for e in shown),
@@ -1733,7 +1781,10 @@ def event_page():
         g.user["id"], ev["date"], ev["venue"], ev["name"] or "",
     )
     venue_row = get_venue(ev["venue"], ev["city"])
-    return render_template("event.html", ev=ev, rows=rows, stats=seller_stats(r["seller_id"] for r in rows),
+    sold = db.one("""SELECT COALESCE(SUM(o.quantity), 0) AS n FROM orders o JOIN listings l ON l.id = o.listing_id
+                     WHERE l.event_date=? AND lower(l.venue)=lower(?) AND lower(COALESCE(l.event_name, ''))=lower(?)
+                       AND o.status IN ('paid', 'released')""", ev["date"], ev["venue"], ev["name"] or "")["n"]
+    return render_template("event.html", ev=ev, rows=rows, sold_count=sold if sold >= SOLD_SHOW_MIN else 0, stats=seller_stats(r["seller_id"] for r in rows),
                            unlisted=city_unlisted(ev["city"], ev["category"]),
                            alert=alert, looking=looking_count(ev["date"], ev["venue"], ev["name"]), past=ev["date"] < today().isoformat(), venue=venue_row, e=ev.get("event"), cancelled=cancelled,
                            directions=directions_url(venue_row) if venue_row else None, starts_at=starts_at(ev))
@@ -1747,8 +1798,29 @@ def venue_page(slug):
         abort(404)
     rows = browse("AND lower(l.venue) = lower(?) AND lower(l.city) = lower(?)", venue["name"], venue["city"])
     evs = group_events(rows, event_rows("AND lower(venue) = lower(?) AND lower(city) = lower(?)", venue["name"], venue["city"]))
+    following = bool(g.user and db.one("SELECT 1 FROM venue_follows WHERE user_id=? AND venue_id=?", g.user["id"], venue["id"]))
+    followers = db.one("SELECT COUNT(*) AS n FROM venue_follows WHERE venue_id=?", venue["id"])["n"]
     return render_template("venue.html", venue=venue, unlisted=city_unlisted(venue["city"]), events=annotate_activity(evs), credit=photo_credit(venue),
-                           colour=venue_colour(venue["name"]), directions=directions_url(venue))
+                           colour=venue_colour(venue["name"]), directions=directions_url(venue), following=following,
+                           followers=followers if followers >= FOLLOWERS_SHOW_MIN else 0)
+
+
+FOLLOWERS_SHOW_MIN = 5  # "N people follow this venue" shows from this many
+
+
+@app.route("/venues/<slug>/follow", methods=["POST"])
+@login_required
+def follow_venue(slug):
+    venue = db.one("SELECT * FROM venues WHERE slug=?", slug)
+    if not venue:
+        abort(404)
+    if db.one("SELECT 1 FROM venue_follows WHERE user_id=? AND venue_id=?", g.user["id"], venue["id"]):
+        db.run("DELETE FROM venue_follows WHERE user_id=? AND venue_id=?", g.user["id"], venue["id"])
+        flash(t("unfollowed_venue", venue=venue["name"]), "ok")
+    else:
+        db.run("INSERT INTO venue_follows (user_id, venue_id) VALUES (?, ?)", g.user["id"], venue["id"])
+        flash(t("followed_venue", venue=venue["name"]), "ok")
+    return redirect(url_for("venue_page", slug=slug))
 
 
 @app.route("/sitemap.xml")

@@ -20,6 +20,11 @@
     </dl>
     <p class="muted small"><a href="{{ url_for('how') }}">{{ t('nav_how') }}</a></p>
   </section>
+  <section class="panel" id="organisers">
+    <h2>{{ t('about_org_title') }}</h2>
+    <p>{{ t('about_org_body') }}</p>
+    <div class="share-row"><a class="btn btn-ghost" href="mailto:hello@sparetickets.eu?subject={{ t('about_org_subject')|urlencode }}">{{ t('about_org_cta') }}</a></div>
+  </section>
   <section class="panel">
     <h2>{{ t('about_contact_title') }}</h2>
     <p>{{ t('about_contact', email='hello@sparetickets.eu') }}{% if instagram %} {{ t('about_instagram') }}{% endif %}</p>

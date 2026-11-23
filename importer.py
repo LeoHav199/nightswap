@@ -122,6 +122,8 @@ def _guess_category(obj, name, door=None):
     text = (name + " " + _text(obj.get("description"))[:300]).lower()
     if "festival" in kinds or "festival" in name.lower():
         return "festival"
+    if re.search(r"\b(gala|galabal|ball|winter ball|gala night)\b", name.lower()):
+        return "gala"
     if re.search(r"\b(student|studenten|studentenfeest|erasmus|eur|hogeschool|dispuut|vereniging)\b", text):
         return "student"
     if re.search(PARTY_WORDS, name.lower()) or (door and (door >= "22:30" or door < "05:00")):

@@ -58,7 +58,13 @@
     var standalone = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
     var seen = false;
     try { seen = localStorage.getItem("ns-install-dismissed") === "1"; } catch (e) {}
-    if (standalone || seen || window.innerWidth > 900) return;
+    // From the second visit only (24 Nov 2026): a first-time visitor sees Spare, not a pop-up.
+    var visits = 0;
+    try {
+      visits = parseInt(localStorage.getItem("ns-visits") || "0", 10) || 0;
+      if (!sessionStorage.getItem("ns-counted")) { visits += 1; localStorage.setItem("ns-visits", String(visits)); sessionStorage.setItem("ns-counted", "1"); }
+    } catch (e) {}
+    if (standalone || seen || window.innerWidth > 900 || visits < 2) return;
     var deferred = null;
     function dismiss() {
       bar.hidden = true;

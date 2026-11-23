@@ -100,7 +100,7 @@ CITY_SUGGESTIONS = ["Rotterdam", "Amsterdam", "Den Haag", "Utrecht", "Delft", "L
 
 # Categories, in the order they're shown. Festivals and concerts appear in every city's view,
 # because students travel for them; student parties and clubs are local.
-CATEGORIES = ["student", "club", "festival", "concert"]
+CATEGORIES = ["student", "gala", "club", "festival", "concert"]  # gala: student galas and balls (24 Nov 2026)
 NATIONAL_CATEGORIES = {"festival", "concert"}
 
 # Venues offered in the "post a ticket" form (all in Rotterdam). Sellers can also type another venue.

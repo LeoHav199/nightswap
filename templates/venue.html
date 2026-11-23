@@ -17,9 +17,14 @@
   <div class="wrap venue-hero-inner">
     <a class="back" href="{{ url_for('index') }}">← {{ t('back_to_tickets') }}</a>
     <h1 class="display">{{ venue.name }}</h1>
-    <p class="venue-where">{{ venue.address or venue.city }}</p>
+    <p class="venue-where">{{ venue.address or venue.city }}{% if followers %} · {{ t('venue_followers', n=followers) }}{% endif %}</p>
     <div class="event-actions">
-      <a class="btn btn-accent btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>
+      {% if user %}
+        <form method="post" action="{{ url_for('follow_venue', slug=venue.slug) }}">{{ m.csrf() }}<button class="btn {{ 'btn-ghost is-on' if following else 'btn-accent' }} btn-sm" type="submit">{{ ('✓ ' ~ t('following_venue')) if following else t('follow_venue') }}</button></form>
+      {% else %}
+        <a class="btn btn-accent btn-sm" href="{{ url_for('login', next=url_for('venue_page', slug=venue.slug)) }}">{{ t('follow_venue') }}</a>
+      {% endif %}
+      <a class="btn btn-ghost btn-sm" href="{{ directions }}" target="_blank" rel="noopener">{{ t('directions') }}</a>
       {% if venue.website %}<a class="btn btn-ghost btn-sm" href="{{ venue.website }}" target="_blank" rel="noopener">{{ t('website') }}</a>{% endif %}
     </div>
   </div>
