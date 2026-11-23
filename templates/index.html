@@ -5,6 +5,7 @@
   <div>
     <h1>{{ t('hero_title_city', city=city) if city != 'all' else t('hero_title_nl') }}</h1>
     <p class="lead">{{ t('hero_sub_free') if price_free else (t('hero_sub') if price_cap == 100 else t('hero_sub_pct', pct=price_markup)) }}</p>
+    {% if week_events %}<p class="home-stats"><span class="live-dot" aria-hidden="true"></span>{{ t('home_stats_events', n=week_events) }}{% if week_waiting %} · {{ t('home_stats_waiting', n=week_waiting) }}{% endif %}</p>{% endif %}
     <p class="made-by"><a href="{{ url_for('about') }}">{{ t('made_by_students') }} {{ t('nav_about') }} →</a></p>
   </div>
   <form class="search" method="get" action="{{ url_for('index') }}" role="search">
@@ -60,11 +61,12 @@
 <nav class="days-wrap" aria-label="{{ t('date') }}">
   <div class="wrap">
     <ul class="days">
-      <li><a class="day-tab day-all {{ 'is-on' if not day }}" href="{{ url_for('index', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('all_nights') }}</span><span class="day-n">{{ t('tickets_short_one') if total == 1 else t('tickets_short', n=total) }}</span></a></li>
+      <li><a class="day-tab day-all {{ 'is-on' if not day }}" href="{{ url_for('index', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('all_nights') }}</span><span class="day-n">{% if total %}{{ t('tickets_short_one') if total == 1 else t('tickets_short', n=total) }}{% elif events_total %}{{ t('day_events', n=events_total) }}{% else %}{{ t('tickets_short', n=0) }}{% endif %}</span></a></li>
       {% for tab in tabs %}
         {% set label = t('today') if loop.first else (t('tomorrow') if loop.index == 2 else fmt_date(tab.date, 'dow')) %}
-        <li><a class="day-tab {{ 'is-on' if day == tab.key }} {{ 'is-empty' if not tab.count }}" href="{{ url_for('index', day=tab.key, q=q or None, cat=cat or None) }}">
+        <li><a class="day-tab {{ 'is-on' if day == tab.key }} {{ 'is-empty' if not tab.events }}" href="{{ url_for('index', day=tab.key, q=q or None, cat=cat or None) }}"{% if tab.events %} aria-label="{{ label }} {{ tab.date[8:10]|int }}: {{ t('day_events', n=tab.events) }}"{% endif %}>
           <span class="day-dow">{{ label }}</span><span class="day-num">{{ tab.date[8:10]|int }}</span>
+          {% if tab.events %}<span class="day-dot {{ 'has-tickets' if tab.count }}" aria-hidden="true"></span>{% endif %}
         </a></li>
       {% endfor %}
       {% if later %}<li><a class="day-tab {{ 'is-on' if day == 'later' }}" href="{{ url_for('index', day='later', q=q or None, cat=cat or None) }}"><span class="day-dow">{{ t('later') }}</span><span class="day-n">{{ t('tickets_short_one') if later == 1 else t('tickets_short', n=later) }}</span></a></li>{% endif %}
@@ -79,22 +81,36 @@
       {% if q %}<a href="{{ url_for('index', day=day or None) }}">{{ t('clear_search') }}</a>{% endif %}
     </div>
     <ul class="events">{% for ev in events %}{{ m.event_card(ev) }}{% endfor %}</ul>
+  {% elif upcoming %}
+    {# No tickets, but events: one calm line instead of a big empty box (23 Nov 2026). #}
+    <div class="first-seller-bar">
+      <p><strong>{{ t('first_seller_short') }}</strong> <span class="first-seller-more">{{ t('first_seller_short_body') }}</span></p>
+      <a class="btn btn-accent btn-sm" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
+    </div>
   {% else %}
     <div class="empty empty-warm">
-      <h2>{{ t('first_seller_title') if upcoming else (t('empty_filtered_title') if q or cat else t('empty_title')) }}</h2>
-      <p class="muted">{{ t('first_seller_body') if upcoming else t('empty_body') }}</p>
+      <h2>{{ t('empty_filtered_title') if q or cat else t('empty_title') }}</h2>
+      <p class="muted">{{ t('empty_body') }}</p>
       <div class="empty-actions">
         <a class="btn btn-accent" href="{{ url_for('sell') }}">{{ t('nav_sell') }}</a>
-        {% if (day or q or cat) and not upcoming %}<a class="btn btn-ghost" href="{{ url_for('index') }}">{{ t('see_all_nights') }}</a>{% endif %}
+        {% if day or q or cat %}<a class="btn btn-ghost" href="{{ url_for('index') }}">{{ t('see_all_nights') }}</a>{% endif %}
       </div>
     </div>
   {% endif %}
 
-  {% if upcoming %}
+  {% if this_week %}
+    {# This week's events without tickets as photo cards: the page reads as a guide to the week, not an empty shop. #}
+    <section class="this-week">
+      <h2 class="list-head">{{ t('this_week_title') }} <span class="muted">· {{ t('this_week_sub') }}</span></h2>
+      <ul class="events">{% for ev in this_week %}{{ m.event_card(ev) }}{% endfor %}</ul>
+    </section>
+  {% endif %}
+
+  {% if later_list %}
     <section class="coming-up">
-      <h2 class="list-head">{{ t('coming_up') }} <span class="muted">· {{ t('coming_up_sub') }}</span></h2>
+      <h2 class="list-head">{{ t('coming_up') if not this_week else t('coming_later') }} <span class="muted">· {{ t('coming_up_sub') }}</span></h2>
       <ul class="coming-list">
-        {% for ev in upcoming %}
+        {% for ev in later_list %}
           <li {{ 'data-more hidden' if loop.index > 6 }}>
             <a class="coming-row" href="{{ url_for('event_page', venue=ev.venue, date=ev.date, name=ev.name or '') }}">
               <span class="sg-date" style="--venue: {{ ev.colour }}"><small>{{ fmt_date(ev.date, 'dow') }}</small>{{ ev.date[8:10]|int }}</span>
@@ -104,7 +120,7 @@
           </li>
         {% endfor %}
       </ul>
-      {% if upcoming|length > 6 %}<button class="btn btn-ghost btn-sm" type="button" data-show-more>{{ t('show_more_events', n=upcoming|length - 6) }}</button>{% endif %}
+      {% if later_list|length > 6 %}<button class="btn btn-ghost btn-sm" type="button" data-show-more>{{ t('show_more_events', n=later_list|length - 6) }}</button>{% endif %}
     </section>
   {% endif %}
 </section>

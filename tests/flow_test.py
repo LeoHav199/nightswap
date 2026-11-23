@@ -63,7 +63,7 @@ login(buyer, "buyer@test.nl", "Jesse")
 r = seller.post("/t/%d/buy" % lid, data={"_csrf": csrf(seller)}, follow_redirects=True); ok("buy your own" in r.get_data(as_text=True), "can't buy own")
 r = buyer.post("/t/%d/buy" % lid, data={"_csrf": csrf(buyer)}); ok("/checkout/" in r.location, "redirect to checkout")
 pub = r.location.split("/")[2]
-_h = buyer.get("/").get_data(as_text=True); ok("€19.50" not in _h and "Coming up" in _h, "ticket being paid for is off sale (event moves to 'Coming up')")
+_h = buyer.get("/").get_data(as_text=True); ok("€19.50" not in _h and ("Coming up" in _h or "This week" in _h), "ticket being paid for is off sale (event moves to 'This week' / 'Coming up')")
 ok(buyer.get("/orders/%s/tickets/1" % pub).status_code == 404, "no ticket before payment")
 r = buyer.post("/checkout/%s/test" % pub, data={"_csrf": csrf(buyer)}, follow_redirects=True)
 ok("got your ticket" in r.get_data(as_text=True), "payment completes")

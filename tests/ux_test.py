@@ -23,7 +23,9 @@ login(admin, "admin@example.com", "Ad"); login(seller, "s@test.nl", "Sam"); logi
 for n in ("Night A", "Night B"):
     admin.post("/admin/events/save", data={"face_value_max": "500", "name": n, "venue": "Maassilo", "category": "club", "event_date": D, "_csrf": csrf(admin)})
 home = html(v.get("/"))
-ok("Be the first to sell" in home and "Coming up" in home and 'class="stub' not in home, "no tickets anywhere: friendly 'be the first' message + compact list, no empty cards")
+# Since 23 Nov 2026: a slim "no tickets yet" line, and this week's events as photo cards (no big empty box).
+ok("No tickets listed yet for these nights" in home and 'class="this-week"' in home and home.count('class="stub is-empty"') == 2
+   and "Be the first to sell" not in home, "no tickets anywhere: a slim line plus this week's events as cards")
 ok("All of the Netherlands" not in home and 'id="city"' not in home, "Rotterdam-only: no city picker / all-NL option")
 ok(html(v.get("/?city=all")).count("Night A") >= 1 and "All of the Netherlands" not in html(v.get("/?city=all")), "?city=all falls back to Rotterdam")
 r = seller.post("/account/phone", data={"phone": "0611111111", "_csrf": csrf(seller)}, follow_redirects=True)
@@ -33,7 +35,8 @@ r = seller.post("/sell", data={"name_on_ticket": "no", "no_double_sell": "yes", 
     "ticket": (io.BytesIO(b"%PDF-1.4 a"), "a.pdf"), "_csrf": csrf(seller)}, content_type="multipart/form-data")
 lid = int(re.search(r"/t/(\d+)", r.location).group(1))
 home = html(v.get("/"))
-ok("Night A" in home.split('class="coming-up"')[0] and "Night B" in home.split('class="coming-up"')[1], "event with tickets is a card; the other stays in 'Coming up'")
+ok("Night A" in home.split('class="this-week"')[0] and "Night B" in home.split('class="this-week"')[1]
+   and "No tickets listed yet" not in home, "event with tickets is a card up top; the other shows under 'This week'")
 
 # header order: account last
 nav = html(buyer.get("/")).split('<nav class="nav">')[1].split("</nav>")[0]

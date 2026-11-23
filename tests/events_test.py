@@ -30,7 +30,7 @@ r = admin.post("/admin/events/save", data={"face_value_max": "500", "name": "Exc
 with app.app_context(): ev = A.db.one("SELECT * FROM events WHERE name='Exchange Halloween'")
 ok(ev and ev["status"] == "published" and ev["ticket_url"] == "https://exchangeparty.nl/halloween", "admin adds an event (link gets https://)")
 home = html(visitor.get("/"))
-ok("Exchange Halloween" in home and "Coming up" in home and 'class="coming-row"' in home, "event without tickets shows in the compact 'Coming up' list")
+ok("Exchange Halloween" in home and ('class="coming-row"' in home or 'class="this-week"' in home), "event without tickets shows (this week's as a card, later ones in the list)")
 page = html(visitor.get("/event?venue=Maassilo&date=%s&name=Exchange+Halloween" % D))
 ok("23:00 – 05:00" in page and "18+" in page and "exchangeparty.nl" in page and "Biggest student party" in page, "event page shows doors, age, official link and description")
 ok("Got a ticket? Sell it here" in page and "sell?event=%d" % ev["id"] in page, "event page links straight to selling for it")

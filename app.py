@@ -1491,6 +1491,10 @@ def view_transition_name(ev):
     return "ev-" + slugify("%s %s %s" % (ev["date"], ev["venue"], ev["name"] or ""))[:60]
 
 
+HOME_WEEK_CARDS = 8   # photo cards for this week's events without tickets on the homepage
+HOME_STATS_MIN = 5    # the "N events this week · N people waiting" line only shows numbers at least this big
+
+
 @app.route("/")
 def index():
     if not g.sees_site:
@@ -1537,10 +1541,22 @@ def index():
         tonight = [e for e in evs if e["date"] == today().isoformat() and e["count"]]
 
     shown = annotate_activity(shown)
+    # A busier homepage (23 Nov 2026): the next 7 days' events without tickets show as photo cards ("This week"),
+    # the rest stay in the short list, and a line of real numbers sits under the title. Only true counts, and the
+    # line hides while they're small: no made-up activity.
+    upcoming = [e for e in shown if not e["count"]]
+    week_end = (today() + timedelta(days=6)).isoformat()
+    this_week = [e for e in upcoming if e["date"] <= week_end][:HOME_WEEK_CARDS]
+    later_list = [e for e in upcoming if e not in this_week]
+    week_all = annotate_activity([e for e in evs if e["date"] <= week_end]) if not day and not q else []
+    week_events = len(week_all)
+    week_waiting = sum(e["waiting"] for e in week_all)
     resp = app.make_response(render_template(
-        "index.html", events=[e for e in shown if e["count"]], upcoming=[e for e in shown if not e["count"]],
+        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, this_week=this_week, later_list=later_list,
+        week_events=week_events if week_events >= HOME_STATS_MIN else 0,
+        week_waiting=week_waiting if week_waiting >= HOME_STATS_MIN else 0,
         count=sum(e["count"] for e in shown),
-        total=sum(tickets_per_day.values()), q=q, day=day, tabs=tabs, later=later, city=city, cat=cat,
+        total=sum(tickets_per_day.values()), events_total=sum(events_per_day.values()), q=q, day=day, tabs=tabs, later=later, city=city, cat=cat,
         cat_counts=cat_counts, cities=config.ENABLED_CITIES, show_all_nl=config.SHOW_ALL_NETHERLANDS, tonight=annotate_activity(tonight), starts_at=starts_at))
     if request.args.get("city"):
         resp.set_cookie("city", city, max_age=60 * 60 * 24 * 365, samesite="Lax")

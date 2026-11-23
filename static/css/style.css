@@ -1140,3 +1140,24 @@ body.has-search-sheet { overflow: hidden; }
 .protect[open] summary::after { content: " ▴"; }
 .protect summary:hover { color: var(--text); }
 .protect .assurances { border-top: 0; margin-top: 4px; }
+
+
+/* Busier homepage (23 Nov 2026): numbers line, day dots, slim first-seller line, "This week" cards */
+.home-stats { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; font-size: 14px; font-weight: 600; color: var(--text); }
+.day-tab { position: relative; }
+.day-dot { position: absolute; bottom: 3px; left: 50%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--faint); }
+.day-dot.has-tickets { background: var(--accent); }
+.day-tab.is-on .day-dot { background: var(--bg); }
+.first-seller-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; flex-wrap: wrap;
+  margin-top: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); }
+.first-seller-bar p { margin: 0; font-size: 14px; color: var(--muted); min-width: 0; flex: 1 1 220px; }
+.first-seller-bar strong { color: var(--text); }
+.this-week { margin-top: 28px; }
+.this-week .list-head { margin-bottom: 14px; }
+@media (max-width: 640px) {
+  .made-by { margin-top: 8px; font-size: 13px; }
+  .home-stats { font-size: 13px; margin-top: 10px; }
+  .first-seller-more { display: none; }
+  .first-seller-bar { padding: 10px 12px; }
+  .first-seller-bar p { flex-basis: 150px; }
+}
