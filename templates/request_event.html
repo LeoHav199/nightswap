@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('request_title') }} · Spare{% endblock %}
+{% block content %}
+<div class="wrap auth">
+  <form class="panel form" method="post" action="{{ url_for('request_event') }}" data-once>
+    {{ m.csrf() }}
+    <h1>{{ t('request_title') }}</h1>
+    <p class="muted">{{ t('request_sub') }}</p>
+    <label class="field">
+      <span class="label">{{ t('request_name') }}</span>
+      <input type="text" name="name" value="{{ name }}" maxlength="100" required placeholder="{{ t('request_name_ph') }}"{% if error %} aria-invalid="true" aria-describedby="request-error"{% endif %}>
+    </label>
+    <div class="grid-2">
+      <label class="field">
+        <span class="label">{{ t('date') }} <span class="optional">{{ t('optional') }}</span></span>
+        <input type="date" name="date" value="{{ day }}" min="{{ today }}" max="{{ max_date }}">
+      </label>
+      <label class="field">
+        <span class="label">{{ t('venue') }} <span class="optional">{{ t('optional') }}</span></span>
+        <input type="text" name="venue" value="{{ venue }}" maxlength="60">
+      </label>
+    </div>
+    {% if error %}<p class="field-error" id="request-error" role="alert">{{ error }}</p>{% endif %}
+    {% if user %}
+      <button class="btn btn-accent btn-block btn-lg" type="submit">{{ t('request_send') }}</button>
+    {% else %}
+      <a class="btn btn-accent btn-block btn-lg" href="{{ url_for('login', next=url_for('request_event', name=name or None)) }}">{{ t('request_login') }}</a>
+    {% endif %}
+    <p class="muted small">{{ t('request_note') }}</p>
+  </form>
+</div>
+{% endblock %}

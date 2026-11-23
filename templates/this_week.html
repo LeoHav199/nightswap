@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ t('tw_title', city=city) }} · Spare{% endblock %}
+{% block head %}
+  <meta property="og:title" content="{{ t('tw_title', city=city) }}">
+  <meta property="og:description" content="{{ t('tw_og', n=n_events) }}">
+{% endblock %}
+{% block content %}
+{# Shareable week overview (24 Nov 2026): made for group chats and Instagram stories. #}
+<section class="wrap home-head tw-head">
+  <div>
+    <p class="eyebrow">{{ fmt_date(start) }} – {{ fmt_date(end) }}</p>
+    <h1>{{ t('tw_title', city=city) }}</h1>
+    <p class="lead">{% if n_events %}{{ t('tw_lead', n=n_events, p=n_parties) }}{% else %}{{ t('tw_empty') }}{% endif %}</p>
+    <div class="tw-share">
+      <a class="btn btn-accent btn-sm" href="https://wa.me/?text={{ (t('tw_share_text', city=city) ~ ' ' ~ share_url)|urlencode }}" target="_blank" rel="noopener">{{ t('tw_share_whatsapp') }}</a>
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('index') }}">{{ t('tw_all_tickets') }}</a>
+    </div>
+  </div>
+</section>
+<section class="wrap">
+  {% for d in days %}
+    <section class="tw-day">
+      <h2 class="list-head">{{ fmt_date(d.date, 'long') }}</h2>
+      <ul class="events">{% for ev in d.events %}{{ m.event_card(ev) }}{% endfor %}</ul>
+    </section>
+  {% endfor %}
+  <p class="tw-missing">{{ t('cant_find_party') }} <a href="{{ url_for('request_event') }}">{{ t('cant_find_cta') }} →</a></p>
+</section>
+{% endblock %}

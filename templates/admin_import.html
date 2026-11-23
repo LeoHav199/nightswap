@@ -3,7 +3,8 @@
 {% block title %}Import events · Admin · Spare{% endblock %}
 {% block content %}
 <div class="wrap narrow-head account-head">
-  <div><h1>Found {{ found|length }} events</h1><p class="muted small">From <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>. Untick anything you don't want; check venue and category.</p></div>
+  <div><h1>Found {{ found|length }} events</h1><p class="muted small">From {% if url %}<a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>{% else %}{{ urls|length }} links{% endif %}. Untick anything you don't want; check venue and category.</p>
+    {% if problems %}<ul class="muted small import-problems">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}</div>
   <a class="btn btn-ghost btn-sm" href="{{ url_for('admin_events') }}">← Events</a>
 </div>
 <div class="wrap account">

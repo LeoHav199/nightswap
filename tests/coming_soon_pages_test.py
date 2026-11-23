@@ -68,13 +68,15 @@ PUBLIC = {
     "emails_stop": ("/emails/stop/not-a-token", {404}),
     "jarvis_feed": ("/api/jarvis", {404}),  # no token: the page doesn't exist
     "health": ("/health", {200}),  # (503 "late" if the hourly task hadn't run: health_test.py)
+    "request_event": ("/request-event", {200}),  # "Can't find your party?" (asking needs a login, the form doesn't)
+    "this_week_page": ("/this-week", {200}),  # the shareable week overview
 }
 # Pages that must never be sent to the sign-up page, whatever the mode (what Leo and the outside services rely on).
 STAY_OPEN = ["health", "robots", "sitemap", "help_page", "terms", "privacy", "how", "about", "credits", "login", "static",
              "manifest", "service_worker", "offline", "set_lang", "waitlist_leave", "emails_stop", "jarvis_feed", "login_verify"]
 # Public pages that visitors get to see only once the site is open: in coming-soon mode they go to the sign-up page.
 SIGNUP_ONLY = ["event_art", "search_suggest", "event_page", "venue_page", "poster", "listing_page", "report_listing", "events_on_date",
-               "push_key", "favicon"]
+               "push_key", "favicon", "request_event", "this_week_page"]
 # Everything else that has a GET address needs a sign-in (or admin): told apart by the start of the address.
 MEMBER_PREFIXES = ("/admin", "/account", "/orders", "/threads", "/messages", "/checkout", "/sell", "/settings", "/events/")
 

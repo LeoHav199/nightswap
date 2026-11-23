@@ -15,10 +15,10 @@
     <h2>Import from a link</h2>
     <form class="panel admin-import" method="post" action="{{ url_for('admin_event_import') }}">
       {{ m.csrf() }}
-      <input type="url" name="url" required placeholder="https://www.maassilo.com/agenda">
+      <textarea name="urls" rows="3" required placeholder="https://www.maassilo.com/agenda&#10;https://ra.co/events/...&#10;(one link per line, up to 15)"></textarea>
       <button class="btn btn-accent" type="submit">Find events</button>
     </form>
-    <p class="muted small">Paste a venue agenda, a festival page or a ticket shop page. Works when the site publishes event data for search engines (most ticket shops and many venues do). You choose which events to add.</p>
+    <p class="muted small">Paste one or more links, one per line (up to 15): venue agendas, event pages, ticket shops. Works when the site publishes event data for search engines (most ticket shops and many venues do). You choose which events to add.</p>
   </section>
 
   {% if posters %}

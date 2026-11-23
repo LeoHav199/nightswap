@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Requested events · Admin · Spare{% endblock %}
+{% block content %}
+<div class="wrap narrow-head account-head">
+  <div><h1>Requested events</h1><p class="muted small">Parties people asked for that aren't on Spare yet, most-asked first. Add the event (Events → Import from a link), then click "Added: email them" so everyone who asked gets a link.</p></div>
+  <a class="btn btn-ghost btn-sm" href="{{ url_for('admin') }}">← Admin</a>
+</div>
+<div class="wrap account">
+  {% if rows %}
+  <ul class="table-list">
+    {% for r in rows %}
+    <li class="admin-event-row">
+      <div class="tl-main">
+        <strong>{{ r.name }}</strong>
+        <span class="muted small">{{ r.n }} {{ 'person' if r.n == 1 else 'people' }}{% if r.event_date %} · {{ fmt_date(r.event_date) }}{% endif %}{% if r.venues %} · {{ r.venues }}{% endif %} · last asked {{ r.last[:16] }}</span>
+      </div>
+      <form method="post" action="{{ url_for('admin_requests_done') }}">{{ m.csrf() }}<input type="hidden" name="k" value="{{ r.k }}"><input type="hidden" name="action" value="added"><button class="btn btn-accent btn-sm">Added: email them</button></form>
+      <form method="post" action="{{ url_for('admin_requests_done') }}">{{ m.csrf() }}<input type="hidden" name="k" value="{{ r.k }}"><button class="btn btn-ghost btn-sm">Close</button></form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">No open requests.</p>
+  {% endif %}
+</div>
+{% endblock %}

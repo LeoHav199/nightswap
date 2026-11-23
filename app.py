@@ -1491,6 +1491,90 @@ def view_transition_name(ev):
     return "ev-" + slugify("%s %s %s" % (ev["date"], ev["venue"], ev["name"] or ""))[:60]
 
 
+# --------------------------------------------------------------------------
+# "Can't find your party?" (24 Nov 2026): visitors ask for events that aren't on Spare yet; the admins see a ranked
+# list, add the event, and one click emails everyone who asked.
+# --------------------------------------------------------------------------
+
+REQUEST_NAME_MAX = 100
+
+
+@app.route("/request-event", methods=["GET", "POST"])
+def request_event():
+    name = " ".join(request.values.get("name", "").split())[:REQUEST_NAME_MAX]
+    venue = " ".join(request.values.get("venue", "").split())[:60]
+    day = request.values.get("date", "").strip()
+    error = None
+    if request.method == "POST":
+        if not g.user:
+            return redirect(url_for("login", next=url_for("request_event", name=name or None)))
+        if len(name) < 2:
+            error = t("err_request_name")
+        elif day and (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day) or day < today().isoformat()):
+            error = t("err_request_date")
+        elif rate_limited("event-request", 10, 60 * 24, g.user["id"]):
+            error = t("err_too_many_tries")
+        else:
+            already = db.one("""SELECT 1 FROM event_requests WHERE user_id=? AND lower(name)=lower(?) AND notified_at IS NULL""",
+                             g.user["id"], name)
+            if not already:
+                db.run("INSERT INTO event_requests (user_id, name, event_date, venue) VALUES (?, ?, ?, ?)",
+                       g.user["id"], name, day or None, venue or None)
+            flash(t("request_thanks", name=name), "ok")
+            return redirect(url_for("index"))
+    return render_template("request_event.html", name=name, venue=venue, day=day, error=error,
+                           today=today().isoformat(), max_date=(today() + timedelta(days=365)).isoformat())
+
+
+@app.route("/admin/requests")
+@admin_required
+def admin_requests():
+    """Open requests, most-asked first: what to add to Spare next."""
+    rows = db.all("""SELECT lower(name) AS k, MIN(name) AS name, COUNT(DISTINCT user_id) AS n, MAX(event_date) AS event_date,
+                            GROUP_CONCAT(DISTINCT venue) AS venues, MAX(created_at) AS last
+                     FROM event_requests WHERE notified_at IS NULL GROUP BY lower(name) ORDER BY n DESC, last DESC""")
+    return render_template("admin_requests.html", rows=rows)
+
+
+@app.route("/admin/requests/done", methods=["POST"])
+@admin_required
+def admin_requests_done():
+    """Marks a request as added and emails everyone who asked, with a link to it on Spare (or just closes it)."""
+    key = request.form.get("k", "").strip().lower()
+    tell_them = request.form.get("action") == "added"
+    asked = db.all("""SELECT r.id, r.name, u.email, u.first_name FROM event_requests r JOIN users u ON u.id = r.user_id
+                      WHERE lower(r.name)=? AND r.notified_at IS NULL AND u.deleted_at IS NULL""", key)
+    for r in asked:
+        db.run("UPDATE event_requests SET notified_at=? WHERE id=?", sqltime(utcnow()), r["id"])
+        if tell_them:
+            notify.send_email(r["email"], t("mail_request_added_subject", name=r["name"]),
+                              t("mail_request_added_body", name=r["name"], url=base_url() + url_for("index", q=r["name"])))
+    db.run("UPDATE event_requests SET notified_at=? WHERE lower(name)=? AND notified_at IS NULL", sqltime(utcnow()), key)
+    flash(("Emailed %d people." % len(asked)) if tell_them else "Closed.", "ok")
+    return redirect(url_for("admin_requests"))
+
+
+@app.route("/this-week")
+def this_week_page():
+    """A shareable page with the next 7 days in the default city, parties first per day (24 Nov 2026)."""
+    if not g.sees_site:
+        return coming_soon_page()
+    release_unpaid()
+    city = config.DEFAULT_CITY
+    end = (today() + timedelta(days=6)).isoformat()
+    evs = annotate_activity([e for e in group_events(browse(), event_rows()) if in_city_view(e, city) and e["date"] <= end])
+    days = []
+    for i in range(7):
+        d = (today() + timedelta(days=i)).isoformat()
+        day_evs = sorted((e for e in evs if e["date"] == d),
+                         key=lambda e: (0 if e["count"] else 1, 0 if e["category"] in ("student", "club") else 1))
+        if day_evs:
+            days.append({"date": d, "events": day_evs})
+    parties = sum(1 for e in evs if e["category"] in ("student", "club"))
+    return render_template("this_week.html", days=days, city=city, n_events=len(evs), n_parties=parties,
+                           start=today().isoformat(), end=end, share_url=base_url() + url_for("this_week_page"))
+
+
 HOME_WEEK_CARDS = 8   # photo cards for this week's events without tickets on the homepage
 HOME_STATS_MIN = 5    # the "N events this week · N people waiting" line only shows numbers at least this big
 
@@ -1555,8 +1639,9 @@ def index():
     week_events = len(week_all)
     week_waiting = sum(e["waiting"] for e in week_all)
     show_intro = not g.user and not request.cookies.get("intro_seen") and not q
+    welcome = bool(SOURCE_RE.match(request.args.get("from", "").strip().lower())) and not q and not day  # came from our link
     resp = app.make_response(render_template(
-        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, show_intro=show_intro, this_week=this_week, later_list=later_list,
+        "index.html", events=[e for e in shown if e["count"]], upcoming=upcoming, show_intro=show_intro, welcome=welcome, this_week=this_week, later_list=later_list,
         week_events=week_events if week_events >= HOME_STATS_MIN else 0,
         week_waiting=week_waiting if week_waiting >= HOME_STATS_MIN else 0,
         count=sum(e["count"] for e in shown),
@@ -1670,6 +1755,7 @@ def venue_page(slug):
 def sitemap():
     urls = [base_url() + url_for("index"), base_url() + url_for("how"), base_url() + url_for("help_page")]
     if g.sees_site:  # in coming-soon mode visitors are sent to the sign-up page from venue and event pages
+        urls.insert(1, base_url() + url_for("this_week_page"))
         cities = {c.lower() for c in config.ENABLED_CITIES}
         urls += [base_url() + url_for("venue_page", slug=v["slug"]) for v in db.all("SELECT slug, city FROM venues")
                  if v["city"].lower() in cities]
@@ -4220,23 +4306,42 @@ def admin_event_status(event_id, action):
     return redirect(request.referrer or url_for("admin_events"))
 
 
+IMPORT_MAX_LINKS = 15  # links per "Find events" (24 Nov 2026: paste a whole week's links at once)
+
+
 @app.route("/admin/events/import", methods=["POST"])
 @admin_required
 def admin_event_import():
-    url = request.form.get("url", "").strip()
-    try:
-        found = importer.extract(importer.fetch(url), url)
-    except importer.ImportError_ as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("admin_events"))
-    found = [e for e in found if e["event_date"] >= today().isoformat()]
-    for e in found:
-        e["exists"] = bool(find_event(e["event_date"], e["venue"], e["name"]))
-        e["city"] = e["city"] or config.DEFAULT_CITY
+    raw = request.form.get("urls") or request.form.get("url", "")
+    urls = []
+    for u in raw.split():
+        if u not in urls:
+            urls.append(u)
+    urls = urls[:IMPORT_MAX_LINKS]
+    found, problems, seen = [], [], set()
+    for url in urls:
+        try:
+            page = importer.extract(importer.fetch(url), url)
+        except importer.ImportError_ as exc:
+            problems.append("%s: %s" % (url, exc))
+            continue
+        page = [e for e in page if e["event_date"] >= today().isoformat()]
+        if not page:
+            problems.append("%s: no upcoming events found (add it by hand)" % url)
+        for e in page:
+            key = (e["event_date"], (e["venue"] or "").lower(), (e["name"] or "").lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            e["source_url"] = url
+            e["exists"] = bool(find_event(e["event_date"], e["venue"], e["name"]))
+            e["city"] = e["city"] or config.DEFAULT_CITY
+            found.append(e)
     if not found:
-        flash("No upcoming events found on that page. Some sites don't publish event data; add those by hand.", "error")
+        flash(" ".join(problems) or "No links given.", "error")
         return redirect(url_for("admin_events"))
-    return render_template("admin_import.html", found=found, url=url, payload=json.dumps(found), categories=config.CATEGORIES)
+    return render_template("admin_import.html", found=found, url=urls[0] if len(urls) == 1 else "", urls=urls, problems=problems,
+                           payload=json.dumps(found), categories=config.CATEGORIES)
 
 
 @app.route("/admin/events/import/confirm", methods=["POST"])
@@ -4253,7 +4358,7 @@ def admin_event_import_confirm():
             continue
         form = dict(e, category=request.form.get("category_%d" % i, e.get("category")),
                     venue=request.form.get("venue_%d" % i, e.get("venue")) or "",
-                    source_url=request.form.get("url"), min_age="", door_time=e.get("door_time") or "",
+                    source_url=e.get("source_url") or request.form.get("url"), min_age="", door_time=e.get("door_time") or "",
                     end_time=e.get("end_time") or "", ticket_url=e.get("ticket_url") or "", description=e.get("description") or "",
                     face_value_max=e.get("face_value_max") or "")
         v, error = event_from_form(form)

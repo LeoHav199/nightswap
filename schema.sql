@@ -299,3 +299,15 @@ CREATE TABLE IF NOT EXISTS proofs (
 );
 CREATE INDEX IF NOT EXISTS proofs_listing ON proofs (listing_id);
 CREATE INDEX IF NOT EXISTS proofs_order ON proofs (order_id);
+
+-- "Can't find your party?" (24 Nov 2026): a signed-in visitor asks for an event that isn't on Spare yet.
+CREATE TABLE IF NOT EXISTS event_requests (
+  id          INTEGER PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users (id),
+  name        TEXT NOT NULL,
+  event_date  TEXT,                          -- optional, YYYY-MM-DD
+  venue       TEXT,                          -- optional
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  notified_at TEXT                           -- when the admins marked it added and the asker was emailed
+);
+CREATE INDEX IF NOT EXISTS event_requests_open ON event_requests (notified_at, name);

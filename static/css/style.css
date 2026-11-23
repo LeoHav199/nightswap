@@ -1184,3 +1184,17 @@ body.has-search-sheet { overflow: hidden; }
   .promises li { font-size: 12.5px; padding: 0; background: none; border: 0; color: var(--muted); }
   .home-head .lead { margin-top: 6px; }
 }
+
+
+/* Requests, This week page, welcome line (24 Nov 2026) */
+.welcome-line { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--accent); }
+.list-head-link { float: right; font-weight: 600; color: var(--accent); text-decoration: none; }
+.tw-missing { margin: 28px 0 0; font-size: 14px; color: var(--muted); }
+.tw-missing a { color: var(--text); }
+.tw-head .eyebrow { margin: 0 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.tw-share { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.tw-day { margin-top: 26px; }
+.tw-day .list-head { margin-bottom: 14px; }
+
+.admin-import textarea { flex: 1; min-width: 0; font: inherit; }
+.import-problems { margin: 8px 0 0; padding-left: 18px; }

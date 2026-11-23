@@ -3,6 +3,7 @@
 {% block content %}
 <section class="wrap home-head">
   <div>
+    {% if welcome %}<p class="welcome-line">{{ t('welcome_from', city=city) }}</p>{% endif %}
     {# The title only promises tonight's tickets when there are tickets; otherwise it says what Spare is (24 Nov 2026). #}
     {% set honest = not total and not q and not day %}
     <h1>{% if honest %}{{ t('hero_title_empty', city=city) if city != 'all' else t('hero_title_empty_nl') }}{% else %}{{ t('hero_title_city', city=city) if city != 'all' else t('hero_title_nl') }}{% endif %}</h1>
@@ -88,6 +89,16 @@
       {% if q %}<a href="{{ url_for('index', day=day or None) }}">{{ t('clear_search') }}</a>{% endif %}
     </div>
     <ul class="events">{% for ev in events %}{{ m.event_card(ev) }}{% endfor %}</ul>
+  {% elif q and not upcoming %}
+    {# A search that finds nothing: offer to ask for the party instead of a dead end (24 Nov 2026). #}
+    <div class="empty empty-warm">
+      <h2>{{ t('search_none_title', q=q) }}</h2>
+      <p class="muted">{{ t('search_none_body') }}</p>
+      <div class="empty-actions">
+        <a class="btn btn-accent" href="{{ url_for('request_event', name=q) }}">{{ t('cant_find_cta') }}</a>
+        <a class="btn btn-ghost" href="{{ url_for('index') }}">{{ t('see_all_nights') }}</a>
+      </div>
+    </div>
   {% elif upcoming %}
     {# No tickets, but events: one calm line instead of a big empty box (23 Nov 2026). #}
     <div class="first-seller-bar">
@@ -108,7 +119,7 @@
   {% if this_week %}
     {# This week's events without tickets as photo cards: the page reads as a guide to the week, not an empty shop. #}
     <section class="this-week">
-      <h2 class="list-head">{{ t('this_week_title') }} <span class="muted">· {{ t('this_week_sub') }}</span></h2>
+      <h2 class="list-head">{{ t('this_week_title') }} <span class="muted">· {{ t('this_week_sub') }}</span> <a class="list-head-link" href="{{ url_for('this_week_page') }}">{{ t('tw_link') }} →</a></h2>
       <ul class="events">{% for ev in this_week %}{{ m.event_card(ev) }}{% endfor %}</ul>
     </section>
   {% endif %}
@@ -143,6 +154,7 @@
       {% if later_list|length > 6 %}<button class="btn btn-ghost btn-sm" type="button" data-show-more>{{ t('show_more_events', n=later_list|length - 6) }}</button>{% endif %}
     </section>
   {% endif %}
+  {% if not (q and not events and not upcoming) %}<p class="tw-missing">{{ t('cant_find_party') }} <a href="{{ url_for('request_event', name=q or None) }}">{{ t('cant_find_cta') }} →</a></p>{% endif %}
   <div class="pay-badges" aria-label="{{ t('pay_badges_label') }}">
     <span class="pay-label">{{ t('pay_badges_label') }}</span>
     <span class="pay-badge">iDEAL</span><span class="pay-badge">Visa</span><span class="pay-badge">Mastercard</span>
